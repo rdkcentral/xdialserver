@@ -96,7 +96,6 @@ static void ssdp_http_server_callback(SoupServer *server, SoupMessage *msg, cons
     dd_xml_response_str_ = g_strdup_printf(ssdp_device_xml_template, gdial_options_->friendly_name, manufacturer, model, gdial_options_->uuid);
     dd_xml_response_str_len = strlen(dd_xml_response_str_);
   }
-
   gchar *application_url_str = g_strdup_printf("http://%s:%d%s/", iface_ipv4_address, GDIAL_REST_HTTP_PORT, GDIAL_REST_HTTP_APPS_URI);
   soup_message_headers_replace (msg->response_headers, "Application-URL", application_url_str);
   g_free(application_url_str);

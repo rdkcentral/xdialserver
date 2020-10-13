@@ -23,11 +23,14 @@
 #include "gdial-config.h"
 #include "gdial-plat-app.h"
 #include "gdial-os-app.h"
+#include "rtdial.hpp"
 
 static void gdial_app_state_cb_default(gint instance_id, GDialAppState state, gpointer user_data);
 static GMainContext *g_main_context_ = NULL;
 static gdial_plat_application_state_cb gdial_app_state_cb_ = gdial_app_state_cb_default;
 static gpointer gdial_app_state_cb_user_data_ = NULL;
+
+static gdial_plat_activation_cb g_activation_cb = NULL;
 
 #define GDIAL_PLAT_APP_ASYNC_CONTEXT_TYPE_COMMON 0
 #define GDIAL_PLAT_APP_ASYNC_CONTEXT_TYPE_START  1
@@ -126,11 +129,20 @@ static gboolean GSourceFunc_application_stop_async_cb(gpointer user_data) {
 
 void gdail_plat_register_activation_cb(gdial_plat_activation_cb cb)
 {
+  g_activation_cb = cb;
+  rtdail_register_activation_cb(cb);
 }
+
 gint gdial_plat_init(GMainContext *main_context) {
   g_return_val_if_fail(main_context != NULL, GDIAL_APP_ERROR_INTERNAL);
   g_return_val_if_fail((g_main_context_ == NULL || g_main_context_ == main_context), GDIAL_APP_ERROR_INTERNAL);
   g_main_context_ = g_main_context_ref(main_context);
+
+  if(!rtdial_init(g_main_context_)) {
+      printf("rtdial_init failed !!!!!\n");
+      return GDIAL_APP_ERROR_INTERNAL;
+  }
+
   if (gdial_plat_app_async_contexts == NULL) {
     gdial_plat_app_async_contexts = g_hash_table_new_full(g_direct_hash, g_direct_equal, GDialPlatAppAsyncContext_destroy, /* key,value are same pointer*/NULL);
   }
@@ -208,6 +220,7 @@ void *gdial_plat_application_stop_async(const gchar *app_name, gint instance_id,
 }
 
 GDialAppError gdial_plat_application_state(const gchar *app_name, gint instance_id, GDialAppState *state) {
+  g_print("GDIAL : Inside gdial_plat_application_state\n");
   g_return_val_if_fail(app_name != NULL, GDIAL_APP_ERROR_BAD_REQUEST);
   g_return_val_if_fail(state != NULL, GDIAL_APP_ERROR_BAD_REQUEST);
   g_return_val_if_fail(instance_id != GDIAL_APP_INSTANCE_NONE, GDIAL_APP_ERROR_BAD_REQUEST);
@@ -247,6 +260,7 @@ void gdial_plat_application_remove_async_source(void *async_source) {
 }
 
 void gdial_plat_term() {
+  rtdial_term();
   g_main_context_unref(g_main_context_);
   g_warn_if_fail(g_hash_table_size(gdial_plat_app_async_contexts) == 0);
   g_hash_table_unref(gdial_plat_app_async_contexts);

@@ -26,7 +26,7 @@ check_function_exists (malloc HAVE_MALLOC)
 add_definitions(-DGDIAL_STATIC=extern -DGDIAL_STATIC_INLINE=extern)
 
 #add_subdirectory (plat) that builds libgdial-plat.so
-add_subdirectory (${PROJECT_SOURCE_DIR}/stub)
+add_subdirectory (${PROJECT_SOURCE_DIR}/plat)
 
 include_directories (
   ${GLIB_INCLUDE_DIRS}
