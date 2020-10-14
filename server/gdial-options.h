@@ -33,6 +33,7 @@
 #define MANUFACTURER_OPTION 'R'
 #define MANUFACTURER_OPTION_LONG "manufacturer"
 #define MANUFACTURER_DESCRIPTION "Manufacturer of the device"
+
 #define UUID_OPTION 'U'
 #define UUID_OPTION_LONG "uuid-name"
 #define UUID_DESCRIPTION "UUID of the device"

@@ -109,6 +109,7 @@ static void signal_handler_rest_server_rest_enable(GDialRestServer *dial_rest_se
       server_activation_handler(0);
   }
 }
+
 static void gdial_http_server_throttle_callback(SoupServer *server,
             SoupMessage *msg, const gchar *path, GHashTable *query,
             SoupClientContext  *client, gpointer user_data)

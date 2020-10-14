@@ -194,6 +194,7 @@ GDIAL_STATIC gboolean gdial_rest_server_should_relaunch_app(GDialApp *app, const
 static gint GCompareFunc_match_registry_app_name(gconstpointer a, gconstpointer b) {
   GDialAppRegistry *app_registry = (GDialAppRegistry *)a;
   int is_matched = 0;
+  /* match by prefix first */
   GList *app_prefixes = app_registry->app_prefixes;
   while (app_prefixes) {
     gchar *app_prefix = (gchar *)app_prefixes->data;
@@ -203,6 +204,7 @@ static gint GCompareFunc_match_registry_app_name(gconstpointer a, gconstpointer 
     }
     app_prefixes = app_prefixes->next;
   }
+  /* match by exact name */
   if (!is_matched) is_matched = (g_strcmp0(app_registry->name, b) == 0);
   return is_matched ? 0 : 1;
 }
@@ -228,11 +230,11 @@ GDIAL_STATIC gboolean gdial_rest_server_is_allowed_origin(GDialRestServer *self,
   const gchar *uri_scheme = origin_uri ? soup_uri_get_scheme(origin_uri) : NULL;
 
   if (origin_uri && uri_scheme &&
-     (uri_scheme == SOUP_URI_SCHEME_HTTP || uri_scheme == SOUP_URI_SCHEME_HTTPS || uri_scheme == SOUP_URI_SCHEME_FILE)) {
+    (uri_scheme == SOUP_URI_SCHEME_HTTP || uri_scheme == SOUP_URI_SCHEME_HTTPS || uri_scheme == SOUP_URI_SCHEME_FILE)) {
     GDialAppRegistry *app_registry = gdial_rest_server_find_app_registry(self, app_name);
     if (app_registry) {
       GList *allowed_origins = app_registry->allowed_origins;
-      while(allowed_origins) {
+      while (allowed_origins) {
         gchar *origin = (gchar *)allowed_origins->data;
         if (GDIAL_STR_ENDS_WITH(header_origin, origin)) {
           is_allowed = TRUE;
@@ -606,6 +608,7 @@ static void gdial_rest_http_server_system_callback(SoupServer *server,
   }
   soup_message_set_status(msg, SOUP_STATUS_OK);
 }
+
 static void gdial_local_rest_http_server_callback(SoupServer *server,
             SoupMessage *msg, const gchar *path, GHashTable *query,
             SoupClientContext  *client, gpointer user_data) {
@@ -622,6 +625,7 @@ static void gdial_local_rest_http_server_callback(SoupServer *server,
   int i = 0;
   int j = 0;
   for (i = 0; elements[i] != NULL; i++) {
+    /* do not allow any element to be empty, stop on first one */
     if ((strlen(elements[i])) == 0) {
       g_printerr("Warn: empty elements in URI path\r\n");
       continue;
@@ -729,7 +733,7 @@ static void gdial_rest_http_server_apps_callback(SoupServer *server,
    */
   const gchar *copied_str[] = {base, app_name, instance, last_elem};
   i = 0; j = 0;
-  while(i < element_num && i < sizeof(copied_str)/sizeof(copied_str[0])) {
+  while (i < element_num && i < sizeof(copied_str)/sizeof(copied_str[0])) {
     if (strlen(elements[j]) == 0) {
       j++;
       continue;
@@ -770,7 +774,7 @@ static void gdial_rest_http_server_apps_callback(SoupServer *server,
 
   /*
    * element_num == 2:
-   *   apps/Netflix/
+   *   apps/Netflix
    *
    * element_num == 3:
    *   apps/Netflix/run
@@ -878,6 +882,9 @@ static void gdial_rest_http_server_apps_callback(SoupServer *server,
       invalid_uri = TRUE;
     }
   }
+  /*
+   * Add request throttling
+   */
   usleep(GDIAL_RESPONSE_DELAY);
 
   gdial_rest_server_http_return_if_fail(!invalid_uri, msg, SOUP_STATUS_NOT_IMPLEMENTED);
@@ -1046,7 +1053,7 @@ gboolean gdial_rest_server_register_app(GDialRestServer *self, const gchar *app_
     }
     app_prefixes = app_prefixes->next;
   }
-  while(allowed_origins) {
+  while (allowed_origins) {
     app_registry->allowed_origins = g_list_prepend(app_registry->allowed_origins, g_strdup(allowed_origins->data));
     allowed_origins = allowed_origins->next;
   }
