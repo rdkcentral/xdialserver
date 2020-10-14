@@ -1,6 +1,7 @@
 prefix=@PROJECT_SOURCE_DIR@
 libdir={prefix}/plat
 includedir=${prefix}/include
+
 Name: gdial-plat
 Description: platform implementation for gdial-server
 Version: @GDIAL_PLAT_VERSION_MAJOR@.@GDIAL_PLAT_VERSION_MINOR@.@GDIAL_PLAT_VERSION_PATCH@

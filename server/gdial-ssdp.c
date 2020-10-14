@@ -79,6 +79,9 @@ static void ssdp_http_server_callback(SoupServer *server, SoupMessage *msg, cons
     soup_message_set_status(msg, SOUP_STATUS_BAD_REQUEST);
     GDIAL_CHECK("GET_method_only");
     GDIAL_DEBUG("warning: SSDP HTTP Method is not GET\r\n");
+    /* 
+     * Add request throttling per DELIA-42803
+     */
     usleep(GDIAL_RESPONSE_DELAY);
     return;
   }
@@ -91,11 +94,13 @@ static void ssdp_http_server_callback(SoupServer *server, SoupMessage *msg, cons
   if (!dd_xml_response_str_) {
     const gchar *manufacturer= gdial_plat_dev_get_manufacturer();
     const gchar *model = gdial_plat_dev_get_model();
+
     if (manufacturer == NULL) {manufacturer = gdial_options_->manufacturer;}
     if (model == NULL) {model = gdial_options_->model_name;}
     dd_xml_response_str_ = g_strdup_printf(ssdp_device_xml_template, gdial_options_->friendly_name, manufacturer, model, gdial_options_->uuid);
     dd_xml_response_str_len = strlen(dd_xml_response_str_);
   }
+
   gchar *application_url_str = g_strdup_printf("http://%s:%d%s/", iface_ipv4_address, GDIAL_REST_HTTP_PORT, GDIAL_REST_HTTP_APPS_URI);
   soup_message_headers_replace (msg->response_headers, "Application-URL", application_url_str);
   g_free(application_url_str);
@@ -103,6 +108,9 @@ static void ssdp_http_server_callback(SoupServer *server, SoupMessage *msg, cons
   soup_message_set_status(msg, SOUP_STATUS_OK);
   GDIAL_CHECK("Content-Type:text/xml");
   GDIAL_CHECK("Application-URL: exist");
+  /* 
+   * Add request throttling per DELIA-42803
+   */
   usleep(GDIAL_RESPONSE_DELAY);
 }
 
@@ -167,6 +175,7 @@ int gdial_ssdp_new(SoupServer *ssdp_http_server, GDialOptions *options) {
 int gdial_ssdp_destroy() {
   soup_server_remove_handler(ssdp_http_server_, "/dd.xml");
   gssdp_resource_group_remove_resource(ssdp_resource_group_, ssdp_resource_id_);
+
   if (dd_xml_response_str_) {
     g_free(dd_xml_response_str_);
   }

@@ -327,19 +327,20 @@ GHashTable *gdial_app_get_additional_dial_data(GDialApp *app) {
   GDialAppPrivate *priv = gdial_app_get_instance_private(app);
   return g_hash_table_ref(priv->additional_dial_data);
 }
+
 void gdial_app_refresh_additional_dial_data(GDialApp *app) {
   g_return_if_fail(app && app->name && strlen(app->name));
 
   GDialAppPrivate *priv = gdial_app_get_instance_private(app);
-      /* we are ready to convert to hashtable*/
-      if(priv->additional_dial_data) {
-        g_hash_table_destroy(priv->additional_dial_data);
-      }
-      priv->additional_dial_data = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_free);
+  if(priv->additional_dial_data) {
+    g_hash_table_destroy(priv->additional_dial_data);
+  }
+  priv->additional_dial_data = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_free);
   gchar *data = NULL;
   size_t length = 0;
   if (gdial_app_read_additional_dial_data(app->name, &data, &length)) {
     if (data) {
+      /* we are ready to convert to hashtable*/
       gdial_util_str_str_hashtable_from_string(data, length, priv->additional_dial_data);
       g_print("gdial_app_refresh_additional_dial_data [%s]\r\n", data);
       g_free(data);
@@ -466,11 +467,13 @@ GDIAL_STATIC gboolean gdial_app_remove_additional_dial_data_file(const gchar *ap
 
   return result;
 }
+
 gchar * gdial_app_state_response_new(GDialApp *app, const gchar *dial_ver, const gchar *xmlns, int *len)
 {
   g_return_val_if_fail(app && app->name && strlen(app->name), NULL);
   g_return_val_if_fail(dial_ver && xmlns && len, NULL);
   GDialAppPrivate *priv = gdial_app_get_instance_private(app);
+
   xmlDocPtr xdoc = NULL;
   xdoc = xmlNewDoc(BAD_CAST "1.0");
   xmlNodePtr nservice = xmlNewNode(NULL, BAD_CAST "service");

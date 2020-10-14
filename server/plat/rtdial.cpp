@@ -205,7 +205,6 @@ static GSource *attachRtRemoteSource()
     return source;
 }
 
-
 void rtdail_register_activation_cb(rtdial_activation_cb cb)
 {
   g_activation_cb = cb;
@@ -360,6 +359,7 @@ int gdial_os_application_start(const char *app_name, const char *payload, const 
 int gdial_os_application_stop(const char *app_name, int instance_id) {
     printf("RTDIAL gdial_os_application_stop: appName = %s appID = %s\n",app_name,std::to_string(instance_id).c_str());
     const char* State = AppCache->SearchAppStatusInCache(app_name);
+    /* always to issue stop request to have a failsafe strategy */
     if (0 && strcmp(State,"running") != 0)
         return GDIAL_APP_ERROR_BAD_REQUEST;
     rtCastError ret = DialObj->stopApplication(app_name,std::to_string(instance_id).c_str());
@@ -375,6 +375,7 @@ int gdial_os_application_hide(const char *app_name, int instance_id) {
     #if 1
     printf("RTDIAL gdial_os_application_hide-->stop: appName = %s appID = %s\n",app_name,std::to_string(instance_id).c_str());
     const char* State = AppCache->SearchAppStatusInCache(app_name);
+    /* always to issue hide request to have a failsafe strategy */
     if (0 && strcmp(State,"running") != 0) {
         return GDIAL_APP_ERROR_BAD_REQUEST;
     }
