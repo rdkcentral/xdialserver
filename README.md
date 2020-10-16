@@ -1,5 +1,8 @@
 # DIAL 2.1 Server Implementation
 
+## XCAST Overview
+![Architecture Overview](/docs/overview.png)
+
 The RDK DIAL server supports XCAST_2 API through thunder plugin interface
 
 ## XCAST_2 API
