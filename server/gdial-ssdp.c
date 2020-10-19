@@ -106,7 +106,7 @@ static void ssdp_http_server_callback(SoupServer *server, SoupMessage *msg, cons
   GDIAL_CHECK("Application-URL: exist");
 }
 
-int gdial_ssdp_new(SoupServer *ssdp_http_server, GDialOptions *options) {
+int gdial_ssdp_init(SoupServer *ssdp_http_server, GDialOptions *options) {
 
   g_return_val_if_fail(ssdp_http_server != NULL, -1);
   g_return_val_if_fail(options != NULL, -1);
@@ -164,7 +164,7 @@ int gdial_ssdp_new(SoupServer *ssdp_http_server, GDialOptions *options) {
   return 0;
 }
 
-int gdial_ssdp_destroy() {
+int gdial_ssdp_term() {
   soup_server_remove_handler(ssdp_http_server_, "/dd.xml");
   gssdp_resource_group_remove_resource(ssdp_resource_group_, ssdp_resource_id_);
 

@@ -235,7 +235,7 @@ int main(int argc, char *argv[]) {
   g_signal_connect(dial_rest_server, "invalid-uri", G_CALLBACK(signal_handler_rest_server_invalid_uri), NULL);
   g_signal_connect(dial_rest_server, "gmainloop-quit", G_CALLBACK(signal_handler_rest_server_gmainloop_quit), NULL);
   g_signal_connect(dial_rest_server, "rest-enable", G_CALLBACK(signal_handler_rest_server_rest_enable), NULL);
-  gdial_ssdp_new(ssdp_http_server, &options_);
+  gdial_ssdp_init(ssdp_http_server, &options_);
 
   SoupServer * servers[] = {local_rest_http_server,rest_http_server, ssdp_http_server};
   for (int i = 0; i < sizeof(servers)/sizeof(servers[0]); i++) {
@@ -255,7 +255,7 @@ int main(int argc, char *argv[]) {
   loop_ = g_main_loop_new (NULL, TRUE);
   g_main_loop_run (loop_);
 
-  gdial_ssdp_destroy();
+  gdial_ssdp_term();
   g_option_context_free(option_context);
 
   g_object_unref(dial_rest_server);
