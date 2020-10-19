@@ -53,22 +53,17 @@ static const char *dial_ssdp_LOCATION_fmt = "http://%s:%d/dd.xml";
 
 static const char *iface_ipv4_address = NULL;
 static const char ssdp_device_xml_template[] = ""
-    "<?xml version=\"1.0\"?>"
-    "<root"
-    " xmlns=\"urn:schemas-upnp-org:device-1-0\""
-    " xmlns:r=\"urn:restful-tv-org:schemas:upnp-dd\">"
-    " <specVersion>"
-    " <major>1</major>"
-    " <minor>0</minor>"
-    " </specVersion>"
-    " <device>"
-    " <deviceType>urn:schemas-upnp-org:device:tvdevice:1</deviceType>"
-    " <friendlyName>%s</friendlyName>"
-    " <manufacturer>%s</manufacturer>"
-    " <modelName>%s</modelName>"
-    " <UDN>uuid:%s</UDN>"
-    " </device>"
-    "</root>";
+  "<?xml version=\"1.0\"?>"
+  "<root xmlns=\"urn:schemas-upnp-org:device-1-0\" xmlns:r=\"urn:restful-tv-org:schemas:upnp-dd\">"
+  "  <specVersion> <major>1</major> <minor>0</minor> </specVersion>"
+  "    <device>"
+  "      <deviceType>urn:schemas-upnp-org:device:tvdevice:1</deviceType>"
+  "      <friendlyName>%s</friendlyName>"
+  "      <manufacturer>%s</manufacturer>"
+  "      <modelName>%s</modelName>"
+  "      <UDN>uuid:%s</UDN>"
+  "     </device>"
+  "</root>";
 
 static gchar *dd_xml_response_str_ = NULL;
 static void ssdp_http_server_callback(SoupServer *server, SoupMessage *msg, const char *path, GHashTable *query, SoupClientContext  *client, gpointer user_data) {
@@ -79,10 +74,6 @@ static void ssdp_http_server_callback(SoupServer *server, SoupMessage *msg, cons
     soup_message_set_status(msg, SOUP_STATUS_BAD_REQUEST);
     GDIAL_CHECK("GET_method_only");
     GDIAL_DEBUG("warning: SSDP HTTP Method is not GET\r\n");
-    /*
-     * Add request throttling per DELIA-42803
-     */
-    usleep(GDIAL_RESPONSE_DELAY);
     return;
   }
 
@@ -108,13 +99,9 @@ static void ssdp_http_server_callback(SoupServer *server, SoupMessage *msg, cons
   soup_message_set_status(msg, SOUP_STATUS_OK);
   GDIAL_CHECK("Content-Type:text/xml");
   GDIAL_CHECK("Application-URL: exist");
-  /*
-   * Add request throttling per DELIA-42803
-   */
-  usleep(GDIAL_RESPONSE_DELAY);
 }
 
-int gdial_ssdp_new(SoupServer *ssdp_http_server, GDialOptions *options) {
+int gdial_ssdp_init(SoupServer *ssdp_http_server, GDialOptions *options) {
 
   g_return_val_if_fail(ssdp_http_server != NULL, -1);
   g_return_val_if_fail(options != NULL, -1);
@@ -172,7 +159,7 @@ int gdial_ssdp_new(SoupServer *ssdp_http_server, GDialOptions *options) {
   return 0;
 }
 
-int gdial_ssdp_destroy() {
+int gdial_ssdp_term() {
   soup_server_remove_handler(ssdp_http_server_, "/dd.xml");
   gssdp_resource_group_remove_resource(ssdp_resource_group_, ssdp_resource_id_);
 

@@ -26,6 +26,7 @@
 #include "gdial-config.h"
 #include "gdial-debug.h"
 #include "gdial-options.h"
+#include "gdial-shield.h"
 #include "gdial-ssdp.h"
 #include "gdial-rest.h"
 #include "gdial-plat-util.h"
@@ -115,7 +116,6 @@ static void gdial_http_server_throttle_callback(SoupServer *server,
             SoupClientContext  *client, gpointer user_data)
 {
   g_print("gdial_http_server_throttle_callback \r\n");
-  usleep(GDIAL_RESPONSE_DELAY);
   soup_message_headers_replace(msg->response_headers, "Connection", "close");
   soup_message_set_status(msg, SOUP_STATUS_NOT_FOUND);
 }
@@ -135,18 +135,15 @@ int main(int argc, char *argv[]) {
   if (!options_.iface_name) options_.iface_name =  g_strdup(GDIAL_IFACE_NAME_DEFAULT);
 
   #define MAX_RETRY 3
-  for(int i=1;i<=MAX_RETRY;i++)
-  {
+  for(int i=1;i<=MAX_RETRY;i++) {
      iface_ipv4_address_ = gdial_plat_util_get_iface_ipv4_addr(options_.iface_name);
-     if (!iface_ipv4_address_)
-     {
+    if (!iface_ipv4_address_) {
         g_warn_msg_if_fail(FALSE, "interface %s does not have IP\r\n", options_.iface_name);
         if(i >= MAX_RETRY )
             return EXIT_FAILURE;
         sleep(2);
      }
-     else
-     {
+    else {
          break;
      }
   }
@@ -197,9 +194,9 @@ int main(int argc, char *argv[]) {
     gchar *app_list_low = g_ascii_strdown(options_.app_list, app_list_len);
     if (g_strstr_len(app_list_low, app_list_len, "netflix")) {
       g_print("netflix is enabled from cmdline\r\n");
-  GList *allowed_origins = g_list_prepend(NULL, ".netflix.com");
-  gdial_rest_server_register_app(dial_rest_server, "Netflix", NULL, TRUE, TRUE, allowed_origins);
-  g_list_free(allowed_origins);
+      GList *allowed_origins = g_list_prepend(NULL, ".netflix.com");
+      gdial_rest_server_register_app(dial_rest_server, "Netflix", NULL, TRUE, TRUE, allowed_origins);
+      g_list_free(allowed_origins);
     }
     else {
       g_print("netflix is not enabled from cmdline\r\n");
@@ -208,8 +205,8 @@ int main(int argc, char *argv[]) {
     if (g_strstr_len(app_list_low, app_list_len, "youtube")) {
       g_print("youtube is enabled from cmdline\r\n");
       GList *allowed_origins = g_list_prepend(NULL, ".youtube.com");
-  gdial_rest_server_register_app(dial_rest_server, "YouTube", NULL, TRUE, TRUE, allowed_origins);
-  g_list_free(allowed_origins);
+      gdial_rest_server_register_app(dial_rest_server, "YouTube", NULL, TRUE, TRUE, allowed_origins);
+      g_list_free(allowed_origins);
     }
     else {
       g_print("youtube is not enabled from cmdline\r\n");
@@ -217,21 +214,26 @@ int main(int argc, char *argv[]) {
 
     if (g_strstr_len(app_list_low, app_list_len, "spotify")) {
       g_print("spotify is enabled from cmdline\r\n");
-  GList *app_prefixes= g_list_prepend(NULL, "com.spotify");
+      GList *app_prefixes= g_list_prepend(NULL, "com.spotify");
       GList *allowed_origins = g_list_prepend(NULL, ".spotify.com");
-  gdial_rest_server_register_app(dial_rest_server, "com.spotify.Spotify.TV", app_prefixes, TRUE, TRUE, allowed_origins);
-  g_list_free(allowed_origins);
-  g_list_free(app_prefixes);
+      gdial_rest_server_register_app(dial_rest_server, "com.spotify.Spotify.TV", app_prefixes, TRUE, TRUE, allowed_origins);
+      g_list_free(allowed_origins);
+      g_list_free(app_prefixes);
     }
     else {
       g_print("spotify is not enabled from cmdline\r\n");
     }
     g_free(app_list_low);
   }
+
   g_signal_connect(dial_rest_server, "invalid-uri", G_CALLBACK(signal_handler_rest_server_invalid_uri), NULL);
   g_signal_connect(dial_rest_server, "gmainloop-quit", G_CALLBACK(signal_handler_rest_server_gmainloop_quit), NULL);
   g_signal_connect(dial_rest_server, "rest-enable", G_CALLBACK(signal_handler_rest_server_rest_enable), NULL);
-  gdial_ssdp_new(ssdp_http_server, &options_);
+
+  gdial_ssdp_init(ssdp_http_server, &options_);
+  gdial_shield_init();
+  gdial_shield_server(rest_http_server);
+  gdial_shield_server(ssdp_http_server);
 
   SoupServer * servers[] = {local_rest_http_server,rest_http_server, ssdp_http_server};
   for (int i = 0; i < sizeof(servers)/sizeof(servers[0]); i++) {
@@ -250,16 +252,17 @@ int main(int argc, char *argv[]) {
    */
   loop_ = g_main_loop_new (NULL, TRUE);
   g_main_loop_run (loop_);
-
-  gdial_ssdp_destroy();
-  g_option_context_free(option_context);
-
-  g_object_unref(dial_rest_server);
   for (int i = 0; i < sizeof(servers)/sizeof(servers[0]); i++) {
     soup_server_disconnect(servers[i]);
     g_object_unref(servers[i]);
   }
 
+  gdial_shield_term();
+  gdial_ssdp_term();
+  g_object_unref(dial_rest_server);
+  gdial_plat_term();
+
   g_main_loop_unref(loop_);
+  g_option_context_free(option_context);
   return 0;
 }

@@ -17,19 +17,14 @@
  * limitations under the License.
  */
 
-#ifndef GDIAL_UTIL_H_
-#define GDIAL_UTIL_H_
+#ifndef GDIAL_SHIELD_H_
+#define GDIAL_SHIELD_H_
 
-#include <glib.h>
-G_BEGIN_DECLS
+#include <libsoup/soup.h>
+#include "gdial-config.h"
 
-gchar *gdial_util_str_str_hashtable_to_string(const GHashTable *ht, const gchar *delimiter, gboolean newline, gsize *length);
-gboolean gdial_util_str_str_hashtable_from_string(const gchar *ht_str, gsize length, GHashTable *ht);
-gchar *gdial_util_str_str_hashtable_to_xml_string(const GHashTable *ht, gsize *length);
-GHashTable *gdial_util_str_str_hashtable_merge(GHashTable *ht_dst, const GHashTable *ht_src);
-gboolean gdial_util_str_str_hashtable_equal(const GHashTable *ht1, const GHashTable *ht2);
-GHashTable * gdial_util_str_str_hashtable_dup(const GHashTable *src);
-gboolean gdial_util_is_ascii_printable(const gchar *data, gsize length);
+void gdial_shield_init(void);
+void gdial_shield_server(SoupServer *server);
+void gdial_shield_term(void);
 
-G_END_DECLS
 #endif

@@ -93,7 +93,6 @@ static void gdial_soup_message_set_http_error(SoupMessage *msg, guint state_code
   if (!(expr)) {\
     g_warn_msg_if_fail(expr, fmt, merr);\
     gdial_soup_message_set_http_error(msg, state);\
-    usleep(GDIAL_RESPONSE_DELAY);\
     return;\
   }\
 }
@@ -103,7 +102,6 @@ static void gdial_soup_message_set_http_error(SoupMessage *msg, guint state_code
   if (!(expr)) {\
     g_warn_if_fail(expr);\
     gdial_soup_message_set_http_error(msg, state);\
-    usleep(GDIAL_RESPONSE_DELAY);\
     return;\
   }\
 }
@@ -113,7 +111,6 @@ static void gdial_soup_message_set_http_error(SoupMessage *msg, guint state_code
   if ((expr)) {\
     g_warn_if_fail(!(expr));\
     gdial_soup_message_set_http_error(msg, state);\
-    usleep(GDIAL_RESPONSE_DELAY);\
     return;\
   }\
 }
@@ -646,13 +643,11 @@ static void gdial_local_rest_http_server_callback(SoupServer *server,
      if (msg->method == SOUP_METHOD_POST) {
         gdial_rest_server_handle_POST_dial_data(gdial_rest_server, msg, query, app_name);
      }
-     else
-     {
+    else {
         gdial_rest_server_http_return_if_fail(msg->method == SOUP_METHOD_POST, msg, SOUP_STATUS_NOT_IMPLEMENTED);
      }
   }
-  else
-  {
+  else {
     gdial_soup_message_set_http_error(msg,SOUP_STATUS_NOT_IMPLEMENTED);
   }
 }
@@ -756,13 +751,6 @@ static void gdial_rest_http_server_apps_callback(SoupServer *server,
   if (!gdial_rest_server_is_allowed_origin(gdial_rest_server, header_origin, app_name)) {
     gdial_rest_server_http_print_and_return_if_fail(FALSE, msg, SOUP_STATUS_FORBIDDEN, "origin %s is not allowed\r\n", header_origin);
   }
-
-#ifdef GDIAL_BUILD_TEST
-  GDIAL_STATIC char *parse_app_name(const char *uri);
-  gchar *ref_app_name = parse_app_name(path);
-  g_warn_msg_if_fail(g_strcmp0(ref_app_name, app_name) == 0, "app_name parse disparity %s vs %s\r\n", ref_app_name, app_name);
-  g_free(ref_app_name);
-#endif
 
   if(!gdial_rest_server_is_app_registered(gdial_rest_server, app_name)) {
     /*
@@ -882,10 +870,6 @@ static void gdial_rest_http_server_apps_callback(SoupServer *server,
       invalid_uri = TRUE;
     }
   }
-  /*
-   * Add request throttling
-   */
-  usleep(GDIAL_RESPONSE_DELAY);
 
   gdial_rest_server_http_return_if_fail(!invalid_uri, msg, SOUP_STATUS_NOT_IMPLEMENTED);
 }
