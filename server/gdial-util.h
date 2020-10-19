@@ -30,8 +30,6 @@ GHashTable *gdial_util_str_str_hashtable_merge(GHashTable *ht_dst, const GHashTa
 gboolean gdial_util_str_str_hashtable_equal(const GHashTable *ht1, const GHashTable *ht2);
 GHashTable * gdial_util_str_str_hashtable_dup(const GHashTable *src);
 gboolean gdial_util_is_ascii_printable(const gchar *data, gsize length);
-gchar *gdial_util_xml_encode(const gchar *src);
-gchar *gdial_util_url_decode_xml_encode(const gchar *str);
 
 G_END_DECLS
 #endif
