@@ -93,7 +93,6 @@ static void gdial_soup_message_set_http_error(SoupMessage *msg, guint state_code
   if (!(expr)) {\
     g_warn_msg_if_fail(expr, fmt, merr);\
     gdial_soup_message_set_http_error(msg, state);\
-    usleep(GDIAL_RESPONSE_DELAY);\
     return;\
   }\
 }
@@ -103,7 +102,6 @@ static void gdial_soup_message_set_http_error(SoupMessage *msg, guint state_code
   if (!(expr)) {\
     g_warn_if_fail(expr);\
     gdial_soup_message_set_http_error(msg, state);\
-    usleep(GDIAL_RESPONSE_DELAY);\
     return;\
   }\
 }
@@ -113,7 +111,6 @@ static void gdial_soup_message_set_http_error(SoupMessage *msg, guint state_code
   if ((expr)) {\
     g_warn_if_fail(!(expr));\
     gdial_soup_message_set_http_error(msg, state);\
-    usleep(GDIAL_RESPONSE_DELAY);\
     return;\
   }\
 }
@@ -882,10 +879,6 @@ static void gdial_rest_http_server_apps_callback(SoupServer *server,
       invalid_uri = TRUE;
     }
   }
-  /*
-   * Add request throttling
-   */
-  usleep(GDIAL_RESPONSE_DELAY);
 
   gdial_rest_server_http_return_if_fail(!invalid_uri, msg, SOUP_STATUS_NOT_IMPLEMENTED);
 }

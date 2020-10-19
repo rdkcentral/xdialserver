@@ -26,6 +26,7 @@
 #include "gdial-config.h"
 #include "gdial-debug.h"
 #include "gdial-options.h"
+#include "gdial-shield.h"
 #include "gdial-ssdp.h"
 #include "gdial-rest.h"
 #include "gdial-plat-util.h"
@@ -115,7 +116,6 @@ static void gdial_http_server_throttle_callback(SoupServer *server,
             SoupClientContext  *client, gpointer user_data)
 {
   g_print("gdial_http_server_throttle_callback \r\n");
-  usleep(GDIAL_RESPONSE_DELAY);
   soup_message_headers_replace(msg->response_headers, "Connection", "close");
   soup_message_set_status(msg, SOUP_STATUS_NOT_FOUND);
 }
@@ -159,6 +159,10 @@ int main(int argc, char *argv[]) {
   SoupServer * local_rest_http_server = soup_server_new(NULL);
   soup_server_add_handler(rest_http_server, "/", gdial_http_server_throttle_callback, NULL, NULL);
   soup_server_add_handler(ssdp_http_server, "/", gdial_http_server_throttle_callback, NULL, NULL);
+
+  gdial_shield_init();
+  gdial_shield_server(rest_http_server);
+  gdial_shield_server(ssdp_http_server);
 
   GSocketAddress *listen_address = g_inet_socket_address_new_from_string(iface_ipv4_address_, GDIAL_REST_HTTP_PORT);
   gboolean success = soup_server_listen(rest_http_server, listen_address, 0, &error);
@@ -260,6 +264,7 @@ int main(int argc, char *argv[]) {
     g_object_unref(servers[i]);
   }
 
+  gdial_shield_term();
   g_main_loop_unref(loop_);
   return 0;
 }
