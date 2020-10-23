@@ -52,6 +52,10 @@ static const char *dial_ssdp_LOCATION_fmt = "http://%s:%d/dd.xml";
 #define GDIAL_SSDP_MODELNAME_DEFAULT "Xi6"
 
 static const char *iface_ipv4_address = NULL;
+/*
+ * Copyright (c) 2014 Netflix, Inc.
+ * Licensed under the BSD-2 license
+ */
 static const char ssdp_device_xml_template[] = ""
   "<?xml version=\"1.0\"?>"
   "<root xmlns=\"urn:schemas-upnp-org:device-1-0\" xmlns:r=\"urn:restful-tv-org:schemas:upnp-dd\">"
