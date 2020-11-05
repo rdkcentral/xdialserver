@@ -183,7 +183,7 @@ int gdial_ssdp_term() {
   return 0;
 }
 
-int gdial_ssdp_set_available(bool activation_status)
+int gdial_ssdp_set_available(gboolean activation_status)
 {
   g_print("gdial_ssdp_set_available activation_status :%d \n ",activation_status);
   gssdp_resource_group_set_available (ssdp_resource_group_, activation_status);

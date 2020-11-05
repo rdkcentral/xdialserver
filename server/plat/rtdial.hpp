@@ -23,6 +23,7 @@
 
 #ifdef __cplusplus
 extern "C" {
+#include <stdbool.h>
 #endif
 
 bool rtdial_init(GMainContext *context);
