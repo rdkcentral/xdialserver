@@ -16,7 +16,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
 */
-#include "rtabstractservice.h"
+#include "rtabstractservice.hpp"
 rtAbstractService::rtAbstractService(rtString serviceName)
     : mServiceName(serviceName)
     , mApiVersion(1), mEmit()
