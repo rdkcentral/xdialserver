@@ -139,7 +139,7 @@ gint gdial_plat_init(GMainContext *main_context) {
   g_main_context_ = g_main_context_ref(main_context);
 
   if(!rtdial_init(g_main_context_)) {
-      printf("rtdial_init failed !!!!!\n");
+      g_print("rtdial_init failed !!!!!\n");
       return GDIAL_APP_ERROR_INTERNAL;
   }
 
