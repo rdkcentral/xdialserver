@@ -130,7 +130,7 @@ static gboolean GSourceFunc_application_stop_async_cb(gpointer user_data) {
 void gdail_plat_register_activation_cb(gdial_plat_activation_cb cb)
 {
   g_activation_cb = cb;
-  rtdail_register_activation_cb(cb);
+  rtdail_register_activation_cb((rtdial_activation_cb)cb);
 }
 
 gint gdial_plat_init(GMainContext *main_context) {
@@ -139,7 +139,7 @@ gint gdial_plat_init(GMainContext *main_context) {
   g_main_context_ = g_main_context_ref(main_context);
 
   if(!rtdial_init(g_main_context_)) {
-      printf("rtdial_init failed !!!!!\n");
+      g_print("rtdial_init failed !!!!!\n");
       return GDIAL_APP_ERROR_INTERNAL;
   }
 

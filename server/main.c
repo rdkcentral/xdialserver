@@ -33,6 +33,8 @@
 #include "gdial-plat-dev.h"
 #include "gdial-plat-app.h"
 
+static const char *dial_specification_copyright = "Copyright (c) 2017 Netflix, Inc. All rights reserved.";
+
 static GDialOptions options_;
 
 static GOptionEntry option_entries_[] = {
@@ -85,6 +87,7 @@ static void signal_handler_rest_server_invalid_uri(GDialRestServer *dial_rest_se
 static void signal_handler_rest_server_gmainloop_quit(GDialRestServer *dial_rest_server, const gchar *signal_message, gpointer user_data) {
   g_return_if_fail(dial_rest_server && signal_message);
   g_printerr("signal gmainloop-quit: [%s]\r\n", signal_message);
+  g_print("Exiting DIAL Protocol | %s \r\n", dial_specification_copyright);
   g_main_loop_quit(loop_);
 }
 static GDialRestServer *dial_rest_server = NULL;
