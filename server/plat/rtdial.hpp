@@ -17,8 +17,8 @@
  * limitations under the License.
 */
 
-#ifndef RTDIAL_H_
-#define RTDIAL_H_
+#ifndef _RT_DIAL_H_
+#define _RT_DIAL_H_
 
 #include <stdbool.h>
 
