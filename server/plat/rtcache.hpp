@@ -17,8 +17,8 @@
  * limitations under the License.
 */
 
-#ifndef RTCACHE_H_
-#define RTCACHE_H_
+#ifndef _RT_CACHE_H_
+#define _RT_CACHE_H_
 
 #include "rtRemoteObjectCache.hpp"
 #include "rtObject.h"
@@ -27,7 +27,6 @@
 #include <iostream>
 #include <chrono>
 #include <stdbool.h>
-
 
 using namespace std;
 

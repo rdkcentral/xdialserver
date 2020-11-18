@@ -101,4 +101,4 @@ void gdial_app_force_shutdown(GDialApp *app);
 
 G_END_DECLS
 
-#endif /* GDIAL_APP_H_ */
+#endif

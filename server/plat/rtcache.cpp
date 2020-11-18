@@ -22,7 +22,6 @@
 std::string rtAppStatusCache::Netflix_AppCacheId = "DialNetflix";
 std::string rtAppStatusCache::Youtube_AppCacheId = "DialYoutube";
 
-
 std::string rtAppStatusCache :: getAppCacheId(const char *app_name)
 {
      printf("RTCACHE : %s\n",__FUNCTION__);
