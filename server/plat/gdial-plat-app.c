@@ -74,10 +74,6 @@ static gboolean GSourceFunc_application_start_async_cb(gpointer user_data) {
     gdial_plat_application_start(app_start_context->common.name, app_start_context->payload, app_start_context->query, app_start_context->additional_data_url, &app_start_context->common.instance_id);
     gdial_plat_application_state_async(app_async_context->name, app_async_context->instance_id, app_async_context->user_data);
   }
-  else if (g_strcmp0(app_start_context->common.name, "AmazonInstantVideo") == 0) {
-    gdial_plat_application_start(app_start_context->common.name, app_start_context->payload, app_start_context->query, app_start_context->additional_data_url, &app_start_context->common.instance_id);
-    gdial_plat_application_state_async(app_async_context->name, app_async_context->instance_id, app_async_context->user_data);
-  }
   else {
     g_warn_if_reached();
   }
