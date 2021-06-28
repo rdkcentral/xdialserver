@@ -28,8 +28,8 @@ G_BEGIN_DECLS
 
 int gdial_ssdp_new(SoupServer *server, GDialOptions *options);
 int gdial_ssdp_destroy();
-int gdial_ssdp_set_available(bool activationStatus,char *friendlyName);
-int gdial_ssdp_set_friendlyname(char *friendlyName);
+int gdial_ssdp_set_available(bool activationStatus, const gchar *friendlyName);
+int gdial_ssdp_set_friendlyname(const gchar *friendlyName);
 G_END_DECLS
 
 #endif

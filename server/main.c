@@ -110,7 +110,7 @@ static void signal_handler_rest_server_gmainloop_quit(GDialRestServer *dial_rest
 }
 static GDialRestServer *dial_rest_server = NULL;
 
-static void server_activation_handler(gboolean status, const gchar friendlyname)
+static void server_activation_handler(gboolean status, const gchar *friendlyname)
 {
     g_print("server_activation_handler status :%d \n",status);
     gdial_ssdp_set_available(status,friendlyname);
@@ -120,7 +120,7 @@ static void server_activation_handler(gboolean status, const gchar friendlyname)
     }
 }
 
-static void server_friendlyname_handler(const gchar friendlyname)
+static void server_friendlyname_handler(const gchar * friendlyname)
 {
     gdial_ssdp_set_friendlyname(friendlyname);
 }

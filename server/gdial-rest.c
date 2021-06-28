@@ -224,7 +224,7 @@ GDIAL_STATIC gboolean gdial_rest_server_is_allowed_youtube_origin(GDialRestServe
    * 7.10 The target device MUST support CORS as outlined in Section 6.6 of the DIAL 2.2.1 protocol specification,
    * with the additional requirement that the target device MUST reject all requests to the DIAL server where the
    * ORIGIN header is not present.
-   * 7.10.1 The ORIGIN header MUST match https://*.youtube.com or package
+   * 7.10.1 The ORIGIN header MUST match https://${ANY}.youtube.com or package
    */
   SoupURI *origin_uri = soup_uri_new(header_origin);
   const gchar *uri_scheme = origin_uri ? soup_uri_get_scheme(origin_uri) : NULL;
