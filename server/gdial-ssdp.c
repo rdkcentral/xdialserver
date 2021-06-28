@@ -29,6 +29,7 @@
 #include "gdial-plat-dev.h"
 #include "gdial-ssdp.h"
 
+#define MAX_POWERON_TIME 10
 static SoupServer *ssdp_http_server_ = NULL;
 static GDialOptions *gdial_options_ = NULL;
 static GSSDPClient *ssdp_client_ = NULL;
