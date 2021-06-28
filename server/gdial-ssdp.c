@@ -199,7 +199,7 @@ int gdial_ssdp_destroy() {
   return 0;
 }
 
-int gdial_ssdp_set_available(bool activation_status,char *friendlyname)
+int gdial_ssdp_set_available(bool activation_status, const gchar *friendlyname)
 {
   g_print("gdial_ssdp_set_available activation_status :%d \n ",activation_status);
   gdial_ssdp_set_friendlyname(friendlyname);
@@ -207,7 +207,7 @@ int gdial_ssdp_set_available(bool activation_status,char *friendlyname)
   return 0;
 }
 
-int gdial_ssdp_set_friendlyname(char *friendlyname)
+int gdial_ssdp_set_friendlyname(const gchar *friendlyname)
 {
   if(gdial_options_->feature_friendlyname && friendlyname)
   {
