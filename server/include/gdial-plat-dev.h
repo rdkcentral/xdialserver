@@ -20,12 +20,17 @@
 #ifndef GDIAL_PLAT_DEV_H_
 #define GDIAL_PLAT_DEV_H_
 
+#include <stdbool.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 const char * gdial_plat_dev_get_manufacturer();
 const char * gdial_plat_dev_get_model();
+bool gdial_plat_dev_set_power_state_on();
+bool gdial_plat_dev_initialize();
+bool gdial_plat_dev_deinitialize();
 
 #ifdef __cplusplus
 }

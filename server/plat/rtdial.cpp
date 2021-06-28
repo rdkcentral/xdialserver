@@ -22,7 +22,15 @@
 #include <unistd.h>
 #include <pthread.h>
 #include <glib.h>
+#include <core.h>
+#include <plugins.h>
+#include <json/JsonData_Netflix.h>
+#include <json/JsonData_StateControl.h>
+#include <com/Ids.h>
+#include <curl/curl.h>
+#include <securityagent/SecurityTokenUtil.h>
 #include "gdial-app.h"
+#include "gdial-plat-dev.h"
 #include "gdial-os-app.h"
 #include "rtcast.hpp"
 #include "rtcache.hpp"
@@ -35,6 +43,8 @@ static int INIT_COMPLETED = 0;
 //cache
 rtAppStatusCache* AppCache;
 static rtdial_activation_cb g_activation_cb = NULL;
+static rtdial_friendlyname_cb g_friendlyname_cb = NULL;
+
 
 class rtDialCastRemoteObject : public rtCastRemoteObject
 {
@@ -59,21 +69,36 @@ public:
         return RT_OK;
     }
 
+    rtError friendlyNameChanged(const rtObjectRef& params) {
+        rtObjectRef AppObj = new rtMapObject;
+        AppObj = params;
+        rtString friendlyName;
+        AppObj.get("friendlyname",friendlyName);
+        printf("RTDIAL: rtDialCastRemoteObject::friendlyNameChanged :%s \n",friendlyName.cString());
+        if( g_friendlyname_cb )
+        {
+            g_friendlyname_cb(friendlyName.cString());
+        }
+        return RT_OK;
+    }
+
     rtError activationChanged(const rtObjectRef& params) {
         rtObjectRef AppObj = new rtMapObject;
         AppObj = params;
         rtString status;
+        rtString friendlyName;
         AppObj.get("activation",status);
-        printf("RTDIAL: rtDialCastRemoteObject::activationChanged status: %s \n",status.cString());
+        AppObj.get("friendlyname",friendlyName);
+        printf("RTDIAL: rtDialCastRemoteObject::activationChanged status: %s friendlyname: %s \n",status.cString(),friendlyName.cString());
         if( g_activation_cb )
         {
             if(!strcmp(status.cString(), "true"))
             {
-                g_activation_cb(1);
+                g_activation_cb(1,friendlyName.cString());
             }
             else
             {
-                g_activation_cb(0);
+                g_activation_cb(0,friendlyName.cString());
             }
         }
         return RT_OK;
@@ -146,6 +171,7 @@ private:
 rtDefineObject(rtCastRemoteObject, rtAbstractService);
 rtDefineMethod(rtCastRemoteObject, applicationStateChanged);
 rtDefineMethod(rtCastRemoteObject, activationChanged);
+rtDefineMethod(rtCastRemoteObject, friendlyNameChanged);
 
 rtDialCastRemoteObject* DialObj;
 
@@ -210,12 +236,18 @@ void rtdail_register_activation_cb(rtdial_activation_cb cb)
   g_activation_cb = cb;
 }
 
+void rtdail_register_friendlyname_cb(rtdial_friendlyname_cb cb)
+{
+   g_friendlyname_cb = cb;
+}
+
 bool rtdial_init(GMainContext *context) {
     if(INIT_COMPLETED)
        return true;
     rtError err;
     const char* objName;
 
+    gdial_plat_dev_initialize();
     env = rtEnvironmentGetGlobal();
     err = rtRemoteInit(env);
 
@@ -252,6 +284,7 @@ bool rtdial_init(GMainContext *context) {
 void rtdial_term() {
     printf("RTDIAL: %s \n",__FUNCTION__);
 
+    gdial_plat_dev_deinitialize();
     g_main_context_unref(main_context_);
     g_source_unref(remoteSource);
 
@@ -281,6 +314,7 @@ int gdial_os_application_start(const char *app_name, const char *payload, const 
     printf("RTDIAL gdial_os_application_start : Application launch request: appName: %s  query: [%s], payload: [%s], additionalDataUrl [%s]\n",
         app_name, query_string, payload, additional_data_url);
 
+    gdial_plat_dev_set_power_state_on();
     char url[DIAL_MAX_PAYLOAD+DIAL_MAX_ADDITIONALURL+100] = {0,};
     if(strcmp(app_name,"YouTube") == 0) {
         if ((payload != NULL) && (additional_data_url != NULL)){
@@ -356,14 +390,75 @@ int gdial_os_application_start(const char *app_name, const char *payload, const 
     return GDIAL_APP_ERROR_NONE;
 }
 
+using namespace WPEFramework;
+JSONRPC::LinkType<Core::JSON::IElement> *netflixRemoteObject = NULL;
+JSONRPC::LinkType<Core::JSON::IElement> *controllerRemoteObject = NULL;
+#define MAX_LENGTH 1024
+
+#ifdef NETFLIX_CALLSIGN_0
+const std::string nfx_callsign = "Netflix-0";
+#else
+const std::string nfx_callsign = "Netflix";
+#endif
+
+std::string GetCurrentState() {
+     std::cout<<"GetCurrentState()"<<std::endl;
+     std::string netflixState = "";
+     Core::JSON::ArrayType<PluginHost::MetaData::Service> pluginResponse;
+     Core::SystemInfo::SetEnvironment(_T("THUNDER_ACCESS"), (_T("127.0.0.1:9998")));
+     unsigned char buffer[MAX_LENGTH] = {0};
+
+     //Obtaining controller object
+     if (NULL == controllerRemoteObject) {
+         int ret = GetSecurityToken(MAX_LENGTH,buffer);
+         if(ret<0)
+         {
+           controllerRemoteObject = new JSONRPC::LinkType<Core::JSON::IElement>(std::string());
+         } else {
+           string sToken = (char*)buffer;
+           string query = "token=" + sToken;
+           printf("Security token = %s \n",query.c_str());
+           controllerRemoteObject = new JSONRPC::LinkType<Core::JSON::IElement>(std::string(), false, query);
+         }
+     }
+     std::string nfxstatus = "status@" + nfx_callsign;
+     {
+         printf("Obtained netflix status \n");
+         Core::JSON::ArrayType<PluginHost::MetaData::Service>::Iterator index(pluginResponse.Elements());
+         while (index.Next() == true) {
+                netflixState = index.Current().JSONState.Data();
+         } //end of while loop
+     } //end of if case for querrying
+     printf("Netflix State = %s\n",netflixState.c_str());
+     return netflixState;
+}
+void stop_netflix()
+{
+   JsonObject parameters;
+   JsonObject response;
+   parameters["callsign"] = nfx_callsign;
+   if (Core::ERROR_NONE == controllerRemoteObject->Invoke("deactivate", parameters, response)) {
+        std::cout << "Netflix is stoppped" << std::endl;
+   } else {
+        std::cout << "Netflix could not be deactivated" << std::endl;
+   }
+}
+
 int gdial_os_application_stop(const char *app_name, int instance_id) {
     printf("RTDIAL gdial_os_application_stop: appName = %s appID = %s\n",app_name,std::to_string(instance_id).c_str());
     const char* State = AppCache->SearchAppStatusInCache(app_name);
-    /* always to issue stop request to have a failsafe strategy */
     if (0 && strcmp(State,"running") != 0)
         return GDIAL_APP_ERROR_BAD_REQUEST;
-    rtCastError ret = DialObj->stopApplication(app_name,std::to_string(instance_id).c_str());
 
+    char* enable_stop = getenv("ENABLE_NETFLIX_STOP");
+    if ( enable_stop != NULL ) {
+       if ( strcmp(app_name,"Netflix") == 0 && strcmp(enable_stop,"true") == 0) {
+           printf("NTS TESTING: force shutdown Netflix thunder plugin\n");
+           stop_netflix();
+           sleep(1);
+       }
+    }
+    rtCastError ret = DialObj->stopApplication(app_name,std::to_string(instance_id).c_str()); 
     if (RTCAST_ERROR_RT(ret) != RT_OK) {
         printf("RTDIAL: DialObj.stopApplication failed!!! Error=%s\n",rtStrError(RTCAST_ERROR_RT(ret)));
         return GDIAL_APP_ERROR_INTERNAL;
@@ -375,7 +470,6 @@ int gdial_os_application_hide(const char *app_name, int instance_id) {
     #if 1
     printf("RTDIAL gdial_os_application_hide-->stop: appName = %s appID = %s\n",app_name,std::to_string(instance_id).c_str());
     const char* State = AppCache->SearchAppStatusInCache(app_name);
-    /* always to issue hide request to have a failsafe strategy */
     if (0 && strcmp(State,"running") != 0) {
         return GDIAL_APP_ERROR_BAD_REQUEST;
     }
@@ -435,6 +529,26 @@ int gdial_os_application_state(const char *app_name, int instance_id, GDialAppSt
     }
     else {
         *state = GDIAL_APP_STATE_STOPPED;
+    }
+
+    char* enable_stop = getenv("ENABLE_NETFLIX_STOP");
+    if ( enable_stop != NULL ) {
+       if (strcmp(app_name,"Netflix") == 0 && strcmp(enable_stop,"true") == 0) {
+         std::string app_state = GetCurrentState();
+         printf("RTDIAL: Presence of Netflix thunder plugin state = %s to confirm state\r\n", app_state.c_str());
+         if (app_state == "deactivated") {
+           *state = GDIAL_APP_STATE_STOPPED;
+           printf("RTDIAL: app [%s] state converted to [%d]\r\n", app_name, *state);
+         }
+         else if (app_state == "suspended")
+         {
+            *state = GDIAL_APP_STATE_HIDE;
+            printf("RTDIAL: app [%s] state converted to [%d]\r\n", app_name, *state);
+         }
+	 else {
+	    *state = GDIAL_APP_STATE_RUNNING;	 
+         }		 
+       }
     }
 
     return GDIAL_APP_ERROR_NONE;

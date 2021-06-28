@@ -19,6 +19,7 @@
 
 #include <string.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <gio/gio.h>
 #include "gdial-config.h"
 #include "gdial-plat-app.h"
@@ -31,6 +32,7 @@ static gdial_plat_application_state_cb gdial_app_state_cb_ = gdial_app_state_cb_
 static gpointer gdial_app_state_cb_user_data_ = NULL;
 
 static gdial_plat_activation_cb g_activation_cb = NULL;
+static gdial_plat_friendlyname_cb g_friendlyname_cb = NULL;
 
 #define GDIAL_PLAT_APP_ASYNC_CONTEXT_TYPE_COMMON 0
 #define GDIAL_PLAT_APP_ASYNC_CONTEXT_TYPE_START  1
@@ -130,7 +132,13 @@ static gboolean GSourceFunc_application_stop_async_cb(gpointer user_data) {
 void gdail_plat_register_activation_cb(gdial_plat_activation_cb cb)
 {
   g_activation_cb = cb;
-  rtdail_register_activation_cb((rtdial_activation_cb)cb);
+  rtdail_register_activation_cb(cb);
+}
+
+void gdail_plat_register_friendlyname_cb(gdial_plat_friendlyname_cb cb)
+{
+  g_friendlyname_cb = cb;
+  rtdail_register_friendlyname_cb(cb);
 }
 
 gint gdial_plat_init(GMainContext *main_context) {

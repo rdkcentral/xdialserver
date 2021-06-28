@@ -32,7 +32,10 @@ getESTBInterfaceName()
    if [ -f /tmp/wifi-on ]; then
       interface=`getWiFiInterface`
    else
-      interface=`getMoCAInterface`
+      interface=$MOCA_INTERFACE
+      if [ ! "$interface" ]; then
+                interface=eth1
+      fi
    fi
    echo ${interface}
 }
@@ -45,6 +48,41 @@ echo "Partner ID: $PartnerId"
 #Get Model Name
 ModelName=$MODEL_NUM
 echo "Model Name: $ModelName"
+
+getValFromJsonStr () {
+    input=$1
+    deliminator=$2
+    if echo $input | grep -q $deliminator; then
+        result=$(echo "$input" | awk -F "${deliminator}\":" '{print $2}')
+        echo "$result" | awk -F ",\"" '{print $1}' | sed 's/}//g' |sed 's/"//g'
+    else
+        echo "ERR";
+    fi
+}
+
+respStr="$(curl -H "Authorization: Bearer `WPEFrameworkSecurityUtility | cut -d '"' -f 4`" -d '{"jsonrpc":"2.0","id":3,"method":"org.rdk.AuthService.1.getExperience"}' http://127.0.0.1:9998/jsonrpc 2>/dev/null)"
+echo "curl getExperience response: $respStr"
+statusValue=$(getValFromJsonStr $respStr "success")
+exp_retry=0
+
+while [ $statusValue != "true" ]
+do
+  sleep 3
+  respStr="$(curl -H "Authorization: Bearer `WPEFrameworkSecurityUtility | cut -d '"' -f 4`" -d '{"jsonrpc":"2.0","id":3,"method":"org.rdk.AuthService.1.getExperience"}' http://127.0.0.1:9998/jsonrpc 2>/dev/null)"
+  echo "curl getExperience response: $respStr"
+  statusValue=$(getValFromJsonStr $respStr "success")
+  if [ "$exp_retry" -ge 15 ]; then
+      break
+  fi
+  exp_retry=`expr $exp_retry + 1`
+done
+
+expValue=$(getValFromJsonStr $respStr "experience")
+echo "expValue : $expValue"
+if [ $expValue = "Flex" ]; then
+    ModelName="$ModelName$expValue"
+    echo "Flex experience ModelName:$ModelName"
+fi
 
 #Construct Friendly Name for Netflix
 FriendlyName=`echo "${PartnerId}_${ModelName}"`
@@ -79,6 +117,39 @@ if [ "$rule_exist" -ne 0 ]; then
     iptables -I INPUT -i ${XDIAL_IFNAME} -p tcp --dport 56890 -j ACCEPT #(SSDP PORT)
 fi
 
+if [[ $DEVICE_TYPE != *"hybrid"* ]] && [[ $DEVICE_NAME != *"XI3"* ]] && [[ $DEVICE_NAME != *"XID"* ]]; then
+    XDIAL_IFNAME="${XDIAL_IFNAME}:0"
+fi
+
+echo ${XDIAL_IFNAME} > /tmp/dial_interface
+
+if tr181Set -g Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.XDial.FriendlyNameEnable 2>&1 1>/dev/null  | grep -q 'true'; then
+    XDIAL_FRIENDLYNAME_ENABLED=" --feature-friendlyname "
+fi
+
+if [ "$BUILD_TYPE" != "prod" ] && [ -f /opt/enableXdialNetflixStop ]; then
+    export ENABLE_NETFLIX_STOP="true"
+fi
+
+if tr181Set -g Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.XDial.WolWakeEnable 2>&1 1>/dev/null  | grep -q 'true'; then
+    XDIAL_WOLWAKE_ENABLED=" --feature-wolwake"
+fi
+
+retry_logic () {
+
+    if [ -z "$2" ]
+    then
+        echo "RETRY"
+    else
+        if [ -z "$1" ]
+        then
+            echo "NORETRY"
+        else
+            echo "RETRY"
+        fi
+    fi
+}
+
 echo -en '\n'
 if tr181Set -g Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.XDial.Enable 2>&1 1>/dev/null  | grep -q 'true'; then
     echo "rfc enabled :starting gdial-server"
@@ -86,30 +157,32 @@ if tr181Set -g Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.XDial.Enable 2>&1 
 
     #wait for udhcpc to complete, do not use default ip
     retry_count=0
-    if [ "${XDIAL_IFNAME}" == "eth0" ]; then
-        curr_ip_addr=`ifconfig ${XDIAL_IFNAME}:0 |grep "inet addr" |grep "192.168.18.10"`
+    inet_addr_str=`ifconfig ${XDIAL_IFNAME} |grep "inet addr"`
+    if [ "${XDIAL_IFNAME:0:4}" == "eth0" ]; then
+        curr_ip_addr=`echo $inet_addr_str |grep "192.168.18.10"`
     else
-        curr_ip_addr=`ifconfig ${XDIAL_IFNAME}:0 |grep "inet addr" |grep "192.168.28.10"`
+        curr_ip_addr=`echo $inet_addr_str |grep "192.168.28.10"`
     fi
-
-    while [[ ! -z "$curr_ip_addr" ]]
+    while [ $(retry_logic "$curr_ip_addr" "$inet_addr_str" ) == "RETRY" ]
     do
-      if [ "$retry_count" -ge 5 ]; then
+      if [ "$retry_count" -ge 20 ]; then
           break
       fi
-      sleep 2
+      sleep 3
       echo "++++++++++++++++++"
-      echo "waiting for ip on ${XDIAL_IFNAME}:0, currently $curr_ip_addr"
+      output=`ifconfig ${XDIAL_IFNAME}`
+      echo "waiting for ip on ${XDIAL_IFNAME}, currently $inet_addr_str"
       echo "++++++++++++++++++"
-      if [ "${XDIAL_IFNAME}" == "eth0" ]; then
-          curr_ip_addr=`ifconfig ${XDIAL_IFNAME}:0 |grep "inet addr" |grep "192.168.18.10"`
+      inet_addr_str=`ifconfig ${XDIAL_IFNAME} |grep "inet addr"`
+      if [ "${XDIAL_IFNAME:0:4}" == "eth0" ]; then
+          curr_ip_addr=`echo $inet_addr_str |grep "192.168.18.10"`
       else
-          curr_ip_addr=`ifconfig ${XDIAL_IFNAME}:0 |grep "inet addr" |grep "192.168.28.10"`
+          curr_ip_addr=`echo $inet_addr_str |grep "192.168.28.10"`
       fi
       retry_count=`expr $retry_count + 1`
     done
 
-    /usr/share/xdial/gdial-server -I ${XDIAL_IFNAME}:0 -F ${FriendlyName} -R ${Manufacturer} -M ${ModelName} -U ${UUID} -A "${AppList} "
+    /usr/share/xdial/gdial-server -I "${XDIAL_IFNAME}" -F "${FriendlyName}" -R "${Manufacturer}" -M "${ModelName}" -U "${UUID}" -A "${AppList}" ${XDIAL_FRIENDLYNAME_ENABLED} ${XDIAL_WOLWAKE_ENABLED}
 else
     echo "rfc disabled: gdial-server not started"
 fi

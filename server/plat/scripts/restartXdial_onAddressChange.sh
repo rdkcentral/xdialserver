@@ -34,7 +34,7 @@ LOG_FILE=$LOG_PATH/$LOG_INPUT
 
 
 # Input Arguments - $1 event - $2 ipaddress type - $3 interface name - $4 ipaddress - $5 ipaddress scope
-printf "$0: Input Parameters : event $1, ipaddress type $2, interface name $3, ipaddress $4, ipaddress scope $5  \n" >> $LOG_FILE
+printf "$(date) $0: Input Parameters : event $1, ipaddress type $2, interface name $3, ipaddress $4, ipaddress scope $5  \n" >> $LOG_FILE
 
 
 RFC_XDIAL_ENABLED=`tr181 -g Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.XDial.Enable 2>&1`
@@ -48,7 +48,10 @@ getESTBInterfaceName()
    if [ -f /tmp/wifi-on ]; then
       interface=`getWiFiInterface`
    else
-      interface=`getMoCAInterface`
+      interface=$MOCA_INTERFACE
+      if [ ! "$interface" ]; then
+                interface=eth1
+      fi
    fi
    echo ${interface}
 }
@@ -58,24 +61,25 @@ restartXdialService() {
     if [ "$IsXdialRunning" == "active" ];then
       printf "Interface $3 IP details obtained : \n $curr_ip_addr \n" >> $LOG_FILE
       printf "xdial service is running \n" >> $LOG_FILE
-      printf "Restarting xdial service to take new interface IP \n" >> $LOG_FILE
+      printf "$(date)Restarting xdial service to take new interface IP \n" >> $LOG_FILE
       systemctl restart xdial
     else
       printf "Interface $3 IP details obtained : \n $curr_ip_addr \n" >> $LOG_FILE
       printf "xdial service is not  running \n" >> $LOG_FILE
-      printf "start xdial service at new interface IP \n" >> $LOG_FILE
+      printf "$(date) start xdial service at new interface IP \n" >> $LOG_FILE
       systemctl start xdial
     fi
 
 }
 
-if [[ $ModelName == *"X061"* ]]; then
-    XDIAL_IFNAME=$(getESTBInterfaceName):0
-else
-    XDIAL_IFNAME=$(getESTBInterfaceName)
-fi
-echo "$XDIAL_IFNAME"
+XDIAL_IFNAME=$(getESTBInterfaceName)
 
+
+if [[ $DEVICE_TYPE != *"hybrid"* ]] && [[ $DEVICE_NAME != *"XI3"* ]] && [[ $DEVICE_NAME != *"XID"* ]]; then
+    XDIAL_IFNAME="${XDIAL_IFNAME}:0"
+fi
+
+echo "$XDIAL_IFNAME" >> $LOG_FILE
 
 if [ "$1" == "add" ] && [ "$2" == "ipv4" ] && [ "$3" == "$XDIAL_IFNAME" ];then
   # make new ip name
@@ -84,13 +88,29 @@ if [ "$1" == "add" ] && [ "$2" == "ipv4" ] && [ "$3" == "$XDIAL_IFNAME" ];then
 
   # Test if there is a previous ip
   if ls $new_xcast_ip_addr_file 1> /dev/null 2>&1; then
-    printf "Got event for same ip - $2 $3 $4, ignore\n" >> $LOG_FILE
+    printf "$(date) Got event for same ip - $2 $3 $4, ignore\n" >> $LOG_FILE
   else
     printf "new_xcast_ip_addr_file is $new_xcast_ip_addr_file \n"
-    printf "Got event for new  ip - $2 $3 $4, react\n" >> $LOG_FILE
-    rm -f $xcast_ip_addr_file_prefix*
-    touch $new_xcast_ip_addr_file
-    restartXdialService &
+    printf "$(date)Got event for new  ip - $2 $3 $4, react\n" >> $LOG_FILE
+    file_count=0
+    if [ -f `find /tmp/ -type f -name "XDIAL_*" 2>/dev/null |head -1` ]; then
+      file_count=$(ls -l /tmp/XDIAL_* 2>/dev/null | wc -l)
+    fi
+    echo "file count for ls /tmp/XDIAL_* : $file_count \n " >> $LOG_FILE
+    if [ $file_count -gt 0 ]; then
+      if [ $4 != "192.168.28.10" ] && [ $4 != "192.168.18.10" ]; then
+        printf "IP change to new valid ip: $4 proceed with restart  " >> $LOG_FILE
+        rm -f /tmp/XDIAL_$2*
+        touch $new_xcast_ip_addr_file
+        restartXdialService &
+      else
+        printf "IP change to default so ignore the event until next event $4 \n" >> $LOG_FILE
+      fi
+    else
+      printf " bootup scenario so no file in /tmp proceed with restart  \n" >> $LOG_FILE
+      restartXdialService &
+      touch $new_xcast_ip_addr_file
+    fi
   fi
 else
   printf "Ignore irrelvant event \n" >> $LOG_FILE

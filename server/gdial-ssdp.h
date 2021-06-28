@@ -22,12 +22,14 @@
 
 #include <libsoup/soup.h>
 #include "gdial-options.h"
+#include <stdbool.h>
 
 G_BEGIN_DECLS
 
 int gdial_ssdp_new(SoupServer *server, GDialOptions *options);
 int gdial_ssdp_destroy();
-int gdial_ssdp_set_available(gboolean activationStatus);
+int gdial_ssdp_set_available(bool activationStatus,char *friendlyName);
+int gdial_ssdp_set_friendlyname(char *friendlyName);
 G_END_DECLS
 
 #endif

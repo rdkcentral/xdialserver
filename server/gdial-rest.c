@@ -216,8 +216,53 @@ GDIAL_STATIC GDialAppRegistry *gdial_rest_server_find_app_registry(GDialRestServ
   return NULL;
 }
 
+GDIAL_STATIC gboolean gdial_rest_server_is_allowed_youtube_origin(GDialRestServer *self, const gchar *header_origin, const gchar *app_name) {
+  if (self == NULL) return FALSE;
+
+  gboolean is_allowed = FALSE;
+  /* YouTube DIAL requirements overwrite the standard DIAL requirements for cors validation
+   * 7.10 The target device MUST support CORS as outlined in Section 6.6 of the DIAL 2.2.1 protocol specification,
+   * with the additional requirement that the target device MUST reject all requests to the DIAL server where the
+   * ORIGIN header is not present.
+   * 7.10.1 The ORIGIN header MUST match https://*.youtube.com or package
+   */
+  SoupURI *origin_uri = soup_uri_new(header_origin);
+  const gchar *uri_scheme = origin_uri ? soup_uri_get_scheme(origin_uri) : NULL;
+
+  if (origin_uri && uri_scheme &&
+    ( uri_scheme == SOUP_URI_SCHEME_HTTPS )) {
+    GDialAppRegistry *app_registry = gdial_rest_server_find_app_registry(self, app_name);
+    if (app_registry) {
+      GList *allowed_origins = app_registry->allowed_origins;
+
+      while(allowed_origins) {
+        gchar *origin = (gchar *)allowed_origins->data;
+        if (GDIAL_STR_ENDS_WITH(header_origin, origin)) {
+          is_allowed = TRUE;
+          break;
+        }
+        allowed_origins = allowed_origins->next;
+      }
+    }
+    else {
+    }
+  }
+  else {
+    if(!g_strcmp0(uri_scheme,"package")) {
+      is_allowed = TRUE;
+    }
+    else {
+      is_allowed = FALSE;
+    }
+  }
+  if (origin_uri) soup_uri_free(origin_uri);
+
+  return is_allowed;
+}
+
 GDIAL_STATIC gboolean gdial_rest_server_is_allowed_origin(GDialRestServer *self, const gchar *header_origin, const gchar *app_name) {
   if (self == NULL) return FALSE;
+  if (g_str_has_prefix(app_name,"YouTube")) return gdial_rest_server_is_allowed_youtube_origin(self,header_origin,app_name);
   if (header_origin == NULL) return TRUE;
   if (!g_strcmp0(header_origin, "")) return TRUE;
 
@@ -371,27 +416,21 @@ static void gdial_rest_server_handle_POST(GDialRestServer *gdial_rest_server, So
   g_printerr("Starting the app with payload %.*s\n", (int)msg->request_body->length, msg->request_body->data);
   GDialApp *app = gdial_app_find_instance_by_name(app_registry->name);
   gboolean new_app_instance = FALSE;
+  gboolean first_instance_created = FALSE;
 
   if (app != NULL && app_registry->is_singleton) {
-    if (gdial_rest_server_should_relaunch_app(app, msg->request_body->data)) {
-      /*
-       *@TODO: stop current instance
-       */
-      g_object_unref(app);
-      app = gdial_app_new(app_registry->name);
-      new_app_instance = TRUE;
-    }
-    else {
-      /*
-       * Reuse app instance as is, but do not update refcnt
-       */
-      g_printerr("POST request received for running app [%s]\r\n", app->name);
-      new_app_instance = FALSE;
-    }
+    /*
+     * Reuse app instance as is, but do not update refcnt
+     * per DIAL 2.1 recommendation, push relaunch decision to application platform,
+     */
+    g_printerr("POST request received for running app [%s]\r\n", app->name);
+    new_app_instance = TRUE;
+    first_instance_created = FALSE;
   }
   else {
     app = gdial_app_new(app_registry->name);
     new_app_instance = TRUE;
+    first_instance_created = TRUE;
   }
 
   GDialAppError start_error = GDIAL_APP_ERROR_NONE;
@@ -453,7 +492,12 @@ static void gdial_rest_server_handle_POST(GDialRestServer *gdial_rest_server, So
       soup_uri_get_host(soup_message_get_uri(msg)), listening_port, GDIAL_REST_HTTP_APPS_URI, app->name);
     gdial_soup_message_headers_set_Allow_Origin(msg, TRUE);
     if (new_app_instance) {
+      if (first_instance_created) {
       soup_message_set_status(msg, SOUP_STATUS_CREATED);
+      }
+      else {
+        soup_message_set_status(msg, SOUP_STATUS_OK);
+      }
       /*
        *@TODO msg->request_body may not need to be cached app->payload as it is
        * only used by shouldRelaunch(), which is not used and we don't support
@@ -467,7 +511,7 @@ static void gdial_rest_server_handle_POST(GDialRestServer *gdial_rest_server, So
       }
     }
     else {
-      soup_message_set_status(msg, SOUP_STATUS_CREATED);
+      soup_message_set_status(msg, SOUP_STATUS_OK);
     }
   }
   else {
@@ -553,6 +597,11 @@ static void gdial_rest_server_handle_POST_dial_data(GDialRestServer *gdial_rest_
    * Cache dial_data so as to use on future queries.
    */
   GDialApp *app = gdial_app_find_instance_by_name(app_name);
+  if(app == NULL)
+  {
+    g_print("gdial_rest_server_handle_POST_dial_data creating app instance \n");
+    app = gdial_app_new(app_name);
+  }
   gdial_rest_server_http_return_if_fail(app, msg, SOUP_STATUS_NOT_FOUND);
   /*
    * Give priority to body (body overrites query
@@ -644,6 +693,9 @@ static void gdial_local_rest_http_server_callback(SoupServer *server,
     gdial_rest_server_http_return_if_fail(app_registry, msg, SOUP_STATUS_NOT_FOUND);
     if (msg->method == SOUP_METHOD_POST) {
        gdial_rest_server_handle_POST_dial_data(gdial_rest_server, msg, query, app_name);
+    }
+    else if (msg->method == SOUP_METHOD_GET) {
+     gdial_rest_server_handle_GET_app(gdial_rest_server, msg, query, app_name, GDIAL_APP_INSTANCE_NULL);
     }
     else {
       gdial_rest_server_http_return_if_fail(msg->method == SOUP_METHOD_POST, msg, SOUP_STATUS_NOT_IMPLEMENTED);
@@ -748,12 +800,6 @@ static void gdial_rest_http_server_apps_callback(SoupServer *server,
 
   gdial_rest_server_http_return_if_fail(!invalid_uri, msg, SOUP_STATUS_NOT_IMPLEMENTED);
 
-  const gchar *header_origin = soup_message_headers_get_one(msg->request_headers, "Origin");
-  g_printerr("Origin %s, Host: %s, Method: %s\r\n", header_origin, header_host, msg->method);
-  if (!gdial_rest_server_is_allowed_origin(gdial_rest_server, header_origin, app_name)) {
-    gdial_rest_server_http_print_and_return_if_fail(FALSE, msg, SOUP_STATUS_FORBIDDEN, "origin %s is not allowed\r\n", header_origin);
-  }
-
   if(!gdial_rest_server_is_app_registered(gdial_rest_server, app_name)) {
     /*
      * Any request only respond to app name that is among registered apps
@@ -762,6 +808,11 @@ static void gdial_rest_http_server_apps_callback(SoupServer *server,
     gdial_rest_server_http_return_if_fail(FALSE, msg, SOUP_STATUS_NOT_FOUND);
   }
 
+  const gchar *header_origin = soup_message_headers_get_one(msg->request_headers, "Origin");
+  g_printerr("Origin %s, Host: %s, Method: %s\r\n", header_origin, header_host, msg->method);
+  if (!gdial_rest_server_is_allowed_origin(gdial_rest_server, header_origin, app_name)) {
+    gdial_rest_server_http_print_and_return_if_fail(FALSE, msg, SOUP_STATUS_FORBIDDEN, "origin %s is not allowed\r\n", header_origin);
+  }
   /*
    * element_num == 2:
    *   apps/Netflix

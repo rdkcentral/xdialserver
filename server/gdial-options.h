@@ -38,6 +38,10 @@
 #define UUID_OPTION_LONG "uuid-name"
 #define UUID_DESCRIPTION "UUID of the device"
 
+#define WAKE_OPTION 'W'
+#define WAKE_OPTION_LONG "wake-on-wifi-len"
+#define WAKE_DESCRIPTION "Enable wake on wifi/len.  Value: on/off.  Default (on)"
+
 #define IFNAME_OPTION 'I'
 #define IFNAME_OPTION_LONG "network-interface"
 #define IFNAME_DESCRIPTION "network interface to be used"
@@ -46,13 +50,22 @@
 #define APP_LIST_OPTION_LONG "app-list"
 #define APP_LIST_DESCRIPTION "A preset list of apps to support"
 
+#define FEATURE_FRIENDLYNAME_OPTION_LONG "feature-friendlyname"
+#define FEATURE_FRIENDLYNAME_DESCRIPTION "feature friendly name support"
+
+#define FEATURE_WOLWAKE_OPTION_LONG "feature-wolwake"
+#define FEATURE_WOLWAKE_DESCRIPTION "feature wol wake support"
+
 typedef struct {
   gchar *friendly_name;
   gchar *manufacturer;
   gchar *model_name;
   gchar *uuid;
+  gchar *wake;
   gchar *iface_name;
   gchar *app_list;
+  gboolean feature_friendlyname;
+  gboolean feature_wolwake;
 } GDialOptions;
 
 #endif

@@ -19,6 +19,11 @@
 
 #include <glib.h>
 #include "gdial-plat-dev.h"
+#include "libIBus.h"
+#include "pwrMgr.h"
+
+IARM_Bus_PWRMgr_PowerState_t m_powerstate = IARM_BUS_PWRMGR_POWERSTATE_STANDBY;
+static int m_sleeptime = 1;
 
 const char * gdial_plat_dev_get_manufacturer() {
   return g_getenv("GDIAL_DEV_MANUFACTURER");
@@ -26,4 +31,57 @@ const char * gdial_plat_dev_get_manufacturer() {
 
 const char * gdial_plat_dev_get_model() {
   return g_getenv("GDIAL_DEV_MODEL");
+}
+
+void gdial_plat_dev_power_mode_change(const char *owner, IARM_EventId_t eventId, void *data, size_t len)
+{
+  if ((strcmp(owner, IARM_BUS_PWRMGR_NAME)  == 0) && ( eventId == IARM_BUS_PWRMGR_EVENT_MODECHANGED )) {
+    IARM_Bus_PWRMgr_EventData_t *param = (IARM_Bus_PWRMgr_EventData_t *)data;
+    m_powerstate = param->data.state.newState;
+    if(m_powerstate == IARM_BUS_PWRMGR_POWERSTATE_ON) {
+      m_sleeptime = 1;
+    }
+    else if(m_powerstate == IARM_BUS_PWRMGR_POWERSTATE_STANDBY_DEEP_SLEEP) {
+      m_sleeptime = 3;
+    }
+    printf("gdial_plat_dev_power_mode_change new power state: %d m_sleeptime:%d \n ",m_powerstate,m_sleeptime );
+  }
+}
+
+bool gdial_plat_dev_initialize() {
+  IARM_Bus_Init("xdialserver");
+  IARM_Bus_Connect();
+  IARM_Result_t res;
+  IARM_Bus_RegisterEventHandler(IARM_BUS_PWRMGR_NAME,IARM_BUS_PWRMGR_EVENT_MODECHANGED, gdial_plat_dev_power_mode_change);
+  IARM_Bus_PWRMgr_GetPowerState_Param_t param;
+  res = IARM_Bus_Call(IARM_BUS_PWRMGR_NAME, IARM_BUS_PWRMGR_API_GetPowerState,
+                (void *)&param, sizeof(param));
+  if (res == IARM_RESULT_SUCCESS) {
+    m_powerstate = param.curState;
+  }
+
+  printf("gdial_plat_dev_initialize m_powerstate :%d \n",m_powerstate);
+  return true;
+}
+
+bool gdial_plat_dev_deinitialize() {
+  IARM_Bus_Disconnect();
+  IARM_Bus_Term();
+  return true;
+}
+
+bool gdial_plat_dev_set_power_state_on() {
+  bool ret = true;
+  if(IARM_BUS_PWRMGR_POWERSTATE_ON != m_powerstate) {
+    printf("gdial_plat_dev_set_power_state_on set power state to ON m_sleeptime:%d\n",m_sleeptime);
+    IARM_Bus_PWRMgr_SetPowerState_Param_t param;
+    param.newState = IARM_BUS_PWRMGR_POWERSTATE_ON;
+    IARM_Result_t res = IARM_Bus_Call(IARM_BUS_PWRMGR_NAME, IARM_BUS_PWRMGR_API_SetPowerState,
+                  (void *)&param, sizeof(param));
+    if(res != IARM_RESULT_SUCCESS) {
+      ret = false;
+    }
+    sleep(m_sleeptime);
+  }
+  return ret;
 }

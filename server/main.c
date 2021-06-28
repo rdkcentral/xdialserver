@@ -63,6 +63,12 @@ static GOptionEntry option_entries_[] = {
         UUID_DESCRIPTION, NULL
     },
     {
+        WAKE_OPTION_LONG,
+        WAKE_OPTION,
+        0, G_OPTION_ARG_STRING, &options_.wake,
+        WAKE_DESCRIPTION, NULL
+    },
+    {
         IFNAME_OPTION_LONG,
         IFNAME_OPTION,
         0, G_OPTION_ARG_STRING, &options_.iface_name,
@@ -73,6 +79,18 @@ static GOptionEntry option_entries_[] = {
         APP_LIST_OPTION,
         0, G_OPTION_ARG_STRING, &options_.app_list,
         APP_LIST_DESCRIPTION, NULL
+    },
+    {
+        FEATURE_FRIENDLYNAME_OPTION_LONG,
+        0,
+        0, G_OPTION_ARG_NONE, &options_.feature_friendlyname,
+        FEATURE_FRIENDLYNAME_DESCRIPTION, NULL
+    },
+    {
+        FEATURE_WOLWAKE_OPTION_LONG,
+        0,
+        0, G_OPTION_ARG_NONE, &options_.feature_wolwake,
+        FEATURE_WOLWAKE_DESCRIPTION, NULL
     },
     { NULL }
 };
@@ -92,25 +110,30 @@ static void signal_handler_rest_server_gmainloop_quit(GDialRestServer *dial_rest
 }
 static GDialRestServer *dial_rest_server = NULL;
 
-static void server_activation_handler(gboolean status)
+static void server_activation_handler(gboolean status, const gchar friendlyname)
 {
-    g_print("server_activation_handler status :%d\n",status);
-    gdial_ssdp_set_available(status);
+    g_print("server_activation_handler status :%d \n",status);
+    gdial_ssdp_set_available(status,friendlyname);
     if(dial_rest_server)
     {
         g_object_set(dial_rest_server,"enable" , status, NULL);
     }
 }
 
+static void server_friendlyname_handler(const gchar friendlyname)
+{
+    gdial_ssdp_set_friendlyname(friendlyname);
+}
+
 static void signal_handler_rest_server_rest_enable(GDialRestServer *dial_rest_server, const gchar *signal_message, gpointer user_data) {
   g_print(" signal_handler_rest_server_rest_enable received signal :%s \n ",signal_message );
   if(!strcmp(signal_message,"true"))
   {
-      server_activation_handler(1);
+      server_activation_handler(1, "");
   }
   else
   {
-      server_activation_handler(0);
+      server_activation_handler(0, "");
   }
 }
 
@@ -153,6 +176,7 @@ int main(int argc, char *argv[]) {
   gdial_plat_init(g_main_context_default());
 
   gdail_plat_register_activation_cb(server_activation_handler);
+  gdail_plat_register_friendlyname_cb(server_friendlyname_handler);
 
   SoupServer * rest_http_server = soup_server_new(NULL);
   SoupServer * ssdp_http_server = soup_server_new(NULL);
@@ -236,6 +260,17 @@ int main(int argc, char *argv[]) {
     else {
       g_print("spotify is not enabled from cmdline\r\n");
     }
+
+    if (g_strstr_len(app_list_low, app_list_len, "pairing")) {
+      g_print("pairing is enabled from cmdline\r\n");
+      GList *allowed_origins = g_list_prepend(NULL, ".comcast.com");
+      gdial_rest_server_register_app(dial_rest_server, "Pairing", NULL, TRUE, TRUE, allowed_origins);
+      g_list_free(allowed_origins);
+    }
+    else {
+      g_print("pairing is not enabled from cmdline\r\n");
+    }
+
     g_free(app_list_low);
   }
 

@@ -29,7 +29,6 @@
 #include "gdial-plat-dev.h"
 #include "gdial-ssdp.h"
 
-
 static SoupServer *ssdp_http_server_ = NULL;
 static GDialOptions *gdial_options_ = NULL;
 static GSSDPClient *ssdp_client_ = NULL;
@@ -41,6 +40,7 @@ static int ssdp_resource_id_ = 0;
 static const char *dial_ssdp_ST_target = "urn:dial-multiscreen-org:service:dial:1";
 static const char *dial_ssdp_USN_fmt = "uuid:%s::urn:dial-multiscreen-org:service:dial:1";
 static const char *dial_ssdp_LOCATION_fmt = "http://%s:%d/dd.xml";
+static const char *dial_ssdp_WAKEUP_fmt = "MAC=%s;Timeout=%d";
 
 
 /*
@@ -70,6 +70,7 @@ static const char ssdp_device_xml_template[] = ""
   "</root>";
 
 static gchar *dd_xml_response_str_ = NULL;
+static gchar *app_friendly_name = NULL;
 
 static void ssdp_http_server_callback(SoupServer *server, SoupMessage *msg, const char *path, GHashTable *query, SoupClientContext  *client, gpointer user_data) {
   /*
@@ -93,7 +94,11 @@ static void ssdp_http_server_callback(SoupServer *server, SoupMessage *msg, cons
 
     if (manufacturer == NULL) {manufacturer = gdial_options_->manufacturer;}
     if (model == NULL) {model = gdial_options_->model_name;}
-    dd_xml_response_str_ = g_strdup_printf(ssdp_device_xml_template, gdial_options_->friendly_name, manufacturer, model, gdial_options_->uuid);
+    if(gdial_options_->feature_friendlyname && strlen(app_friendly_name))
+        dd_xml_response_str_ = g_strdup_printf(ssdp_device_xml_template, app_friendly_name, manufacturer, model, gdial_options_->uuid);
+    else
+        dd_xml_response_str_ = g_strdup_printf(ssdp_device_xml_template, gdial_options_->friendly_name, manufacturer, model, gdial_options_->uuid);
+
     dd_xml_response_str_len = strlen(dd_xml_response_str_);
   }
 
@@ -140,6 +145,15 @@ int gdial_ssdp_new(SoupServer *ssdp_http_server, GDialOptions *options) {
    * header "CACHE-CONTROL" is mandatory, set by gssdp, default 1800
    */
   gssdp_client_append_header(ssdp_client, "BOOTID.UPNP.ORG", "1");
+  if(gdial_options_->feature_wolwake) {
+    g_print("WOL Wake feature is enabled");
+    gchar *dial_ssdp_WAKEUP = g_strdup_printf(dial_ssdp_WAKEUP_fmt,gdial_plat_util_get_iface_mac_addr(gdial_options_->iface_name),MAX_POWERON_TIME);
+    gssdp_client_append_header(ssdp_client, "WAKEUP", dial_ssdp_WAKEUP);
+    g_free(dial_ssdp_WAKEUP);
+  }
+  else {
+    g_print("WOL Wake feature is disabled");
+  }
   GDIAL_CHECK("EXT");
   GDIAL_CHECK("CACHE-CONTROL");
   GDIAL_CHECK("BOOTID.UPNP.ORG");
@@ -184,9 +198,25 @@ int gdial_ssdp_destroy() {
   return 0;
 }
 
-int gdial_ssdp_set_available(gboolean activation_status)
+int gdial_ssdp_set_available(bool activation_status,char *friendlyname)
 {
   g_print("gdial_ssdp_set_available activation_status :%d \n ",activation_status);
+  gdial_ssdp_set_friendlyname(friendlyname);
   gssdp_resource_group_set_available (ssdp_resource_group_, activation_status);
+  return 0;
+}
+
+int gdial_ssdp_set_friendlyname(char *friendlyname)
+{
+  if(gdial_options_->feature_friendlyname && friendlyname)
+  {
+     if (app_friendly_name != NULL) g_free(app_friendly_name);
+     app_friendly_name = g_strdup(friendlyname);
+     g_print("gdial_ssdp_set_friendlyname app_friendly_name :%s \n ",app_friendly_name);
+     if (dd_xml_response_str_!= NULL){
+      g_free(dd_xml_response_str_);
+      dd_xml_response_str_ = NULL;
+     }
+  }
   return 0;
 }

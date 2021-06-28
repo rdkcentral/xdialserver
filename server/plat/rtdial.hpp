@@ -28,8 +28,10 @@ extern "C" {
 
 bool rtdial_init(GMainContext *context);
 void rtdial_term();
-typedef void (*rtdial_activation_cb)(bool);
+typedef void (*rtdial_activation_cb)(bool, const gchar *);
+typedef void (*rtdial_friendlyname_cb)(const gchar *);
 void rtdail_register_activation_cb(rtdial_activation_cb cb);
+void rtdail_register_friendlyname_cb(rtdial_friendlyname_cb cb);
 
 #ifdef __cplusplus
 }
