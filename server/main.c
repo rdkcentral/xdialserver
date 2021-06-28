@@ -139,16 +139,16 @@ int main(int argc, char *argv[]) {
 
   #define MAX_RETRY 3
   for(int i=1;i<=MAX_RETRY;i++) {
-     iface_ipv4_address_ = gdial_plat_util_get_iface_ipv4_addr(options_.iface_name);
+    iface_ipv4_address_ = gdial_plat_util_get_iface_ipv4_addr(options_.iface_name);
     if (!iface_ipv4_address_) {
         g_warn_msg_if_fail(FALSE, "interface %s does not have IP\r\n", options_.iface_name);
         if(i >= MAX_RETRY )
             return EXIT_FAILURE;
         sleep(2);
-     }
+    }
     else {
-         break;
-     }
+      break;
+    }
   }
   gdial_plat_init(g_main_context_default());
 
@@ -243,7 +243,7 @@ int main(int argc, char *argv[]) {
   g_signal_connect(dial_rest_server, "gmainloop-quit", G_CALLBACK(signal_handler_rest_server_gmainloop_quit), NULL);
   g_signal_connect(dial_rest_server, "rest-enable", G_CALLBACK(signal_handler_rest_server_rest_enable), NULL);
 
-  gdial_ssdp_init(ssdp_http_server, &options_);
+  gdial_ssdp_new(ssdp_http_server, &options_);
   gdial_shield_init();
   gdial_shield_server(rest_http_server);
   gdial_shield_server(ssdp_http_server);
@@ -265,13 +265,14 @@ int main(int argc, char *argv[]) {
    */
   loop_ = g_main_loop_new (NULL, TRUE);
   g_main_loop_run (loop_);
+
   for (int i = 0; i < sizeof(servers)/sizeof(servers[0]); i++) {
     soup_server_disconnect(servers[i]);
     g_object_unref(servers[i]);
   }
 
   gdial_shield_term();
-  gdial_ssdp_term();
+  gdial_ssdp_destroy();
   g_object_unref(dial_rest_server);
   gdial_plat_term();
 

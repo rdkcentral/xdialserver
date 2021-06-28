@@ -231,6 +231,7 @@ GDIAL_STATIC gboolean gdial_rest_server_is_allowed_origin(GDialRestServer *self,
     GDialAppRegistry *app_registry = gdial_rest_server_find_app_registry(self, app_name);
     if (app_registry) {
       GList *allowed_origins = app_registry->allowed_origins;
+
       while (allowed_origins) {
         gchar *origin = (gchar *)allowed_origins->data;
         if (GDIAL_STR_ENDS_WITH(header_origin, origin)) {
@@ -639,14 +640,14 @@ static void gdial_local_rest_http_server_callback(SoupServer *server,
   printf("there are %d non-empty elems\r\n", element_num);
   if(element_num == 3 && g_strcmp0(instance,"dial_data") == 0)
   {
-     GDialAppRegistry *app_registry = gdial_rest_server_find_app_registry(gdial_rest_server, app_name);
-     gdial_rest_server_http_return_if_fail(app_registry, msg, SOUP_STATUS_NOT_FOUND);
-     if (msg->method == SOUP_METHOD_POST) {
-        gdial_rest_server_handle_POST_dial_data(gdial_rest_server, msg, query, app_name);
-     }
+    GDialAppRegistry *app_registry = gdial_rest_server_find_app_registry(gdial_rest_server, app_name);
+    gdial_rest_server_http_return_if_fail(app_registry, msg, SOUP_STATUS_NOT_FOUND);
+    if (msg->method == SOUP_METHOD_POST) {
+       gdial_rest_server_handle_POST_dial_data(gdial_rest_server, msg, query, app_name);
+    }
     else {
-        gdial_rest_server_http_return_if_fail(msg->method == SOUP_METHOD_POST, msg, SOUP_STATUS_NOT_IMPLEMENTED);
-     }
+      gdial_rest_server_http_return_if_fail(msg->method == SOUP_METHOD_POST, msg, SOUP_STATUS_NOT_IMPLEMENTED);
+    }
   }
   else {
     gdial_soup_message_set_http_error(msg,SOUP_STATUS_NOT_IMPLEMENTED);

@@ -45,6 +45,7 @@
 #define APP_LIST_OPTION 'A'
 #define APP_LIST_OPTION_LONG "app-list"
 #define APP_LIST_DESCRIPTION "A preset list of apps to support"
+
 typedef struct {
   gchar *friendly_name;
   gchar *manufacturer;

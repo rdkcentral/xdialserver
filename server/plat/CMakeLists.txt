@@ -44,7 +44,6 @@ configure_file ("${GDIAL_PLAT_PC_FILENAME}.in" "${GDIAL_PLAT_PC_FILENAME}" @ONLY
 include_directories(
   ${GLIB_INCLUDE_DIRS}
   ${PROJECT_SOURCE_DIR}/include
-  ${PROJECT_SOURCE_DIR}/linux
   ${PROJECT_SOURCE_DIR}/plat
   ${CMAKE_CURRENT_SOURCE_DIR}
   $ENV{PKG_CONFIG_SYSROOT_DIR}/usr/include/rdk/rtcast
@@ -52,12 +51,12 @@ include_directories(
 )
 
 set (GDIAL_PLAT_LIB_SOURCE_FILES
-  ${CMAKE_CURRENT_SOURCE_DIR}/../linux/gdial-plat-dev.c
-  ${CMAKE_CURRENT_SOURCE_DIR}/../linux/gdial-plat-util.c
-  ${CMAKE_CURRENT_SOURCE_DIR}/gdial-plat-app.c
-  ${CMAKE_CURRENT_SOURCE_DIR}/rtdial.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/rtcache.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/rtabstractservice.cpp
+  ${PROJECT_SOURCE_DIR}/plat/gdial-plat-app.c
+  ${PROJECT_SOURCE_DIR}/plat/gdial-plat-dev.c
+  ${PROJECT_SOURCE_DIR}/plat/gdial-plat-util.c
+  ${PROJECT_SOURCE_DIR}/plat/rtdial.cpp
+  ${PROJECT_SOURCE_DIR}/plat/rtcache.cpp
+  ${PROJECT_SOURCE_DIR}/plat/rtabstractservice.cpp
 )
 
 add_library(gdial-plat SHARED ${GDIAL_PLAT_LIB_SOURCE_FILES})
