@@ -31,8 +31,10 @@ void gdial_plat_term();
 typedef void * gdial_async_handler_t;
 typedef void (*gdial_plat_activation_cb)(gboolean, const gchar *);
 typedef void (*gdial_plat_friendlyname_cb)(const gchar *);
+typedef void (*gdial_plat_registerapps_cb)(gpointer);
 void gdail_plat_register_activation_cb(gdial_plat_activation_cb cb);
 void gdail_plat_register_friendlyname_cb(gdial_plat_friendlyname_cb cb);
+void gdail_plat_register_registerapps_cb(gdial_plat_registerapps_cb cb);
 
 GDialAppError gdial_plat_application_start(const gchar *app_name, const gchar *payload, const gchar *query, const gchar *additional_data_url, gint *instance_id);
 GDialAppError gdial_plat_application_hide(const gchar *app_name, gint instance_id);
