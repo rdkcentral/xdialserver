@@ -33,6 +33,7 @@ static gpointer gdial_app_state_cb_user_data_ = NULL;
 
 static gdial_plat_activation_cb g_activation_cb = NULL;
 static gdial_plat_friendlyname_cb g_friendlyname_cb = NULL;
+static gdial_plat_registerapps_cb g_registerapps_cb = NULL;
 
 #define GDIAL_PLAT_APP_ASYNC_CONTEXT_TYPE_COMMON 0
 #define GDIAL_PLAT_APP_ASYNC_CONTEXT_TYPE_START  1
@@ -139,6 +140,12 @@ void gdail_plat_register_friendlyname_cb(gdial_plat_friendlyname_cb cb)
 {
   g_friendlyname_cb = cb;
   rtdail_register_friendlyname_cb(cb);
+}
+
+void gdail_plat_register_registerapps_cb(gdial_plat_registerapps_cb cb)
+{
+  g_registerapps_cb = cb;
+  rtdail_register_registerapps_cb(cb);
 }
 
 gint gdial_plat_init(GMainContext *main_context) {
