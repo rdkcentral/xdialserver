@@ -30,8 +30,10 @@ bool rtdial_init(GMainContext *context);
 void rtdial_term();
 typedef void (*rtdial_activation_cb)(bool, const gchar *);
 typedef void (*rtdial_friendlyname_cb)(const gchar *);
+typedef void (*rtdial_registerapps_cb)(gpointer);
 void rtdail_register_activation_cb(rtdial_activation_cb cb);
 void rtdail_register_friendlyname_cb(rtdial_friendlyname_cb cb);
+void rtdail_register_registerapps_cb(rtdial_registerapps_cb cb);
 
 #ifdef __cplusplus
 }

@@ -58,9 +58,11 @@ public:
     rtMethod1ArgAndNoReturn("onApplicationStateChanged", applicationStateChanged, rtObjectRef);
     rtMethod1ArgAndNoReturn("onActivationChanged", activationChanged, rtObjectRef);
     rtMethod1ArgAndNoReturn("onFriendlyNameChanged", friendlyNameChanged, rtObjectRef);
+    rtMethod1ArgAndNoReturn("onRegisterApplications", registerApplications, rtObjectRef);
     virtual rtError applicationStateChanged(const rtObjectRef& params){ printf("applicationStateChanged rtCastRemoteObject");}
     virtual rtError activationChanged (const rtObjectRef& params){ printf("activationChanged rtCastRemoteObject");}
     virtual rtError friendlyNameChanged (const rtObjectRef& params){ printf("friendlyNameChanged rtCastRemoteObject");}
+    virtual rtError registerApplications (const rtObjectRef& params){ printf("registerApplications rtCastRemoteObject");}
 
   /*
     * rtCast implementation should emit these events:

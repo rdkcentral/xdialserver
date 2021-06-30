@@ -35,6 +35,7 @@
 #include "rtcast.hpp"
 #include "rtcache.hpp"
 #include "rtdial.hpp"
+#include "gdial_app_registry.h"
 
 rtRemoteEnvironment* env;
 static GSource *remoteSource = nullptr;
@@ -44,7 +45,12 @@ static int INIT_COMPLETED = 0;
 rtAppStatusCache* AppCache;
 static rtdial_activation_cb g_activation_cb = NULL;
 static rtdial_friendlyname_cb g_friendlyname_cb = NULL;
+static rtdial_registerapps_cb g_registerapps_cb = NULL;
 
+#define DIAL_MAX_NUM_OF_APPS (64)
+#define DIAL_MAX_NUM_OF_APP_NAMES (64)
+#define DIAL_MAX_NUM_OF_APP_PREFIXES (64)
+#define DIAL_MAX_NUM_OF_APP_CORS (64)
 
 class rtDialCastRemoteObject : public rtCastRemoteObject
 {
@@ -82,6 +88,107 @@ public:
         return RT_OK;
     }
 
+    rtError registerApplications(const rtObjectRef& params) {
+        printf("RTDIAL : rtDialCastRemoteObject::registerApplications\n");
+        rtString appFirstName;
+
+        rtObjectRef AppObj = params;
+        GList *gAppList = NULL;
+        for(int i = 0 ; i< (DIAL_MAX_NUM_OF_APPS); i ++) {
+            rtObjectRef appInfo;
+            int err = AppObj.get(i,appInfo);
+            if(err == RT_OK) {
+                printf("Application: %d \n", i);
+
+                rtObjectRef appPrefxes;
+                GList *gAppPrefxes = NULL;
+                err = appInfo.get("prefixes",appPrefxes);
+                if(err == RT_OK) {
+                    for(int i = 0 ; i< (DIAL_MAX_NUM_OF_APP_PREFIXES); i ++) {
+                        rtString appPrefx;
+                        err = appPrefxes.get(i, appPrefx);
+                        if(err == RT_OK) {
+                            gAppPrefxes = g_list_prepend (gAppPrefxes, g_strdup(appPrefx.cString()));
+                            printf("%s, ", appPrefx.cString());
+                        }
+                        else {
+                            break;
+                        }
+                    }
+                    printf("\n");
+                }
+
+                rtObjectRef appCors;
+                GList *allowed_origins = NULL;
+                err = appInfo.get("cors", appCors);
+                if(err == RT_OK) {
+                    for(int i = 0 ; i< (DIAL_MAX_NUM_OF_APP_CORS); i ++) {
+                       rtString appCor;
+                       err = appCors.get(i,appCor);
+                       if(err == RT_OK) {
+                           allowed_origins = g_list_prepend (allowed_origins, g_strdup(appCor.cString()));
+                           printf("%s, ", appCor.cString());
+                       }
+                       else {
+                           break;
+                       }
+                   }
+                   printf("\n");
+               }
+
+               rtObjectRef appProp;
+               GHashTable *gProperties = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_free);
+               err = appInfo.get("properties", appProp);
+               if (RT_OK == err) {
+                   rtString appAllowStop;
+                   err = appProp.get("allowStop", appAllowStop);
+                   if (RT_OK == err) {
+                        g_hash_table_insert(gProperties,g_strdup("allowStop"),g_strdup(appAllowStop.cString()));
+                        printf("allowStop: %s", appAllowStop.cString());
+                   }
+                   printf("\n");
+               }
+
+               rtObjectRef appNames;
+               err = appInfo.get("Names",appNames);
+               if(err == RT_OK) {
+                  for(int i = 0 ; i< (DIAL_MAX_NUM_OF_APP_NAMES); i ++) {
+                      rtString appName;
+                      err = appNames.get(i,appName);
+                      if(err == RT_OK) {
+                          GDialAppRegistry*  app_registry = gdial_app_registry_new (
+                                                                g_strdup(appName.cString()),
+                                                                gAppPrefxes,
+                                                                gProperties,
+                                                                TRUE,
+                                                                TRUE,
+                                                                allowed_origins);
+                          gAppList = g_list_prepend (gAppList, app_registry);
+                          printf("%s, ", appName.cString());
+                      }
+                      else {
+                          break;
+                      }
+                  }
+                  printf("\n");
+              }
+
+           }
+       }
+       int appListSize = g_list_length (gAppList);
+       if( g_registerapps_cb && appListSize) {
+           printf("RTDIAL: rtDialCastRemoteObject:: calling register_applications callback \n");
+           g_registerapps_cb(gAppList);
+       }
+
+       /*Free the applist*/
+       if (gAppList) {
+           g_list_free (gAppList);
+           gAppList = NULL;
+       }
+       return RT_OK;
+    }
+
     rtError activationChanged(const rtObjectRef& params) {
         rtObjectRef AppObj = new rtMapObject;
         AppObj = params;
@@ -100,6 +207,7 @@ public:
             {
                 g_activation_cb(0,friendlyName.cString());
             }
+            printf("RTDIAL: rtDialCastRemoteObject:: status: %s  g_activation_cb :%d \n",status.cString(), g_activation_cb);
         }
         return RT_OK;
     }
@@ -109,6 +217,22 @@ public:
         rtObjectRef AppObj = new rtMapObject;
         AppObj.set("applicationName",appName);
         AppObj.set("parameters",args);
+        AppObj.set("isUrl","true");
+
+        rtCastError error(RT_OK,CAST_ERROR_NONE);
+        RTCAST_ERROR_RT(error) = notify("onApplicationLaunchRequest",AppObj);
+        return error;
+    }
+
+    rtCastError launchApplicationWithLaunchParams(const char *appName, const char *argPayload, const char *argQueryString, const char *argAdditionalDataUrl) {
+        printf("RTDIAL: rtDialCastRemoteObject::launchApplicationWithLaunchParams App:%s  payload:%s query_string:%s additional_data_url\n",
+                                                                        appName, argPayload, argQueryString, argAdditionalDataUrl);
+        rtObjectRef AppObj = new rtMapObject;
+        AppObj.set("applicationName",appName);
+        AppObj.set("payload",argPayload);
+        AppObj.set("query",argQueryString);
+        AppObj.set("addDataUrl",argAdditionalDataUrl);
+        AppObj.set("isUrl","false");
 
         rtCastError error(RT_OK,CAST_ERROR_NONE);
         RTCAST_ERROR_RT(error) = notify("onApplicationLaunchRequest",AppObj);
@@ -172,6 +296,7 @@ rtDefineObject(rtCastRemoteObject, rtAbstractService);
 rtDefineMethod(rtCastRemoteObject, applicationStateChanged);
 rtDefineMethod(rtCastRemoteObject, activationChanged);
 rtDefineMethod(rtCastRemoteObject, friendlyNameChanged);
+rtDefineMethod(rtCastRemoteObject, registerApplications);
 
 rtDialCastRemoteObject* DialObj;
 
@@ -239,6 +364,11 @@ void rtdail_register_activation_cb(rtdial_activation_cb cb)
 void rtdail_register_friendlyname_cb(rtdial_friendlyname_cb cb)
 {
    g_friendlyname_cb = cb;
+}
+
+void rtdail_register_registerapps_cb(rtdial_registerapps_cb cb)
+{
+   g_registerapps_cb = cb;
 }
 
 bool rtdial_init(GMainContext *context) {
@@ -315,74 +445,7 @@ int gdial_os_application_start(const char *app_name, const char *payload, const 
         app_name, query_string, payload, additional_data_url);
 
     gdial_plat_dev_set_power_state_on();
-    char url[DIAL_MAX_PAYLOAD+DIAL_MAX_ADDITIONALURL+100] = {0,};
-    if(strcmp(app_name,"YouTube") == 0) {
-        if ((payload != NULL) && (additional_data_url != NULL)){
-            sprintf( url, "https://www.youtube.com/tv?%s&additionalDataUrl=%s", payload, additional_data_url);
-        }else if (payload != NULL){
-            sprintf( url, "https://www.youtube.com/tv?%s", payload);
-        }else{
-            sprintf( url, "https://www.youtube.com/tv");
-        }
-    }
-
-    else if(strcmp(app_name,"Netflix") == 0) {
-        memset( url, 0, sizeof(url) );
-        strcat( url, "source_type=12" );
-        if(payload != NULL)
-        {
-            const char * pUrlEncodedParams;
-            pUrlEncodedParams = payload;
-            if( pUrlEncodedParams ){
-                strcat( url, "&dial=");
-                strcat( url, pUrlEncodedParams );
-            }
-        }
-
-        if(additional_data_url != NULL){
-            strcat(url, "&additionalDataUrl=");
-            strcat(url, additional_data_url);
-        }
-    }
-    else {
-        int url_len = sizeof(url);
-        {
-            memset( url, 0, url_len );
-            url_len -= DIAL_MAX_ADDITIONALURL+1; //save for &additionalDataUrl
-            url_len -= 1; //save for nul byte
-            printf("query_string=[%s]\r\n", query_string);
-            int has_query = query_string && strlen(query_string);
-            int has_payload = 0;
-            if (has_query) {
-                strcat(url, query_string);
-                url_len -= strlen(query_string);
-            }
-            if(payload && strlen(payload)) {
-                if (has_query) url_len -=1;  //for &
-                const char payload_key[] = "dialpayload=";
-                url_len -= sizeof(payload_key) - 1;
-                url_len -= strlen(payload);
-                if(url_len >= 0){
-                    if (has_query) strcat(url, "&");
-                    strcat(url, payload_key);
-                    strcat(url, payload);
-                    has_payload = 1;
-        }
-                else {
-                    printf("there is no enough room for payload\r\n");
-                }
-            }
-
-        if(additional_data_url != NULL){
-                if (has_query || has_payload) strcat(url, "&");
-                strcat(url, "additionalDataUrl=");
-            strcat(url, additional_data_url);
-            }
-            printf("url is [%s]\r\n", url);
-        }
-    }
-
-    rtCastError ret = DialObj->launchApplication(app_name,url);
+    rtCastError ret = DialObj->launchApplicationWithLaunchParams(app_name, payload, query_string, additional_data_url);
     if (RTCAST_ERROR_RT(ret) != RT_OK) {
         printf("RTDIAL: DialObj.launchApplication failed!!! Error=%s\n",rtStrError(RTCAST_ERROR_RT(ret)));
         return GDIAL_APP_ERROR_INTERNAL;

@@ -36,14 +36,6 @@
 #include "gdial-plat-app.h"
 #include "gdial-rest-builder.h"
 
-typedef struct _GDialAppRegistry {
-  gchar *name;
-  gboolean use_additional_data;
-  gboolean is_singleton;
-  GList *allowed_origins;
-  GList *app_prefixes;
-} GDialAppRegistry;
-
 typedef struct _GDialRestServerPrivate {
   GList *registered_apps;
   SoupServer *soup_instance;
@@ -150,13 +142,10 @@ static void gdial_soup_message_set_http_error(SoupMessage *msg, guint state_code
   g_string_free(value_buf, FALSE); \
 }
 
-static GList *gdial_rest_server_registered_apps_remove_and_free(GList *registered_apps, GList *found) {
+static GList *gdial_rest_server_registered_apps_clear(GList *registered_apps, GList *found) {
   GDialAppRegistry *app_registry = (GDialAppRegistry *)found->data;
   registered_apps = g_list_remove_link(registered_apps, found);
-  g_free(app_registry->name);
-  g_list_free_full(app_registry->allowed_origins, g_free);
-  g_list_free_full(app_registry->app_prefixes, g_free);
-  free(app_registry);
+  gdial_app_regstry_dispose (app_registry);
   g_list_free(found);
   return registered_apps;
 }
@@ -233,16 +222,7 @@ GDIAL_STATIC gboolean gdial_rest_server_is_allowed_youtube_origin(GDialRestServe
     ( uri_scheme == SOUP_URI_SCHEME_HTTPS )) {
     GDialAppRegistry *app_registry = gdial_rest_server_find_app_registry(self, app_name);
     if (app_registry) {
-      GList *allowed_origins = app_registry->allowed_origins;
-
-      while(allowed_origins) {
-        gchar *origin = (gchar *)allowed_origins->data;
-        if (GDIAL_STR_ENDS_WITH(header_origin, origin)) {
-          is_allowed = TRUE;
-          break;
-        }
-        allowed_origins = allowed_origins->next;
-      }
+      is_allowed = gdial_app_registry_is_allowed_origin (app_registry, header_origin);
     }
     else {
     }
@@ -275,16 +255,7 @@ GDIAL_STATIC gboolean gdial_rest_server_is_allowed_origin(GDialRestServer *self,
     (uri_scheme == SOUP_URI_SCHEME_HTTP || uri_scheme == SOUP_URI_SCHEME_HTTPS || uri_scheme == SOUP_URI_SCHEME_FILE)) {
     GDialAppRegistry *app_registry = gdial_rest_server_find_app_registry(self, app_name);
     if (app_registry) {
-      GList *allowed_origins = app_registry->allowed_origins;
-
-      while (allowed_origins) {
-        gchar *origin = (gchar *)allowed_origins->data;
-        if (GDIAL_STR_ENDS_WITH(header_origin, origin)) {
-          is_allowed = TRUE;
-          break;
-        }
-        allowed_origins = allowed_origins->next;
-      }
+      is_allowed = gdial_app_registry_is_allowed_origin (app_registry, header_origin);
     }
     else {
     }
@@ -576,6 +547,11 @@ static void gdial_rest_server_handle_GET_app(GDialRestServer *gdial_rest_server,
   GET_APP_response_builder_destroy(builder);
   #else
   int response_len = 0;
+  gpointer allow_stop = g_hash_table_lookup(app_registry->properties,"allowStop");
+  if(allow_stop == NULL) {
+    allow_stop = "false";
+  }
+  g_print("server_register_application allowStop:%s\n",allow_stop);
   gchar *response_str = gdial_app_state_response_new(app, GDIAL_PROTOCOL_VERSION_STR, GDIAL_PROTOCOL_XMLNS_SCHEMA, &response_len);
   #endif
   soup_message_set_response(msg, "text/xml; charset=utf-8", SOUP_MEMORY_TAKE, response_str, response_len);
@@ -933,7 +909,7 @@ static void gdial_rest_server_dispose(GObject *object) {
   g_object_unref(priv->soup_instance);
   g_object_unref(priv->local_soup_instance);
   while (priv->registered_apps) {
-    priv->registered_apps = gdial_rest_server_registered_apps_remove_and_free(priv->registered_apps, priv->registered_apps);
+    priv->registered_apps = gdial_rest_server_registered_apps_clear(priv->registered_apps, priv->registered_apps);
   }
   G_OBJECT_CLASS (gdial_rest_server_parent_class)->dispose (object);
 }
@@ -1061,7 +1037,7 @@ GDialRestServer *gdial_rest_server_new(SoupServer *rest_http_server,SoupServer *
   return object;
 }
 
-gboolean gdial_rest_server_register_app(GDialRestServer *self, const gchar *app_name, const GList *app_prefixes, gboolean is_singleton, gboolean use_additional_data, const GList *allowed_origins) {
+gboolean gdial_rest_server_register_app(GDialRestServer *self, const gchar *app_name, const GList *app_prefixes, const GHashTable *properties, gboolean is_singleton, gboolean use_additional_data, const GList *allowed_origins) {
 
   g_return_val_if_fail(self != NULL && app_name != NULL, FALSE);
   /*
@@ -1079,21 +1055,12 @@ gboolean gdial_rest_server_register_app(GDialRestServer *self, const gchar *app_
     return FALSE;
   }
 
-  GDialAppRegistry *app_registry = (GDialAppRegistry *)malloc(sizeof(*app_registry));
-  memset(app_registry, 0, sizeof(*app_registry));
-  app_registry->name = g_strdup(app_name);
-  app_registry->is_singleton = is_singleton;
-  app_registry->use_additional_data = use_additional_data;
-  while (app_prefixes) {
-    if (app_prefixes->data && (strlen(app_prefixes->data) > 0)) {
-      app_registry->app_prefixes = g_list_prepend(app_registry->app_prefixes, g_strdup(app_prefixes->data));
-    }
-    app_prefixes = app_prefixes->next;
-  }
-  while (allowed_origins) {
-    app_registry->allowed_origins = g_list_prepend(app_registry->allowed_origins, g_strdup(allowed_origins->data));
-    allowed_origins = allowed_origins->next;
-  }
+  GDialAppRegistry *app_registry = gdial_app_registry_new (g_strdup(app_name),
+                                                           app_prefixes,
+                                                           properties,
+                                                           is_singleton,
+                                                           use_additional_data,
+                                                           allowed_origins);
   priv->registered_apps = g_list_prepend(priv->registered_apps, app_registry);
 
   /*
@@ -1106,6 +1073,62 @@ gboolean gdial_rest_server_register_app(GDialRestServer *self, const gchar *app_
   return TRUE;
 }
 
+gboolean gdial_rest_server_register_app_registry(GDialRestServer *self, GDialAppRegistry *app_registry) {
+
+  g_return_val_if_fail(self != NULL && app_registry != NULL, FALSE);
+
+  GDialRestServerPrivate *priv = gdial_rest_server_get_instance_private(self);
+  if (g_list_find_custom(priv->registered_apps, app_registry->name, GCompareFunc_match_registry_app_name) != NULL) {
+   /*
+    * Do not support duplicate registration with different param
+    *
+    *@TODO: check params. If identical to previous registraiton, return TRUE;
+    */
+    return FALSE;
+  }
+
+  priv->registered_apps = g_list_prepend(priv->registered_apps, app_registry);
+
+  /*
+   * when an app is registered, we also check if it is already running
+   * @TODO
+   */
+
+  g_return_val_if_fail(priv->registered_apps != NULL, FALSE);
+  g_return_val_if_fail(gdial_rest_server_is_app_registered(self, app_registry->name), FALSE);
+  return TRUE;
+}
+
+gboolean gdial_rest_server_unregister_all_apps(GDialRestServer *self) {
+  g_return_val_if_fail(self != NULL, FALSE);
+
+  g_print("Inside gdial_rest_server_unregister_all_apps\n");
+  GDialRestServerPrivate *priv = gdial_rest_server_get_instance_private(self);
+  GList *registered_apps_head = priv->registered_apps;
+  /*Stopping all registread Apps*/
+  while (priv->registered_apps) {
+    GDialAppRegistry *app_registry = priv->registered_apps->data;
+    GDialApp *app = gdial_app_find_instance_by_name(app_registry->name);
+    if (app) {
+      if (gdial_app_stop(app) == GDIAL_APP_ERROR_NONE) {
+        g_warn_if_fail(gdial_app_state(app) == GDIAL_APP_ERROR_NONE && GDIAL_APP_GET_STATE(app) == GDIAL_APP_STATE_STOPPED);
+      }
+      else {
+        g_printerr("gdial_app_stop(%s) failed, force shutdown\r\n", app->name);
+        gdial_app_force_shutdown(app);
+      }
+      g_object_unref(app);
+    }
+    priv->registered_apps = priv->registered_apps->next;
+  }
+  priv->registered_apps = registered_apps_head;
+  /*Remove all registered apps before*/
+  while (priv->registered_apps) {
+    priv->registered_apps = gdial_rest_server_registered_apps_clear(priv->registered_apps, priv->registered_apps);
+  }
+  return TRUE;
+}
+
 gboolean gdial_rest_server_is_app_registered(GDialRestServer *self, const gchar *app_name) {
   return gdial_rest_server_find_app_registry(self, app_name) != NULL;
 }
@@ -1115,7 +1138,7 @@ gboolean gdial_rest_server_unregister_app(GDialRestServer *self, const gchar *ap
   GDialRestServerPrivate *priv = gdial_rest_server_get_instance_private(self);
   GList *found = g_list_find_custom(priv->registered_apps, app_name, GCompareFunc_match_registry_app_name);
   if (found == NULL) return FALSE;
-  priv->registered_apps = gdial_rest_server_registered_apps_remove_and_free(priv->registered_apps, found);
+  priv->registered_apps = gdial_rest_server_registered_apps_clear(priv->registered_apps, found);
   return TRUE;
 }
 

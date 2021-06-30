@@ -32,6 +32,7 @@
 #include "gdial-plat-util.h"
 #include "gdial-plat-dev.h"
 #include "gdial-plat-app.h"
+#include "gdial_app_registry.h"
 
 static const char *dial_specification_copyright = "Copyright (c) 2017 Netflix, Inc. All rights reserved.";
 
@@ -116,7 +117,23 @@ static void server_activation_handler(gboolean status, const gchar *friendlyname
     gdial_ssdp_set_available(status,friendlyname);
     if(dial_rest_server)
     {
-        g_object_set(dial_rest_server,"enable" , status, NULL);
+        g_object_set(dial_rest_server,"enable" ,status, NULL);
+    }
+}
+
+static void server_register_application(gpointer data)
+{
+    GList* g_app_list = (GList*) data;
+    g_print("server_register_application callback \n");
+    if(g_app_list) {
+        g_print("server_register_application appList :%d\n", g_list_length (g_app_list));
+    }
+
+    /*Remove all existing registered Apps*/
+    gdial_rest_server_unregister_all_apps(dial_rest_server);
+    while(g_app_list) {
+        gdial_rest_server_register_app_registry (dial_rest_server, (GDialAppRegistry *)g_app_list->data);
+        g_app_list = g_app_list->next;
     }
 }
 
@@ -177,6 +194,7 @@ int main(int argc, char *argv[]) {
 
   gdail_plat_register_activation_cb(server_activation_handler);
   gdail_plat_register_friendlyname_cb(server_friendlyname_handler);
+  gdail_plat_register_registerapps_cb (server_register_application);
 
   SoupServer * rest_http_server = soup_server_new(NULL);
   SoupServer * ssdp_http_server = soup_server_new(NULL);
@@ -222,7 +240,7 @@ int main(int argc, char *argv[]) {
     if (g_strstr_len(app_list_low, app_list_len, "netflix")) {
       g_print("netflix is enabled from cmdline\r\n");
       GList *allowed_origins = g_list_prepend(NULL, ".netflix.com");
-      gdial_rest_server_register_app(dial_rest_server, "Netflix", NULL, TRUE, TRUE, allowed_origins);
+      gdial_rest_server_register_app(dial_rest_server, "Netflix", NULL, NULL, TRUE, TRUE, allowed_origins);
       g_list_free(allowed_origins);
     }
     else {
@@ -232,7 +250,7 @@ int main(int argc, char *argv[]) {
     if (g_strstr_len(app_list_low, app_list_len, "youtube")) {
       g_print("youtube is enabled from cmdline\r\n");
       GList *allowed_origins = g_list_prepend(NULL, ".youtube.com");
-      gdial_rest_server_register_app(dial_rest_server, "YouTube", NULL, TRUE, TRUE, allowed_origins);
+      gdial_rest_server_register_app(dial_rest_server, "YouTube", NULL, NULL, TRUE, TRUE, allowed_origins);
       g_list_free(allowed_origins);
     }
     else {
@@ -242,7 +260,7 @@ int main(int argc, char *argv[]) {
     if (g_strstr_len(app_list_low, app_list_len, "amazoninstantvideo")) {
       g_print("AmazonInstantVideo is enabled from cmdline\r\n");
       GList *allowed_origins = g_list_prepend(NULL, ".amazonprime.com");
-      gdial_rest_server_register_app(dial_rest_server, "AmazonInstantVideo", NULL, TRUE, TRUE, allowed_origins);
+      gdial_rest_server_register_app(dial_rest_server, "AmazonInstantVideo", NULL, NULL, TRUE, TRUE, allowed_origins);
       g_list_free(allowed_origins);
     }
     else {
@@ -253,7 +271,7 @@ int main(int argc, char *argv[]) {
       g_print("spotify is enabled from cmdline\r\n");
       GList *app_prefixes= g_list_prepend(NULL, "com.spotify");
       GList *allowed_origins = g_list_prepend(NULL, ".spotify.com");
-      gdial_rest_server_register_app(dial_rest_server, "com.spotify.Spotify.TV", app_prefixes, TRUE, TRUE, allowed_origins);
+      gdial_rest_server_register_app(dial_rest_server, "com.spotify.Spotify.TV", app_prefixes, NULL, TRUE, TRUE, allowed_origins);
       g_list_free(allowed_origins);
       g_list_free(app_prefixes);
     }
@@ -264,7 +282,7 @@ int main(int argc, char *argv[]) {
     if (g_strstr_len(app_list_low, app_list_len, "pairing")) {
       g_print("pairing is enabled from cmdline\r\n");
       GList *allowed_origins = g_list_prepend(NULL, ".comcast.com");
-      gdial_rest_server_register_app(dial_rest_server, "Pairing", NULL, TRUE, TRUE, allowed_origins);
+      gdial_rest_server_register_app(dial_rest_server, "Pairing", NULL, NULL, TRUE, TRUE, allowed_origins);
       g_list_free(allowed_origins);
     }
     else {
