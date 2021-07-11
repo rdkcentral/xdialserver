@@ -64,6 +64,7 @@ set (GDIAL_PLAT_LIB_SOURCE_FILES
   ${PROJECT_SOURCE_DIR}/plat/rtdial.cpp
   ${PROJECT_SOURCE_DIR}/plat/rtcache.cpp
   ${PROJECT_SOURCE_DIR}/plat/rtabstractservice.cpp
+  ${PROJECT_SOURCE_DIR}/plat/Module.cpp
 )
 
 if(PLATFORM)
