@@ -22,6 +22,8 @@
 #include <unistd.h>
 #include <pthread.h>
 #include <glib.h>
+
+#include "Module.h"
 #include <core.h>
 #include <plugins.h>
 #include <json/JsonData_Netflix.h>
