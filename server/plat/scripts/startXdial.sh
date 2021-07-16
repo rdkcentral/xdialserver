@@ -92,6 +92,10 @@ Manufacturer=$MFG_NAME
 echo "Manufacturer: $Manufacturer"
 #Get UUID
 UUID=$(getReceiverId)
+if [ -z "$UUID" ]; then
+    #Assigning default UUID
+    UUID="12345678-abcd-abcd-1234-123456789abc"
+fi
 echo "UUID: $UUID"
 
 #Opening Required PORTS
