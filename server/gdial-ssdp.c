@@ -119,11 +119,11 @@ int gdial_ssdp_new(SoupServer *ssdp_http_server, GDialOptions *options) {
   g_return_val_if_fail(options->iface_name != NULL, -1);
 
   gdial_options_ = options;
-  if (gdial_options_->friendly_name == NULL) gdial_options_->friendly_name = g_strdup(GDIAL_SSDP_FRIENDLY_DEFAULT);
-  if (gdial_options_->manufacturer== NULL) gdial_options_->manufacturer = g_strdup(GDIAL_SSDP_MANUFACTURER_DEFAULT);
-  if (gdial_options_->model_name== NULL) gdial_options_->model_name = g_strdup(GDIAL_SSDP_MODELNAME_DEFAULT);
-  if (gdial_options_->uuid == NULL) gdial_options_->uuid = g_strdup(GDIAL_SSDP_DEVICE_UUID_DEFAULT);
-  if (gdial_options_->iface_name == NULL) gdial_options_->iface_name = g_strdup(GDIAL_IFACE_NAME_DEFAULT);
+  if (gdial_options_->friendly_name == NULL || (0==g_ascii_strcasecmp(gdial_options_->friendly_name, ""))) gdial_options_->friendly_name = g_strdup(GDIAL_SSDP_FRIENDLY_DEFAULT);
+  if (gdial_options_->manufacturer== NULL || (0==g_ascii_strcasecmp(gdial_options_->manufacturer, ""))) gdial_options_->manufacturer = g_strdup(GDIAL_SSDP_MANUFACTURER_DEFAULT);
+  if (gdial_options_->model_name== NULL || (0==g_ascii_strcasecmp(gdial_options_->model_name, ""))) gdial_options_->model_name = g_strdup(GDIAL_SSDP_MODELNAME_DEFAULT);
+  if (gdial_options_->uuid == NULL || (0==g_ascii_strcasecmp(gdial_options_->uuid, ""))) gdial_options_->uuid = g_strdup(GDIAL_SSDP_DEVICE_UUID_DEFAULT);
+  if (gdial_options_->iface_name == NULL || (0==g_ascii_strcasecmp(gdial_options_->iface_name, ""))) gdial_options_->iface_name = g_strdup(GDIAL_IFACE_NAME_DEFAULT);
 
   GError *error = NULL;
 
