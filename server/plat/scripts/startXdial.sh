@@ -40,6 +40,15 @@ getESTBInterfaceName()
    echo ${interface}
 }
 
+getCmdlineOption()
+{
+    if [ -z "$2" ]; then
+        echo=""; #do not speicify XDIAL_IFNAME when not available
+    else
+        echo "$1 $2"
+    fi
+}
+
 #Get Partner ID
 PartnerId=$(getPartnerId)
 PartnerId=`echo ${PartnerId:0:1} | tr  '[a-z]' '[A-Z]'`${PartnerId:1}
@@ -182,7 +191,15 @@ if tr181Set -g Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.XDial.Enable 2>&1 
       retry_count=`expr $retry_count + 1`
     done
 
-    /usr/share/xdial/gdial-server -I "${XDIAL_IFNAME}" -F "${FriendlyName}" -R "${Manufacturer}" -M "${ModelName}" -U "${UUID}" -A "${AppList}" ${XDIAL_FRIENDLYNAME_ENABLED} ${XDIAL_WOLWAKE_ENABLED}
+    XDIAL_IFNAME_OPTION=$(getCmdlineOption "-I" "$XDIAL_IFNAME")
+    FriendlyName_OPTION=$(getCmdlineOption "-F" "$FriendlyName")
+    Manufacturer_OPTION=$(getCmdlineOption "-R" "$Manufacturer")
+    ModelName_OPTION=$(getCmdlineOption "-M" "$ModelName")
+    UUID_OPTION=$(getCmdlineOption "-U" "$UUID")
+    AppList_OPTION=$(getCmdlineOption "-A" "$AppList")
+
+    echo "gdial-server args: ${XDIAL_IFNAME_OPTION} ${FriendlyName_OPTION} ${Manufacturer_OPTION} ${ModelName_OPTION} ${UUID_OPTION} ${AppList_OPTION} ${XDIAL_FRIENDLYNAME_ENABLED} ${XDIAL_WOLWAKE_ENABLED}"
+    /usr/share/xdial/gdial-server ${XDIAL_IFNAME_OPTION} ${FriendlyName_OPTION} ${Manufacturer_OPTION} ${ModelName_OPTION} ${UUID_OPTION} ${AppList_OPTION} ${XDIAL_FRIENDLYNAME_ENABLED} ${XDIAL_WOLWAKE_ENABLED}
 else
     echo "rfc disabled: gdial-server not started"
 fi
