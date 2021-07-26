@@ -487,8 +487,9 @@ std::string GetCurrentState() {
          }
      }
      std::string nfxstatus = "status@" + nfx_callsign;
+     if(controllerRemoteObject->Get(1000, _T(nfxstatus), pluginResponse) == Core::ERROR_NONE)
      {
-         printf("Obtained netflix status \n");
+         printf("Obtained netflix status = %s\n",nfxstatus.c_str());
          Core::JSON::ArrayType<PluginHost::MetaData::Service>::Iterator index(pluginResponse.Elements());
          while (index.Next() == true) {
                 netflixState = index.Current().JSONState.Data();
