@@ -429,7 +429,7 @@ static void gdial_rest_server_handle_POST(GDialRestServer *gdial_rest_server, So
     const gchar *payload = msg->request_body->data;
     gchar *payload_safe = NULL;
     if (payload && strlen(payload)) {
-      if (g_strcmp0(app->name, "YouTube") == 0) {
+      if (g_str_has_prefix(app->name, "YouTube")) {
         /* temporary disabling encoding payload for YouTube till cloud side changed*/
         payload_safe = g_strdup(payload);
       }
