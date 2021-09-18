@@ -215,6 +215,16 @@ int main(int argc, char *argv[]) {
       g_print("youtube is not enabled from cmdline\r\n");
     }
 
+    if (g_strstr_len(app_list_low, app_list_len, "amazoninstantvideo")) {
+      g_print("AmazonInstantVideo is enabled from cmdline\r\n");
+      GList *allowed_origins = g_list_prepend(NULL, ".amazonprime.com");
+      gdial_rest_server_register_app(dial_rest_server, "AmazonInstantVideo", NULL, TRUE, TRUE, allowed_origins);
+      g_list_free(allowed_origins);
+    }
+    else {
+      g_print("AmazonInstantVideo is not enabled from cmdline\r\n");
+    }
+
     if (g_strstr_len(app_list_low, app_list_len, "spotify")) {
       g_print("spotify is enabled from cmdline\r\n");
       GList *app_prefixes= g_list_prepend(NULL, "com.spotify");
