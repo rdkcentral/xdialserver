@@ -1,4 +1,4 @@
-CMakeLists.txt.user
+ CMakeLists.txt.user
 CMakeCache.txt
 CMakeFiles
 CMakeScripts
@@ -12,5 +12,4 @@ _deps
 *.so
 *.o
 *.pc
-server/gdial-server
 

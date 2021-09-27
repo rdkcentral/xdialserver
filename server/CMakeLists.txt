@@ -44,8 +44,13 @@ check_function_exists (malloc HAVE_MALLOC)
 
 add_definitions(-DGDIAL_STATIC=extern -DGDIAL_STATIC_INLINE=extern)
 
+if (CMAKE_BUILD_TYPE STREQUAL "CI")
+add_subdirectory (${PROJECT_SOURCE_DIR}/ci)
+enable_testing ()
+else()
 #add_subdirectory (plat) that builds libgdial-plat.so
 add_subdirectory (${PROJECT_SOURCE_DIR}/plat)
+endif()
 
 include_directories (
   ${GLIB_INCLUDE_DIRS}
@@ -85,3 +90,12 @@ target_link_libraries (gdial-server
   ${XML2_LIBRARIES}
   gdial-plat
 )
+
+
+if (CMAKE_BUILD_TYPE STREQUAL "CI")
+add_test (NAME int_test_ssdp COMMAND bash ${CMAKE_CURRENT_SOURCE_DIR}/ci/scripts/int_test_ssdp.sh)
+add_test (NAME int_test_appState COMMAND bash ${CMAKE_CURRENT_SOURCE_DIR}/ci/scripts/int_test_appState.sh)
+add_test (NAME int_test_additionalData COMMAND bash ${CMAKE_CURRENT_SOURCE_DIR}/ci/scripts/int_test_additionalData.sh)
+add_test (NAME int_test_shield COMMAND bash ${CMAKE_CURRENT_SOURCE_DIR}/ci/scripts/int_test_shield.sh)
+add_test (NAME int_test_origin COMMAND bash ${CMAKE_CURRENT_SOURCE_DIR}/ci/scripts/int_test_origin.sh)
+endif ()
