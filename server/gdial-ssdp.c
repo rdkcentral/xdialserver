@@ -112,13 +112,16 @@ static void ssdp_http_server_callback(SoupServer *server, SoupMessage *msg, cons
   GDIAL_CHECK("Application-URL: exist");
 }
 
-int gdial_ssdp_new(SoupServer *ssdp_http_server, GDialOptions *options) {
+int gdial_ssdp_new(SoupServer *ssdp_http_server, GDialOptions *options, bool is_re_init) {
 
-  g_return_val_if_fail(ssdp_http_server != NULL, -1);
-  g_return_val_if_fail(options != NULL, -1);
-  g_return_val_if_fail(options->iface_name != NULL, -1);
+  g_print("Entering gdial_ssdp_new is_re_init:%d \n", is_re_init);
+  if (!is_re_init) {
+    g_return_val_if_fail(ssdp_http_server != NULL, -1);
+    g_return_val_if_fail(options != NULL, -1);
+    g_return_val_if_fail(options->iface_name != NULL, -1);
 
-  gdial_options_ = options;
+    gdial_options_ = options;
+  }
   if (gdial_options_->friendly_name == NULL) gdial_options_->friendly_name = g_strdup(GDIAL_SSDP_FRIENDLY_DEFAULT);
   if (gdial_options_->manufacturer== NULL) gdial_options_->manufacturer = g_strdup(GDIAL_SSDP_MANUFACTURER_DEFAULT);
   if (gdial_options_->model_name== NULL) gdial_options_->model_name = g_strdup(GDIAL_SSDP_MODELNAME_DEFAULT);
@@ -169,12 +172,14 @@ int gdial_ssdp_new(SoupServer *ssdp_http_server, GDialOptions *options) {
   g_free(dial_ssdp_LOCATION);
 
   ssdp_resource_group_ = ssdp_resource_group;
-
-  g_object_ref(ssdp_http_server);
-  ssdp_http_server_ = ssdp_http_server;
+  if (!is_re_init) {
+    g_object_ref(ssdp_http_server);
+    ssdp_http_server_ = ssdp_http_server;
+  }
 
   soup_server_add_handler(ssdp_http_server_, "/dd.xml", ssdp_http_server_callback, NULL, NULL);
   ssdp_client_ = ssdp_client;
+  g_print("Leaving gdial_ssdp_new is_re_init:%d \n", is_re_init);
 
   return 0;
 }

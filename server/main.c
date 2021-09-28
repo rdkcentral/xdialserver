@@ -306,7 +306,7 @@ int main(int argc, char *argv[]) {
   g_signal_connect(dial_rest_server, "gmainloop-quit", G_CALLBACK(signal_handler_rest_server_gmainloop_quit), NULL);
   g_signal_connect(dial_rest_server, "rest-enable", G_CALLBACK(signal_handler_rest_server_rest_enable), NULL);
 
-  gdial_ssdp_new(ssdp_http_server, &options_);
+  gdial_ssdp_new(ssdp_http_server, &options_, false);
   gdial_shield_init();
   gdial_shield_server(rest_http_server);
   gdial_shield_server(ssdp_http_server);
