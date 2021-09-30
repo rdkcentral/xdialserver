@@ -1,0 +1,59 @@
+name: CMake
+
+on:
+  push:
+    branches: [ master, 2105_sprint ]
+  pull_request:
+    branches: [ master, 2105_sprint ]
+
+env:
+  # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
+  BUILD_TYPE: Release
+
+jobs:    
+  build:
+    # The CMake configure and build commands are platform agnostic and should work equally
+    # well on Windows or Mac.  You can convert this to a matrix build if you need
+    # cross-platform coverage.
+    # See: https://docs.github.com/en/free-pro-team@latest/actions/learn-github-actions/managing-complex-workflows#using-a-build-matrix
+    runs-on: ubuntu-18.04
+
+    steps:
+    - uses: actions/checkout@v2
+    
+    - name: Setup image
+      # install needed packages for xdialserver build and test
+      run: |
+        sudo apt-get install -y gir1.2-glib-2.0 libgssdp-1.0-dev libsoup2.4-dev libxml2 libglib2.0-dev gir1.2-glib-2.0
+        sudo apt-get install socat
+
+    - name: Configure CMake
+      # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
+      # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
+      run: |
+        mkdir -p ${{github.workspace}}/server/build
+        cd ${{github.workspace}}/server/build
+        cmake -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} ../
+      env:
+        BUILD_TYPE: CI
+
+    - name: Build
+      working-directory: ${{github.workspace}}/server/build
+      # Build your program with the given configuration
+      run: |
+        make 
+      env:
+        BUILD_TYPE: CI
+
+    - name: Test
+      working-directory: ${{github.workspace}}/server/build
+      # Execute tests defined by the CMake configuration.  
+      # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
+      run: |
+        python2 --version
+        python3 --version
+        ctest -R int_test_* --verbose
+      env:
+        BUILD_TYPE: CI
+        XDIAL_HostIfname: eth0
+

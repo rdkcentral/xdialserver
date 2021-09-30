@@ -44,31 +44,14 @@ configure_file ("${GDIAL_PLAT_PC_FILENAME}.in" "${GDIAL_PLAT_PC_FILENAME}" @ONLY
 include_directories(
   ${GLIB_INCLUDE_DIRS}
   ${PROJECT_SOURCE_DIR}/include
-  ${PROJECT_SOURCE_DIR}/plat
   ${CMAKE_CURRENT_SOURCE_DIR}
-  $ENV{PKG_CONFIG_SYSROOT_DIR}/usr/include/rdk/rtcast
-  $ENV{PKG_CONFIG_SYSROOT_DIR}/usr/include/pxcore
-  $ENV{PKG_CONFIG_SYSROOT_DIR}/usr/include/WPEFramework
-  $ENV{PKG_CONFIG_SYSROOT_DIR}/usr/include/WPEFramework/core/
-  $ENV{PKG_CONFIG_SYSROOT_DIR}/usr/include/WPEFramework/plugins/
-  $ENV{PKG_CONFIG_SYSROOT_DIR}/usr/include/WPEFramework/interfaces/
-  $ENV{PKG_CONFIG_SYSROOT_DIR}/usr/include/rdk/iarmbus/
-  $ENV{PKG_CONFIG_SYSROOT_DIR}/usr/include/rdk/iarmmgrs-hal/
 )
 
 set (GDIAL_PLAT_LIB_SOURCE_FILES
-  ${PROJECT_SOURCE_DIR}/plat/gdial-plat-app.c
-  ${PROJECT_SOURCE_DIR}/plat/gdial-plat-dev.c
-  ${PROJECT_SOURCE_DIR}/plat/gdial-plat-util.c
-  ${PROJECT_SOURCE_DIR}/plat/rtdial.cpp
-  ${PROJECT_SOURCE_DIR}/plat/rtcache.cpp
-  ${PROJECT_SOURCE_DIR}/plat/rtabstractservice.cpp
-  ${PROJECT_SOURCE_DIR}/plat/Module.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/gdial-plat-app.c
+  ${CMAKE_CURRENT_SOURCE_DIR}/gdial-plat-dev.c
+  ${CMAKE_CURRENT_SOURCE_DIR}/gdial-plat-util.c
 )
 
-if(PLATFORM)
-  add_definitions(${PLATFORM})
-endif()
-
 add_library(gdial-plat SHARED ${GDIAL_PLAT_LIB_SOURCE_FILES})
-target_link_Libraries(gdial-plat PRIVATE ${GLIB_LIBRARIES} ${GOBJECT_LIBRARIES} -lpthread -lrtRemote -lrtCore -lWPEFrameworkCore -lWPEFrameworkTracing -lWPEFrameworkDefinitions -lWPEFrameworkProtocols -lWPEFrameworkPlugins -lWPEFrameworkSecurityUtil -lIARMBus)
+target_link_Libraries(gdial-plat PRIVATE ${GLIB_LIBRARIES} ${GOBJECT_LIBRARIES} -lpthread)
