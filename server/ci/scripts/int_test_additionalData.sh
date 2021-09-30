@@ -1,10 +1,12 @@
 #!/bin/bash
-HOSTIP=$(ip addr show ${XDIAL_HostIfname} |grep "inet " |cut -d/ -f1 |awk '{ print $2 } ' | tr -d '\n')
+source ../ci/scripts/int_test_env.sh
+source ../ci/scripts/int_test_util.sh
+
 echo "Running xDIAL tests from ${HOSTIP} at dir $(pwd) ..."
 
-sh ../ci/scripts/startXdial.sh &
-echo "Waiting 2 sec for gdial-server to start..."
-sleep 1 
+bash ../ci/scripts/startXdial.sh &
+echo "Waiting 1 sec for gdial-server to start..."
+sleep ${XDIALSERVER_START_DELAY}
 
 error_exit() {
   pkill -9 gdial-server
@@ -16,10 +18,6 @@ success_exit() {
   pkill -9 gdial-server
   rm /tmp/Netflix
   exit 0
-}
-
-get_appState() {
-  echo -n $(curl -v  http://${HOSTIP}:56889/apps/$1| python -c "import xml.etree.ElementTree as ET; import sys; tree=ET.parse(sys.stdin); print(tree.getroot().findall('{urn:dial-multiscreen-org:schemas:dial}state')[0].text)" |tr -d '\n')
 }
 
 get_additionalData() {
@@ -45,7 +43,7 @@ additionoalData=$(get_additionalData "data")
 
 # addittionalData persists after restart
 pkill -9 gdial-server
-sh ../ci/scripts/startXdial.sh &
+bash ../ci/scripts/startXdial.sh &
 sleep 1
 additionoalData=$(get_additionalData "data")
 [ "${additionoalData}" != "${timestamp}" ] && echo "failed: expecting ${timestamp}, but additionoalData=${additionoalData}!" && error_exit;

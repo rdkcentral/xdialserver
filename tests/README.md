@@ -16,13 +16,17 @@ cmake -DCMAKE_BUILD_TYPE=CI ..
 make
 ```
 
-To run the CI tests, under the `server/build` directory, please do
+To run the CI tests locally, under the `server/build` directory, please do
 ```
 make test
 ```
 or if you want verbose output
 ```
 ctest --verbose
+```
+and to enable verbose glib logging
+```
+export G_MESSAGE_DEBUG=all
 ```
 
 The CI tests cover the core DIAL functionalities and are platform agnostic. The platform integration tests such as Application Manager or Communication between dial and applications, should be tested at application platform level.

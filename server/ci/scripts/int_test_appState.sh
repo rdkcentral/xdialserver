@@ -1,12 +1,12 @@
 #!/bin/bash
-HOSTIP=$(ip addr show ${XDIAL_HostIfname} |grep "inet " |cut -d/ -f1 |awk '{ print $2 } ' | tr -d '\n')
+source ../ci/scripts/int_test_env.sh
+source ../ci/scripts/int_test_util.sh
+
 echo "Running xDIAL tests from ${HOSTIP} at dir $(pwd) ..."
 
-sh ../ci/scripts/startXdial.sh &
-echo "Waiting 2 sec for gdial-server to start..."
-sleep 1
-
-source ../ci/scripts/int_test_util.sh
+bash ../ci/scripts/startXdial.sh &
+echo "Waiting 1 sec for gdial-server to start..."
+sleep ${XDIALSERVER_START_DELAY}
 
 ### ### ### ### ### ### #####
 ### Test cases start here ###
