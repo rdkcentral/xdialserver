@@ -27,7 +27,7 @@ get_ddxml_manufacturer() {
 }
 
 get_ssdp_usn() {
-  echo -n  $(printf 'M-SEARCH * HTTP/1.1\r\nHOST: 239.255.255.250:1900\r\nMAN: "ssdp:discover"\r\nMX: 1\r\nST: urn:dial-multiscreen-org:service:dial:1\r\n\r\n' | socat -t3 - udp-datagram:239.255.255.250:1900,ip-add-membership=239.255.255.250:wlp2s0b1 |grep -i USN |grep "12345678-abcd-abcd-1234-123456789abc" | awk '{split($0,a,"::"); print a[2]}' | tr -d '\r\n')
+  echo -n  $(printf 'M-SEARCH * HTTP/1.1\r\nHOST: 239.255.255.250:1900\r\nMAN: "ssdp:discover"\r\nMX: 1\r\nST: urn:dial-multiscreen-org:service:dial:1\r\n\r\n' | socat -t3 - udp-datagram:239.255.255.250:1900,ip-add-membership=239.255.255.250:$(get_ifname)|grep -i USN |grep "12345678-abcd-abcd-1234-123456789abc" | awk '{split($0,a,"::"); print a[2]}' | tr -d '\r\n')
 }
 
 get_appState() {
