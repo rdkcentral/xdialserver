@@ -1,12 +1,12 @@
 #!/bin/bash
-HOSTIP=$(ip addr show ${XDIAL_HostIfname} |grep "inet " |cut -d/ -f1 |awk '{ print $2 } ' | tr -d '\n')
+source ../ci/scripts/int_test_env.sh
+source ../ci/scripts/int_test_util.sh
+
 echo "Running xDIAL tests from ${HOSTIP} at dir $(pwd) ..."
 
-sh ../ci/scripts/startXdial.sh &
-echo "Waiting 2 sec for gdial-server to start..."
-sleep 1
-
-source ../ci/scripts/int_test_util.sh
+bash ../ci/scripts/startXdial.sh &
+echo "Waiting 1 sec for gdial-server to start..."
+sleep ${XDIALSERVER_START_DELAY}
 
 ### ### ### ### ### ### #####
 ### Test cases start here ###
@@ -32,7 +32,7 @@ netflixOrigin="http://www.netflix.us"
 retCode=$(curl -s -I -X GET -H "Origin:${netflixOrigin}" http://${HOSTIP}:56889/apps/Netflix |grep HTTP  |  awk '{ print $2 }' | tr -d '\n')
 [ "${retCode}" -ne  "403" ] && echo "failed: expecting 403 for .us, but actual=HTTP ${retCode}!" && error_exit;
 
-# TEST: valid any origin ftp 
+# TEST: valid any origin ftp
 netflixOrigin="ftp://www.example.com"
 retCode=$(curl -s -I -X GET -H "Origin:${netflixOrigin}" http://${HOSTIP}:56889/apps/Netflix |grep HTTP  |  awk '{ print $2 }' | tr -d '\n')
 [ "${retCode}" -ne  "200" ] && echo "failed: expecting 200 for ftp, but actual=HTTP ${retCode}!" && error_exit;

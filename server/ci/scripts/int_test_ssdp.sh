@@ -1,18 +1,27 @@
 #!/bin/bash
-HOSTIP=$(ip addr show ${XDIAL_HostIfname} |grep "inet " |cut -d/ -f1 |awk '{ print $2 } ' | tr -d '\n')
+source ../ci/scripts/int_test_env.sh
+source ../ci/scripts/int_test_util.sh
+
 echo "Running xDIAL tests from ${HOSTIP} at dir $(pwd) ..."
 
-sh ../ci/scripts/startXdial.sh &
-echo "Waiting 2 sec for gdial-server to start..."
-sleep 1
-
-source ../ci/scripts/int_test_util.sh
+bash ../ci/scripts/startXdial.sh &
+echo "Waiting 1 sec for gdial-server to start..."
+sleep ${XDIALSERVER_START_DELAY}
 
 ### ### ### ### ### ### #####
 ### Test cases start here ###
 ### ### ### ### ### ### #####
 
-#TEST: Check manufacturer
+echo "Test starts..."
+
+echo "TEST: discovery"
+USN=$(get_ssdp_usn)
+USN_EXPECTED="urn:dial-multiscreen-org:service:dial:1"
+
+[ -z "${USN}" ] && echo "fail to discover xdialserver!" && error_exit;
+[ "${USN_EXPECTED}" != "${USN}" ] && echo "fail to find correct service!" && error_exit;
+
+echo "TEST: Check manufacturer"
 ddxml_manufacturer=$(get_ddxml_manufacturer)
 [ "$ddxml_manufacturer" != "CI-Manufacturer" ] && echo "ddxml_manufacturer=$ddxml_manufacturer failed!" && error_exit;
 
