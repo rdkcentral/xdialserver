@@ -533,7 +533,7 @@ int gdial_os_application_stop(const char *app_name, int instance_id) {
 }
 
 int gdial_os_application_hide(const char *app_name, int instance_id) {
-    #if 1
+    #if 0
     printf("RTDIAL gdial_os_application_hide-->stop: appName = %s appID = %s\n",app_name,std::to_string(instance_id).c_str());
     const char* State = AppCache->SearchAppStatusInCache(app_name);
     if (0 && strcmp(State,"running") != 0) {
