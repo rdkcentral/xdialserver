@@ -338,8 +338,12 @@ static void gdial_rest_server_handle_POST_hide(SoupMessage *msg, GDialApp *app) 
   gdial_rest_server_http_return_if_fail((GDIAL_APP_GET_STATE(app) == GDIAL_APP_STATE_RUNNING) || (GDIAL_APP_GET_STATE(app) == GDIAL_APP_STATE_HIDE), msg, SOUP_STATUS_NOT_FOUND);
 
   GDialAppError app_error = GDIAL_APP_ERROR_NONE;
+  GDialAppState current_state = GDIAL_APP_GET_STATE(app);
 
-  if ( (app_error = gdial_app_hide(app)) == GDIAL_APP_ERROR_NONE) {
+  if ( current_state == GDIAL_APP_STATE_HIDE) {
+    // Do not call gdial_app_hide if current app state is GDIAL_APP_STATE_HIDE
+  }
+  else if ( (app_error = gdial_app_hide(app)) == GDIAL_APP_ERROR_NONE) {
      g_warn_if_fail(gdial_app_state(app) == GDIAL_APP_ERROR_NONE && GDIAL_APP_GET_STATE(app) == GDIAL_APP_STATE_HIDE);
   }
   else if (app_error == GDIAL_APP_ERROR_NOT_IMPLEMENTED) {
@@ -349,8 +353,12 @@ static void gdial_rest_server_handle_POST_hide(SoupMessage *msg, GDialApp *app) 
     g_printerr("gdial_app_hide(%s) failed\r\n", app->name);
     gdial_rest_server_http_return_if_fail(FALSE, msg, SOUP_STATUS_INTERNAL_SERVER_ERROR);
   }
-
-  soup_message_set_status(msg, SOUP_STATUS_OK);
+  if(current_state == GDIAL_APP_STATE_STOPPED) {
+     soup_message_set_status(msg, SOUP_STATUS_CREATED);
+  }
+  else {
+     soup_message_set_status(msg, SOUP_STATUS_OK);
+  }
   soup_message_headers_replace(msg->response_headers, "Content-Type", "text/plain; charset=utf-8");
   gdial_soup_message_headers_set_Allow_Origin(msg, TRUE);
 }
@@ -388,6 +396,7 @@ static void gdial_rest_server_handle_POST(GDialRestServer *gdial_rest_server, So
   GDialApp *app = gdial_app_find_instance_by_name(app_registry->name);
   gboolean new_app_instance = FALSE;
   gboolean first_instance_created = FALSE;
+  GDialAppState current_state = GDIAL_APP_STATE_STOPPED;
 
   if (app != NULL && app_registry->is_singleton) {
     /*
@@ -397,6 +406,7 @@ static void gdial_rest_server_handle_POST(GDialRestServer *gdial_rest_server, So
     g_printerr("POST request received for running app [%s]\r\n", app->name);
     new_app_instance = TRUE;
     first_instance_created = FALSE;
+    current_state = GDIAL_APP_GET_STATE(app);
   }
   else {
     app = gdial_app_new(app_registry->name);
@@ -463,8 +473,8 @@ static void gdial_rest_server_handle_POST(GDialRestServer *gdial_rest_server, So
       soup_uri_get_host(soup_message_get_uri(msg)), listening_port, GDIAL_REST_HTTP_APPS_URI, app->name);
     gdial_soup_message_headers_set_Allow_Origin(msg, TRUE);
     if (new_app_instance) {
-      if (first_instance_created) {
-      soup_message_set_status(msg, SOUP_STATUS_CREATED);
+      if (first_instance_created || current_state == GDIAL_APP_STATE_HIDE) {
+        soup_message_set_status(msg, SOUP_STATUS_CREATED);
       }
       else {
         soup_message_set_status(msg, SOUP_STATUS_OK);
