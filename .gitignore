@@ -12,5 +12,4 @@ _deps
 *.so
 *.o
 *.pc
-server/gdial-server
 
