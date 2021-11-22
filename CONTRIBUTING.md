@@ -8,7 +8,7 @@ How to contribute
 =================
 1. Please use latest sprint branch, that is named by `YYMM_sprint`.  Please use the branch with cloest year and month.
 (e.g. In 2021 October, the closest sprint branch could be `2108_sprint`)
-2. Run `make test` to make sure your test passed the CI test. (see [test steps here](tests/README.md)
+2. Run `make test` to make sure your test passed the CI test. (see [test steps here](tests/README.md))
 3. Submit a PR against the chosen sprint branch.
 4. The PR will be reviewed and if accepted merged into the sprint branch.
 5. All changes in sprint branch are accepted into release branch `stable2` by planned releases.
