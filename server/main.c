@@ -40,6 +40,12 @@ static GDialOptions options_;
 
 static GOptionEntry option_entries_[] = {
     {
+        SERVER_ENABLE_OPTION_LONG,
+        0,
+        0, G_OPTION_ARG_NONE, &options_.enable_server,
+        SERVER_ENABLE_DESCRIPTION, NULL
+    },
+    {
         FRIENDLY_NAME_OPTION_LONG,
         FRIENDLY_NAME_OPTION,
         0, G_OPTION_ARG_STRING, &options_.friendly_name,
@@ -336,6 +342,10 @@ int main(int argc, char *argv[]) {
   /*
    * Use global context
    */
+  if (options_.enable_server) {
+    g_signal_emit_by_name(dial_rest_server, "rest-enable", "true", NULL);
+  }
+
   loop_ = g_main_loop_new (NULL, TRUE);
   g_main_loop_run (loop_);
 

@@ -17,32 +17,25 @@
  * limitations under the License.
  */
 
-#ifndef GDIAL_APPREGISTRY_H_
-#define GDIAL_APPREGISTRY_H_
-
-#include <stdlib.h>
-#include <string.h>
-#include <stdio.h>
-#include <netinet/in.h>
-#include <sys/socket.h>
+#ifndef GDIAL_PLAT_H_
+#define GDIAL_PLAT_H_
 
 #include <glib.h>
 
 G_BEGIN_DECLS
 
-typedef struct _GDialAppRegistry {
-  gchar *name;
-  gboolean use_additional_data;
-  gboolean is_singleton;
-  GList *allowed_origins;
-  GList *app_prefixes;
-  GHashTable *properties;
-} GDialAppRegistry;
+gint gdial_plat_init(GMainContext *g_main_context);
+void gdial_plat_term();
 
-void gdial_app_regstry_dispose (GDialAppRegistry *app_registry);
-gboolean gdial_app_registry_is_allowed_origin(GDialAppRegistry *app_registry, const gchar *header_origin);
-GDialAppRegistry* gdial_app_registry_new (const gchar *app_name, const GList *app_prefixes, const GHashTable *properties, gboolean is_singleton, gboolean use_additional_data, const GList *allowed_origins);
+typedef void * gdial_async_handler_t;
+typedef void (*gdial_plat_activation_cb)(gboolean, const gchar *);
+typedef void (*gdial_plat_friendlyname_cb)(const gchar *);
+typedef void (*gdial_plat_registerapps_cb)(gpointer);
+void gdail_plat_register_activation_cb(gdial_plat_activation_cb cb);
+void gdail_plat_register_friendlyname_cb(gdial_plat_friendlyname_cb cb);
+void gdail_plat_register_registerapps_cb(gdial_plat_registerapps_cb cb);
 
 G_END_DECLS
 
 #endif
+
