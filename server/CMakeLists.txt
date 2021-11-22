@@ -71,6 +71,7 @@ set (GDIAL_EXEC_SOURCE_FILES
   ${CMAKE_CURRENT_SOURCE_DIR}/gdial-rest.c
   ${CMAKE_CURRENT_SOURCE_DIR}/gdial-ssdp.c
   ${CMAKE_CURRENT_SOURCE_DIR}/gdial-shield.c
+  ${CMAKE_CURRENT_SOURCE_DIR}/gdial-app-registry.c
   ${CMAKE_CURRENT_SOURCE_DIR}/main.c
 )
 

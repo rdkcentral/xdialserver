@@ -60,7 +60,6 @@ set (GDIAL_PLAT_LIB_SOURCE_FILES
   ${PROJECT_SOURCE_DIR}/plat/gdial-plat-app.c
   ${PROJECT_SOURCE_DIR}/plat/gdial-plat-dev.c
   ${PROJECT_SOURCE_DIR}/plat/gdial-plat-util.c
-  ${PROJECT_SOURCE_DIR}/plat/gdial_app_registry.c
   ${PROJECT_SOURCE_DIR}/plat/rtdial.cpp
   ${PROJECT_SOURCE_DIR}/plat/rtcache.cpp
   ${PROJECT_SOURCE_DIR}/plat/rtabstractservice.cpp
