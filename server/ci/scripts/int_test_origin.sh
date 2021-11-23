@@ -32,7 +32,7 @@ netflixOrigin="http://www.netflix.us"
 retCode=$(curl -s -I -X GET -H "Origin:${netflixOrigin}" http://${HOSTIP}:56889/apps/Netflix |grep HTTP  |  awk '{ print $2 }' | tr -d '\n')
 [ "${retCode}" -ne  "403" ] && echo "failed: expecting 403 for .us, but actual=HTTP ${retCode}!" && error_exit;
 
-# TEST: valid any origin ftp 
+# TEST: valid any origin ftp
 netflixOrigin="ftp://www.example.com"
 retCode=$(curl -s -I -X GET -H "Origin:${netflixOrigin}" http://${HOSTIP}:56889/apps/Netflix |grep HTTP  |  awk '{ print $2 }' | tr -d '\n')
 [ "${retCode}" -ne  "200" ] && echo "failed: expecting 200 for ftp, but actual=HTTP ${retCode}!" && error_exit;
