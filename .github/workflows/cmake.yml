@@ -2,9 +2,9 @@ name: CMake
 
 on:
   push:
-    branches: [ master, stable2, *_sprint ]
+    branches: [ master, stable2, '[0-9]+_sprint' ]
   pull_request:
-    branches: [ master, stable2, *_sprint ]
+    branches: [ master, stable2, '[0-9]+_sprint' ]
 
 env:
   # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
