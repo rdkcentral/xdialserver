@@ -1,0 +1,10 @@
+prefix=@PROJECT_SOURCE_DIR@
+libdir={prefix}/ci
+includedir=${prefix}/include
+
+Name: gdial-plat
+Description: platform implementation for gdial-server
+Version: @GDIAL_PLAT_VERSION_MAJOR@.@GDIAL_PLAT_VERSION_MINOR@.@GDIAL_PLAT_VERSION_PATCH@
+Libs: -L${libdir} -l@GDIAL_PLAT_PC_LIBNAME@
+Libs.private: @GDIAL_PLAT_PC_LIBS_PRIVATE@
+Cflags: -I${includedir} @GDIAL_PLAT_PC_CFLAGS@

@@ -22,6 +22,9 @@
 
 #include <glib.h>
 
+#define SERVER_ENABLE_OPTION_LONG "enable-server"
+#define SERVER_ENABLE_DESCRIPTION "Enable Server Handling Requests"
+
 #define FRIENDLY_NAME_OPTION 'F'
 #define FRIENDLY_NAME_OPTION_LONG "friendly-name"
 #define FRIENDLY_NAME_DESCRIPTION "Device Friendly Name"
@@ -57,6 +60,7 @@
 #define FEATURE_WOLWAKE_DESCRIPTION "feature wol wake support"
 
 typedef struct {
+  gboolean enable_server;
   gchar *friendly_name;
   gchar *manufacturer;
   gchar *model_name;
