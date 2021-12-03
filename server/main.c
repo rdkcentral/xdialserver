@@ -123,6 +123,7 @@ static void server_activation_handler(gboolean status, const gchar *friendlyname
     gdial_ssdp_set_available(status,friendlyname);
     if(dial_rest_server)
     {
+        sleep (5);
         g_object_set(dial_rest_server,"enable" ,status, NULL);
     }
 }
