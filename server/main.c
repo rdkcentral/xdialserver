@@ -172,7 +172,7 @@ static void gdial_http_server_throttle_callback(SoupServer *server,
 
 static void gdial_quit_app(int signum)
 {
-  g_print("Exiting DIAL Protocol | %s \r\n", dial_specification_copyright);
+  g_print("Exiting DIAL Protocol \r\n");
   g_main_loop_quit(loop_);
   signal(SIGINT,SIG_DFL);
 }
