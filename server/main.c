@@ -18,6 +18,7 @@
  */
 
 #include <stdlib.h>
+#include <signal.h>
 #include <string.h>
 #include <stdio.h>
 #include <glib.h>
@@ -163,11 +164,19 @@ static void gdial_http_server_throttle_callback(SoupServer *server,
   soup_message_set_status(msg, SOUP_STATUS_NOT_FOUND);
 }
 
+static void gdial_quit_app(int signum)
+{
+  g_print("Exiting DIAL Protocol \r\n");
+  g_main_loop_quit(loop_);
+  signal(SIGINT,SIG_DFL);
+}
+
 int main(int argc, char *argv[]) {
 
   GError *error = NULL;
   GOptionContext *option_context = g_option_context_new(NULL);
   g_option_context_add_main_entries(option_context, option_entries_, NULL);
+  signal(SIGINT,gdial_quit_app);
 
   if (!g_option_context_parse (option_context, &argc, &argv, &error)) {
     g_print ("%s\r\n", error->message);
@@ -328,12 +337,12 @@ int main(int argc, char *argv[]) {
    */
   loop_ = g_main_loop_new (NULL, TRUE);
   g_main_loop_run (loop_);
-
   for (int i = 0; i < sizeof(servers)/sizeof(servers[0]); i++) {
     soup_server_disconnect(servers[i]);
     g_object_unref(servers[i]);
   }
-
+  
+  gdial_quit_app(servers)
   gdial_shield_term();
   gdial_ssdp_destroy();
   g_object_unref(dial_rest_server);
