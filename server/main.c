@@ -169,8 +169,6 @@ static void gdial_quit_app(int signum)
   g_print("Exiting DIAL Protocol %d \r\n",signum);
   g_main_loop_quit(loop_);
   
-  gdial_shield_term();
-  gdial_ssdp_destroy();
 }
 
 int main(int argc, char *argv[]) {
@@ -344,7 +342,8 @@ int main(int argc, char *argv[]) {
     g_object_unref(servers[i]);
   }
   
-  gdial_quit_app(SIGKILL);
+  gdial_shield_term();
+  gdial_ssdp_destroy();
   g_object_unref(dial_rest_server);
   gdial_plat_term();
 
