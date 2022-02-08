@@ -164,7 +164,7 @@ static void gdial_http_server_throttle_callback(SoupServer *server,
   soup_message_set_status(msg, SOUP_STATUS_NOT_FOUND);
 }
 
-static void gdial_quit_app(int signum)
+static void gdial_quit_thread(int signum)
 {
   g_print("Exiting DIAL Protocol %d \r\n",signum);
   g_main_loop_quit(loop_);
@@ -176,7 +176,7 @@ int main(int argc, char *argv[]) {
   GError *error = NULL;
   GOptionContext *option_context = g_option_context_new(NULL);
   g_option_context_add_main_entries(option_context, option_entries_, NULL);
-  signal(SIGINT,gdial_quit_app);
+  signal(SIGINT,gdial_quit_thread);
 
   if (!g_option_context_parse (option_context, &argc, &argv, &error)) {
     g_print ("%s\r\n", error->message);
