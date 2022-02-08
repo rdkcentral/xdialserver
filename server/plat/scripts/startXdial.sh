@@ -199,7 +199,7 @@ if tr181Set -g Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.XDial.Enable 2>&1 
     AppList_OPTION=$(getCmdlineOption "-A" "$AppList")
 
     echo "gdial-server args: ${XDIAL_IFNAME_OPTION} ${FriendlyName_OPTION} ${Manufacturer_OPTION} ${ModelName_OPTION} ${UUID_OPTION} ${AppList_OPTION} ${XDIAL_FRIENDLYNAME_ENABLED} ${XDIAL_WOLWAKE_ENABLED}"
-    /usr/share/xdial/gdial-server ${XDIAL_IFNAME_OPTION} ${FriendlyName_OPTION} ${Manufacturer_OPTION} ${ModelName_OPTION} ${UUID_OPTION} ${AppList_OPTION} ${XDIAL_FRIENDLYNAME_ENABLED} ${XDIAL_WOLWAKE_ENABLED}
+    exec /usr/share/xdial/gdial-server ${XDIAL_IFNAME_OPTION} ${FriendlyName_OPTION} ${Manufacturer_OPTION} ${ModelName_OPTION} ${UUID_OPTION} ${AppList_OPTION} ${XDIAL_FRIENDLYNAME_ENABLED} ${XDIAL_WOLWAKE_ENABLED}
 else
     echo "rfc disabled: gdial-server not started"
 fi
