@@ -166,7 +166,7 @@ static void gdial_http_server_throttle_callback(SoupServer *server,
 
 static void gdial_quit_thread(int signum)
 {
-  g_print("Exiting DIAL Protocol %d \r\n",signum);
+  g_print("Exiting DIAL Server thread %d \r\n",signum);
   g_main_loop_quit(loop_);
   
 }
