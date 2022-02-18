@@ -136,6 +136,17 @@ static void server_register_application(gpointer data)
         gdial_rest_server_register_app_registry (dial_rest_server, (GDialAppRegistry *)g_app_list->data);
         g_app_list = g_app_list->next;
     }
+
+    size_t app_list_len = strlen(options_.app_list);
+    gchar *app_list_low = g_ascii_strdown(options_.app_list, app_list_len);
+    if (g_strstr_len(app_list_low, app_list_len , "system")) {
+      g_print("Register system app -  enabled from cmdline\r\n");
+      gdial_rest_server_register_app(dial_rest_server, "system", NULL, NULL, TRUE, TRUE, NULL);
+    }
+    else {
+      g_print("Dont register system app - not enabled from cmdline\r\n");
+    }
+
 }
 
 static void server_friendlyname_handler(const gchar * friendlyname)
@@ -306,6 +317,14 @@ int main(int argc, char *argv[]) {
     }
     else {
       g_print("pairing is not enabled from cmdline\r\n");
+    }
+
+    if (g_strstr_len(app_list_low, app_list_len, "system")) {
+      g_print("system is enabled from cmdline\r\n");
+      gdial_rest_server_register_app(dial_rest_server, "system", NULL, NULL, TRUE, TRUE, NULL);
+    }
+    else {
+      g_print("system is not enabled from cmdline\r\n");
     }
 
     g_free(app_list_low);

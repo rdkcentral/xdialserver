@@ -473,7 +473,7 @@ static void gdial_rest_server_handle_POST(GDialRestServer *gdial_rest_server, So
       soup_uri_get_host(soup_message_get_uri(msg)), listening_port, GDIAL_REST_HTTP_APPS_URI, app->name);
     gdial_soup_message_headers_set_Allow_Origin(msg, TRUE);
     if (new_app_instance) {
-      if (first_instance_created || current_state == GDIAL_APP_STATE_HIDE) {
+      if (g_strcmp0(app->name, "system") != 0 && (first_instance_created || current_state == GDIAL_APP_STATE_HIDE)) {
         soup_message_set_status(msg, SOUP_STATUS_CREATED);
       }
       else {
@@ -1078,6 +1078,9 @@ gboolean gdial_rest_server_register_app(GDialRestServer *self, const gchar *app_
    * @TODO
    */
 
+  if(strcmp(app_name,"system") == 0){
+	  gdial_app_new(app_registry->name);
+  }
   g_return_val_if_fail(priv->registered_apps != NULL, FALSE);
   g_return_val_if_fail(gdial_rest_server_is_app_registered(self, app_name), FALSE);
   return TRUE;
