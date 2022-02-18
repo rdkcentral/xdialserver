@@ -72,7 +72,7 @@ public:
         AppObj.get("applicationId",id);
         AppObj.get("state",state);
         AppObj.get("error",error);
-        printf("AppName : %s\nAppID : %s\nState : %s\nError : %s\n",app.cString(),id.cString(),state.cString(),error.cString());
+        printf("applicationStateChanged AppName : %s AppID : %s State : %s Error : %s\n",app.cString(),id.cString(),state.cString(),error.cString());
         AppCache->UpdateAppStatusCache(rtValue(AppObj));
         return RT_OK;
     }
@@ -445,7 +445,13 @@ void rtdial_term() {
 int gdial_os_application_start(const char *app_name, const char *payload, const char *query_string, const char *additional_data_url, int *instance_id) {
     printf("RTDIAL gdial_os_application_start : Application launch request: appName: %s  query: [%s], payload: [%s], additionalDataUrl [%s]\n",
         app_name, query_string, payload, additional_data_url);
-
+    if (strcmp(app_name,"system") == 0 && strcmp(query_string,"action=sleep") == 0 ) {
+        if(strcmp(query_string,"action=sleep") == 0){
+            printf("RTDIAL: system app request to change device to sleep mode");
+            gdial_plat_dev_set_power_state_off();
+        }
+        return GDIAL_APP_ERROR_NONE;
+    }
     gdial_plat_dev_set_power_state_on();
     rtCastError ret = DialObj->launchApplicationWithLaunchParams(app_name, payload, query_string, additional_data_url);
     if (RTCAST_ERROR_RT(ret) != RT_OK) {
@@ -512,6 +518,10 @@ void stop_netflix()
 
 int gdial_os_application_stop(const char *app_name, int instance_id) {
     printf("RTDIAL gdial_os_application_stop: appName = %s appID = %s\n",app_name,std::to_string(instance_id).c_str());
+    if((strcmp(app_name,"system") == 0)){
+        printf("RTDIAL delete not supported for system app return GDIAL_APP_ERROR_BAD_REQUEST\n");
+        return GDIAL_APP_ERROR_BAD_REQUEST;
+    }
     const char* State = AppCache->SearchAppStatusInCache(app_name);
     if (0 && strcmp(State,"running") != 0)
         return GDIAL_APP_ERROR_BAD_REQUEST;
@@ -533,6 +543,10 @@ int gdial_os_application_stop(const char *app_name, int instance_id) {
 }
 
 int gdial_os_application_hide(const char *app_name, int instance_id) {
+    if((strcmp(app_name,"system") == 0)){
+        printf("RTDIAL system app already in hidden state\n");
+        return GDIAL_APP_ERROR_NONE;
+    }
     #if 0
     printf("RTDIAL gdial_os_application_hide-->stop: appName = %s appID = %s\n",app_name,std::to_string(instance_id).c_str());
     const char* State = AppCache->SearchAppStatusInCache(app_name);
@@ -561,7 +575,11 @@ int gdial_os_application_hide(const char *app_name, int instance_id) {
 
 int gdial_os_application_resume(const char *app_name, int instance_id) {
     printf("RTDIAL gdial_os_application_resume: appName = %s appID = %s\n",app_name,std::to_string(instance_id).c_str());
-     const char* State = AppCache->SearchAppStatusInCache(app_name);
+    if((strcmp(app_name,"system") == 0)){
+        printf("RTDIAL system app can not be resume\n");
+        return GDIAL_APP_ERROR_NONE;
+    }
+    const char* State = AppCache->SearchAppStatusInCache(app_name);
     if (strcmp(State,"running") == 0)
         return GDIAL_APP_ERROR_BAD_REQUEST;
     rtCastError ret = DialObj->resumeApplication(app_name,std::to_string(instance_id).c_str());
@@ -574,12 +592,17 @@ int gdial_os_application_resume(const char *app_name, int instance_id) {
 
 int gdial_os_application_state(const char *app_name, int instance_id, GDialAppState *state) {
     printf("RTDIAL gdial_os_application_state: App = %s \n",app_name);
+    if((strcmp(app_name,"system") == 0)){
+        *state = GDIAL_APP_STATE_HIDE;
+        printf("RTDIAL getApplicationState: AppState = suspended \n");
+        return GDIAL_APP_ERROR_NONE;
+    }
     const char* State = AppCache->SearchAppStatusInCache(app_name);
     printf("RTDIAL getApplicationState: AppState = %s \n",State);
     /*
      *  return cache, but also trigger a refresh
      */
-    if(true || strcmp(State,"NOT_FOUND") == 0) {
+    if((strcmp(app_name,"system") != 0) &&( true || strcmp(State,"NOT_FOUND") == 0)) {
         rtCastError ret = DialObj->getApplicationState(app_name,NULL);
         if (RTCAST_ERROR_RT(ret) != RT_OK) {
             printf("RTDIAL: DialObj.getApplicationState failed!!! Error: %s\n",rtStrError(RTCAST_ERROR_RT(ret)));
