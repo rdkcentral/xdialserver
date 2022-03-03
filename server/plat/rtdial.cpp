@@ -519,6 +519,7 @@ void stop_netflix()
 int gdial_os_application_stop(const char *app_name, int instance_id) {
     printf("RTDIAL gdial_os_application_stop: appName = %s appID = %s\n",app_name,std::to_string(instance_id).c_str());
     if((strcmp(app_name,"system") == 0)){
+        printf("RTDIAL delete not supported for system app return GDIAL_APP_ERROR_BAD_REQUEST\n");
         return GDIAL_APP_ERROR_BAD_REQUEST;
     }
     const char* State = AppCache->SearchAppStatusInCache(app_name);
@@ -543,6 +544,7 @@ int gdial_os_application_stop(const char *app_name, int instance_id) {
 
 int gdial_os_application_hide(const char *app_name, int instance_id) {
     if((strcmp(app_name,"system") == 0)){
+        printf("RTDIAL system app already in hidden state\n");
         return GDIAL_APP_ERROR_NONE;
     }
     #if 0
@@ -574,6 +576,7 @@ int gdial_os_application_hide(const char *app_name, int instance_id) {
 int gdial_os_application_resume(const char *app_name, int instance_id) {
     printf("RTDIAL gdial_os_application_resume: appName = %s appID = %s\n",app_name,std::to_string(instance_id).c_str());
     if((strcmp(app_name,"system") == 0)){
+        printf("RTDIAL system app can not be resume\n");
         return GDIAL_APP_ERROR_NONE;
     }
     const char* State = AppCache->SearchAppStatusInCache(app_name);
@@ -591,6 +594,7 @@ int gdial_os_application_state(const char *app_name, int instance_id, GDialAppSt
     printf("RTDIAL gdial_os_application_state: App = %s \n",app_name);
     if((strcmp(app_name,"system") == 0)){
         *state = GDIAL_APP_STATE_HIDE;
+        printf("RTDIAL getApplicationState: AppState = suspended \n");
         return GDIAL_APP_ERROR_NONE;
     }
     const char* State = AppCache->SearchAppStatusInCache(app_name);
