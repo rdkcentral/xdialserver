@@ -42,13 +42,19 @@ gboolean gdial_app_registry_is_allowed_origin(GDialAppRegistry *app_registry, co
   gboolean is_allowed = FALSE;
   if (app_registry) {
     GList *allowed_origins = app_registry->allowed_origins;
-    while(allowed_origins) {
-      gchar *origin = (gchar *)allowed_origins->data;
-      if (GDIAL_STR_ENDS_WITH(header_origin, origin)) {
-        is_allowed = TRUE;
-        break;
+    if(allowed_origins == NULL){
+      is_allowed = TRUE;
+    }
+    else
+    {
+      while(allowed_origins) {
+        gchar *origin = (gchar *)allowed_origins->data;
+        if (GDIAL_STR_ENDS_WITH(header_origin, origin)) {
+          is_allowed = TRUE;
+          break;
+        }
+        allowed_origins = allowed_origins->next;
       }
-      allowed_origins = allowed_origins->next;
     }
   }
   return is_allowed;

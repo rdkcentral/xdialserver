@@ -93,3 +93,18 @@ bool gdial_plat_dev_set_power_state_on() {
   }
   return ret;
 }
+
+bool gdial_plat_dev_set_power_state_off() {
+  bool ret = true;
+  if(IARM_BUS_PWRMGR_POWERSTATE_ON == m_powerstate) {
+    printf("gdial_plat_dev_set_power_state_off set power state STANDBY \n");
+    IARM_Bus_PWRMgr_SetPowerState_Param_t param;
+    param.newState = IARM_BUS_PWRMGR_POWERSTATE_STANDBY;
+    IARM_Result_t res = IARM_Bus_Call(IARM_BUS_PWRMGR_NAME, IARM_BUS_PWRMGR_API_SetPowerState,
+                  (void *)&param, sizeof(param));
+    if(res != IARM_RESULT_SUCCESS) {
+      ret = false;
+    }
+  }
+  return ret;
+}
