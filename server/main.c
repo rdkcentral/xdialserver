@@ -187,7 +187,7 @@ int main(int argc, char *argv[]) {
   GError *error = NULL;
   GOptionContext *option_context = g_option_context_new(NULL);
   g_option_context_add_main_entries(option_context, option_entries_, NULL);
-  signal(SIGINT,gdial_quit_thread);
+  signal(SIGTERM,gdial_quit_thread);
 
   if (!g_option_context_parse (option_context, &argc, &argv, &error)) {
     g_print ("%s\r\n", error->message);
