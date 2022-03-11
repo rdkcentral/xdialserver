@@ -504,3 +504,8 @@ gchar * gdial_app_state_response_new(GDialApp *app, const gchar *dial_ver, const
   xmlFreeDoc(xdoc);
   return (gchar *)app_state_response;
 }
+
+GDialAppError gdial_system_app(GHashTable *query)
+{
+  return gdial_plat_system_app(query);
+}

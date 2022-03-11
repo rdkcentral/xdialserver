@@ -36,6 +36,13 @@ static int INIT_COMPLETED = 0;
 rtAppStatusCache* AppCache;
 static rtdial_activation_cb g_activation_cb = NULL;
 
+#define XCAST_SYSTEM_OBJECT_SERVICE_NAME "com.comcast.xcast_system"
+#define RTDIAL_CONNECT_TO_XCAST_SYSTEM_TIMEOUT_MS 500
+#define RTDIAL_CONNECT_TO_XCAST_SYSTEM_PERIOD_MS 5000
+
+static bool connecting_to_xcast_system {false};
+static rtObjectRef xcastSystemObj = nullptr;
+
 class rtDialCastRemoteObject : public rtCastRemoteObject
 {
 
@@ -138,7 +145,6 @@ public:
         return error;
     }
 
-
 private:
 
 };
@@ -210,6 +216,38 @@ void rtdail_register_activation_cb(rtdial_activation_cb cb)
   g_activation_cb = cb;
 }
 
+static void rtdial_connect_to_xcast_system();
+
+static void rtdial_remote_disconnect_callback(void*)
+{
+    // WARNING: xcastSystemObj is at this point dangling reference (has been deleted from rtRemoteObject::Release)
+    // WARNING: and this is how it's supposed to work; trying to delete or ::Release it will lead to coredump
+    xcastSystemObj = nullptr;
+    rtdial_connect_to_xcast_system();
+}
+
+static gboolean rtdial_connect_to_xcast_system_async_callack(gpointer user_data)
+{
+    rtError err = rtRemoteLocateObject(rtEnvironmentGetGlobal(), XCAST_SYSTEM_OBJECT_SERVICE_NAME, xcastSystemObj, RTDIAL_CONNECT_TO_XCAST_SYSTEM_TIMEOUT_MS, &rtdial_remote_disconnect_callback, NULL);
+    if (err == RT_OK) {
+        connecting_to_xcast_system = false;
+    } else {
+        g_log(nullptr, G_LOG_LEVEL_INFO, "rtdial_connect_to_xcast_system_async_callack: couldn't connect to %s: %d\n", XCAST_SYSTEM_OBJECT_SERVICE_NAME, int(err));
+    }
+    // return true if we have to try again, false when connected!
+    return connecting_to_xcast_system;
+}
+
+static void rtdial_connect_to_xcast_system_async() {
+    connecting_to_xcast_system = true;
+    g_timeout_add_full(G_PRIORITY_DEFAULT, RTDIAL_CONNECT_TO_XCAST_SYSTEM_PERIOD_MS, rtdial_connect_to_xcast_system_async_callack, /*data*/nullptr, nullptr /*GDestroyNotify*/);
+}
+
+static void rtdial_connect_to_xcast_system()
+{
+    if (!connecting_to_xcast_system) rtdial_connect_to_xcast_system_async();
+}
+
 bool rtdial_init(GMainContext *context) {
     if(INIT_COMPLETED)
        return true;
@@ -244,6 +282,8 @@ bool rtdial_init(GMainContext *context) {
         printf("RTDIAL: rtRemoteRegisterObject for %s failed! error:%s !\n", objName, rtStrError(err));
         return false;
     }
+
+    rtdial_connect_to_xcast_system();
 
     INIT_COMPLETED =1;
     return true;
@@ -438,4 +478,23 @@ int gdial_os_application_state(const char *app_name, int instance_id, GDialAppSt
     }
 
     return GDIAL_APP_ERROR_NONE;
+}
+
+int gdial_os_system_app(GHashTable *query) {
+    g_log(nullptr, G_LOG_LEVEL_INFO, "RTDIAL gdial_os_system_app\n");
+    if (xcastSystemObj) {
+        rtObjectRef params = new rtMapObject;
+        if (query) {
+            g_hash_table_foreach(query, [](gpointer key, gpointer value, gpointer user_data) {
+                rtObjectRef& params_ = *static_cast<rtObjectRef*>(user_data);
+                params_.set(static_cast<gchar*>(key),static_cast<gchar*>(value));
+            }, &params);
+        }
+        rtError err = xcastSystemObj.send("systemRequest", params);
+        return err == RT_OK ? GDIAL_APP_ERROR_NONE : GDIAL_APP_ERROR_INTERNAL;
+    }
+    else {
+        g_log(nullptr, G_LOG_LEVEL_WARNING, "gdial_os_system_app: not connected!\n");
+        return GDIAL_APP_ERROR_INTERNAL;
+    }
 }

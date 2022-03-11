@@ -49,6 +49,8 @@ void gdial_plat_application_remove_async_source(void *async_source);
 typedef void (*gdial_plat_application_state_cb)(gint instance_id, GDialAppState state, gpointer user_data);
 void gdial_plat_application_set_state_cb(gdial_plat_application_state_cb cb, gpointer user_data);
 
+GDialAppError gdial_plat_system_app(GHashTable *query);
+
 G_END_DECLS
 
 #endif

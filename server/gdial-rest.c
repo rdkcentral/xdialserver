@@ -591,6 +591,10 @@ static void gdial_rest_http_server_system_callback(SoupServer *server,
             SoupMessage *msg, const gchar *path, GHashTable *query,
             SoupClientContext  *client, gpointer user_data) {
 
+#ifdef GDIAL_BUILD_TEST
+  /*
+   * For Testing Purpose only
+   */
   GDialRestServer *gdial_rest_server = (GDIAL_REST_SERVER(user_data));
 
   if (msg->method == SOUP_METHOD_DELETE) {
@@ -598,13 +602,33 @@ static void gdial_rest_http_server_system_callback(SoupServer *server,
      * Stop Server
      */
     g_signal_emit(gdial_rest_server, gdial_rest_server_signals[SIGNAL_GMAINLOOP_QUIT], 0, "stop rest http gmainloop");
+    soup_message_set_status(msg, SOUP_STATUS_OK);
+    return;
   }
   else if (msg->method == SOUP_METHOD_PUT) {
      gchar *value = g_hash_table_lookup(query,"rest_enable");
      g_print_with_timestamp("gdial_rest_http_server_system_callback emit SIGNAL_REST_ENABLE value:%s \r\n",(gchar *)value);
      g_signal_emit(gdial_rest_server, gdial_rest_server_signals[SIGNAL_REST_ENABLE], 0,value);
+     soup_message_set_status(msg, SOUP_STATUS_OK);
+     return;
   }
-  soup_message_set_status(msg, SOUP_STATUS_OK);
+
+#endif
+
+  if (msg->method == SOUP_METHOD_POST) {
+    gdial_soup_message_headers_set_Allow_Origin(msg, TRUE);
+    if (gdial_system_app(query) == GDIAL_APP_ERROR_NONE) {
+      soup_message_set_status(msg, SOUP_STATUS_OK);
+    } else {
+      soup_message_set_status(msg, SOUP_STATUS_INTERNAL_SERVER_ERROR);
+    }
+  } else if (msg->method == SOUP_METHOD_DELETE) {
+    soup_message_set_status(msg, SOUP_STATUS_FORBIDDEN);
+  }
+  else {
+    soup_message_set_status(msg, SOUP_STATUS_METHOD_NOT_ALLOWED);
+  }
+
 }
 
 static void gdial_local_rest_http_server_callback(SoupServer *server,
@@ -997,12 +1021,9 @@ GDialRestServer *gdial_rest_server_new(SoupServer *rest_http_server,SoupServer *
   g_object_ref(local_rest_http_server);
   g_object_ref(rest_http_server);
   gpointer object = g_object_new(GDIAL_TYPE_REST_SERVER, GDIAL_REST_SERVER_SOUP_INSTANCE, rest_http_server,GDIAL_LOCAL_REST_SERVER_SOUP_INSTANCE,local_rest_http_server, NULL);
-#ifdef GDIAL_BUILD_TEST
-  /*
-   * For Testing Purpose only
-   */
+
   soup_server_add_handler(rest_http_server, "/apps/system", gdial_rest_http_server_system_callback, object, NULL);
-#endif
+
   g_print("gdial_local_rest_http_server_callback add handler\n");
 
   soup_server_add_handler(local_rest_http_server, GDIAL_REST_HTTP_APPS_URI, gdial_local_rest_http_server_callback, object, NULL);

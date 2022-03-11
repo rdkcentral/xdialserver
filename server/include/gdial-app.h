@@ -99,6 +99,8 @@ void gdial_app_set_launch_payload(GDialApp *app, const gchar *payload);
 
 void gdial_app_force_shutdown(GDialApp *app);
 
+GDialAppError gdial_system_app(GHashTable *query);
+
 G_END_DECLS
 
 #endif

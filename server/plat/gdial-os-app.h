@@ -32,6 +32,7 @@ int gdial_os_application_hide(const char *app_name, int instance_id);
 int gdial_os_application_resume(const char *app_name, int instance_id);
 int gdial_os_application_stop(const char *app_name, int instance_id);
 int gdial_os_application_state(const char *app_name, int instance_id, GDialAppState *state);
+int gdial_os_system_app(GHashTable *query);
 
 #ifdef __cplusplus
 }

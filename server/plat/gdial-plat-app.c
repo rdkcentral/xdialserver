@@ -266,3 +266,7 @@ void gdial_plat_term() {
   g_hash_table_unref(gdial_plat_app_async_contexts);
   return;
 }
+
+GDialAppError gdial_plat_system_app(GHashTable *query) {
+  return gdial_os_system_app(query);
+}
