@@ -32,6 +32,8 @@
 
 static SoupServer *ssdp_http_server_ = NULL;
 static GDialOptions *gdial_options_ = NULL;
+static gboolean *friendlyname_changed_ = NULL;
+static GMutex *friendlyname_mutex_ = NULL;
 static GSSDPClient *ssdp_client_ = NULL;
 static GSSDPResourceGroup *ssdp_resource_group_ = NULL;
 static int ssdp_resource_id_ = 0;
@@ -86,15 +88,21 @@ static void ssdp_http_server_callback(SoupServer *server, SoupMessage *msg, cons
    */
   static size_t dd_xml_response_str_len = 0;
 
-  if (!dd_xml_response_str_) {
+  g_mutex_lock(friendlyname_mutex_);
+
+  if (!dd_xml_response_str_ || *friendlyname_changed_ == TRUE) {
+    *friendlyname_changed_ = FALSE;
     const gchar *manufacturer= gdial_plat_dev_get_manufacturer();
     const gchar *model = gdial_plat_dev_get_model();
 
     if (manufacturer == NULL) {manufacturer = gdial_options_->manufacturer;}
     if (model == NULL) {model = gdial_options_->model_name;}
     dd_xml_response_str_ = g_strdup_printf(ssdp_device_xml_template, gdial_options_->friendly_name, manufacturer, model, gdial_options_->uuid);
+    g_print("Response with name:%s \r\n", gdial_options_->friendly_name);
     dd_xml_response_str_len = strlen(dd_xml_response_str_);
   }
+
+  g_mutex_unlock (friendlyname_mutex_);
 
   gchar *application_url_str = g_strdup_printf("http://%s:%d%s/", iface_ipv4_address, GDIAL_REST_HTTP_PORT, GDIAL_REST_HTTP_APPS_URI);
   soup_message_headers_replace (msg->response_headers, "Application-URL", application_url_str);
@@ -105,12 +113,14 @@ static void ssdp_http_server_callback(SoupServer *server, SoupMessage *msg, cons
   GDIAL_CHECK("Application-URL: exist");
 }
 
-int gdial_ssdp_init(SoupServer *ssdp_http_server, GDialOptions *options) {
+int gdial_ssdp_init(SoupServer *ssdp_http_server, GMutex *friendlyname_mutex, GDialOptions *options, gboolean *friendlyname_changed) {
 
   g_return_val_if_fail(ssdp_http_server != NULL, -1);
   g_return_val_if_fail(options != NULL, -1);
   g_return_val_if_fail(options->iface_name != NULL, -1);
 
+  friendlyname_changed_ = friendlyname_changed;
+  friendlyname_mutex_ = friendlyname_mutex;
   gdial_options_ = options;
   if (gdial_options_->friendly_name == NULL) gdial_options_->friendly_name = g_strdup(GDIAL_SSDP_FRIENDLY_DEFAULT);
   if (gdial_options_->manufacturer== NULL) gdial_options_->manufacturer = g_strdup(GDIAL_SSDP_MANUFACTURER_DEFAULT);

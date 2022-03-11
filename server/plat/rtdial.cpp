@@ -35,6 +35,7 @@ static int INIT_COMPLETED = 0;
 //cache
 rtAppStatusCache* AppCache;
 static rtdial_activation_cb g_activation_cb = NULL;
+static rtdial_friendlyname_cb g_friendlyname_cb = NULL;
 
 #define XCAST_SYSTEM_OBJECT_SERVICE_NAME "com.comcast.xcast_system"
 #define RTDIAL_CONNECT_TO_XCAST_SYSTEM_TIMEOUT_MS 500
@@ -83,6 +84,18 @@ public:
                 g_activation_cb(0);
             }
         }
+        return RT_OK;
+    }
+
+    rtError friendlyNameChanged(const rtObjectRef& params) {
+        rtString friendly_name;
+        params.get("friendlyname", friendly_name);
+        printf("RTDIAL: rtDialCastRemoteObject::friendlyNameChanged name: %s \n", friendly_name.cString());
+        if(g_friendlyname_cb)
+        {
+            g_friendlyname_cb(friendly_name.cString());
+        }
+
         return RT_OK;
     }
 
@@ -152,6 +165,7 @@ private:
 rtDefineObject(rtCastRemoteObject, rtAbstractService);
 rtDefineMethod(rtCastRemoteObject, applicationStateChanged);
 rtDefineMethod(rtCastRemoteObject, activationChanged);
+rtDefineMethod(rtCastRemoteObject, friendlyNameChanged);
 
 rtDialCastRemoteObject* DialObj;
 
@@ -214,6 +228,11 @@ static GSource *attachRtRemoteSource()
 void rtdail_register_activation_cb(rtdial_activation_cb cb)
 {
   g_activation_cb = cb;
+}
+
+void rtdial_register_friendly_name_cb(rtdial_friendlyname_cb cb)
+{
+  g_friendlyname_cb = cb;
 }
 
 static void rtdial_connect_to_xcast_system();

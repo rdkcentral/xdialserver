@@ -81,6 +81,8 @@ static GOptionEntry option_entries_[] = {
 };
 static GMainLoop *loop_ = NULL;
 static const gchar *iface_ipv4_address_ = NULL;
+static gboolean friendlyname_changed;
+static GMutex friendlyname_mutex;
 
 static void signal_handler_rest_server_invalid_uri(GDialRestServer *dial_rest_server, const gchar *signal_message, gpointer user_data) {
   g_return_if_fail(dial_rest_server && signal_message);
@@ -103,6 +105,28 @@ static void server_activation_handler(gboolean status)
     {
         g_object_set(dial_rest_server,"enable" , status, NULL);
     }
+}
+
+static void server_friendlyname_handler(const char *name)
+{
+    g_mutex_lock(&friendlyname_mutex);
+
+    g_print("%s new name: %s, old name: %s \r\n ", __PRETTY_FUNCTION__, name, options_.friendly_name);
+    if(g_strcmp0(options_.friendly_name, name) == 0)
+    {
+        g_print("THE SAME %s: %s == %s \r\n ", __PRETTY_FUNCTION__, options_.friendly_name, name );
+        g_mutex_unlock(&friendlyname_mutex);
+        return;
+    }
+
+    if(options_.friendly_name != NULL)
+    {
+        g_free(options_.friendly_name);
+    }
+    options_.friendly_name = g_strdup(name);
+    friendlyname_changed = TRUE;
+
+    g_mutex_unlock(&friendlyname_mutex);
 }
 
 static void signal_handler_rest_server_rest_enable(GDialRestServer *dial_rest_server, const gchar *signal_message, gpointer user_data) {
@@ -170,6 +194,7 @@ int main(int argc, char *argv[]) {
   gdial_plat_init(g_main_context_default());
 
   gdail_plat_register_activation_cb(server_activation_handler);
+  gdial_plat_register_friendlyname_cb(server_friendlyname_handler);
 
   SoupServer * rest_http_server = soup_server_new(NULL);
   SoupServer * ssdp_http_server = soup_server_new(NULL);
@@ -246,7 +271,7 @@ int main(int argc, char *argv[]) {
   g_signal_connect(dial_rest_server, "gmainloop-quit", G_CALLBACK(signal_handler_rest_server_gmainloop_quit), NULL);
   g_signal_connect(dial_rest_server, "rest-enable", G_CALLBACK(signal_handler_rest_server_rest_enable), NULL);
 
-  gdial_ssdp_init(ssdp_http_server, &options_);
+  gdial_ssdp_init(ssdp_http_server, &friendlyname_mutex, &options_, &friendlyname_changed);
   gdial_shield_init();
   gdial_shield_server(rest_http_server);
   gdial_shield_server(ssdp_http_server);

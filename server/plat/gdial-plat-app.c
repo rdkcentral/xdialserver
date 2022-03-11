@@ -133,6 +133,11 @@ void gdail_plat_register_activation_cb(gdial_plat_activation_cb cb)
   rtdail_register_activation_cb((rtdial_activation_cb)cb);
 }
 
+void gdial_plat_register_friendlyname_cb(gdial_plat_friendlyname_cb cb)
+{
+  rtdial_register_friendly_name_cb((rtdial_friendlyname_cb)cb);
+}
+
 gint gdial_plat_init(GMainContext *main_context) {
   g_return_val_if_fail(main_context != NULL, GDIAL_APP_ERROR_INTERNAL);
   g_return_val_if_fail((g_main_context_ == NULL || g_main_context_ == main_context), GDIAL_APP_ERROR_INTERNAL);
