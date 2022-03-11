@@ -29,6 +29,7 @@ pkg_search_module (GIO REQUIRED gio-2.0)
 pkg_search_module (GSSDP REQUIRED gssdp-1.0)
 pkg_search_module (SOUP REQUIRED libsoup-2.4)
 pkg_search_module (XML2 REQUIRED libxml-2.0)
+pkg_search_module (JSON-C REQUIRED json-c)
 
 set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -g")
 set (CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS} ")
@@ -83,5 +84,6 @@ target_link_libraries (gdial-server
   ${GSSDP_LIBRARIES}
   ${SOUP_LIBRARIES}
   ${XML2_LIBRARIES}
+  ${JSON-C_LIBRARIES}
   gdial-plat
 )

@@ -22,6 +22,9 @@
 #include <stdio.h>
 #include <glib.h>
 #include <libsoup/soup.h>
+#include <json-c/json.h>
+#include <json-c/json_object.h>
+#include <json-c/json_object_iterator.h>
 
 #include "gdial-config.h"
 #include "gdial-debug.h"
@@ -123,6 +126,20 @@ static void gdial_http_server_throttle_callback(SoupServer *server,
   soup_message_set_status(msg, SOUP_STATUS_NOT_FOUND);
 }
 
+static char* get_app_name(const char *config_name)
+{
+    static int prefix_len = strlen("/apps/");
+    static int suffix_len = strlen("/dial_data");
+
+    int size = strlen(config_name);
+    int app_name_size = size - (prefix_len + suffix_len);
+    char *app_name = malloc(app_name_size + 1);
+    strncpy(app_name, config_name + prefix_len, app_name_size);
+    app_name[app_name_size] = '\0';
+
+    return app_name;
+}
+
 int main(int argc, char *argv[]) {
 
   GError *error = NULL;
@@ -193,50 +210,36 @@ int main(int argc, char *argv[]) {
   }
   else {
     g_print("app_list to be enabled from command line %s\r\n", options_.app_list);
-    size_t app_list_len = strlen(options_.app_list);
-    gchar *app_list_low = g_ascii_strdown(options_.app_list, app_list_len);
-    if (g_strstr_len(app_list_low, app_list_len, "netflix")) {
-      g_print("netflix is enabled from cmdline\r\n");
-      GList *allowed_origins = g_list_prepend(NULL, ".netflix.com");
-      gdial_rest_server_register_app(dial_rest_server, "Netflix", NULL, TRUE, TRUE, allowed_origins);
-      g_list_free(allowed_origins);
-    }
-    else {
-      g_print("netflix is not enabled from cmdline\r\n");
+
+    struct json_object *root = json_tokener_parse(options_.app_list);
+    struct json_object_iterator it = json_object_iter_begin(root);
+    struct json_object_iterator it_end = json_object_iter_end(root);
+
+    while (!json_object_iter_equal(&it, &it_end)) {
+        const char *config_name = json_object_iter_peek_name(&it);
+        const char *app_name = get_app_name(config_name);
+        g_print("%s is enabled from cmdline\r\n", app_name);
+
+        struct json_object *origins = json_object_iter_peek_value(&it);
+        int arraylen = json_object_array_length(origins);
+
+        GList *allowed_origins = NULL;
+        for (int i = 0; i < arraylen; i++) {
+          struct json_object *origin = json_object_array_get_idx(origins, i);
+          char *origin_value = g_strdup(json_object_get_string(origin));
+          g_print("\t origin %s\r\n", origin_value);
+
+          allowed_origins = g_list_prepend(allowed_origins, origin_value);
+       }
+
+       gdial_rest_server_register_app(dial_rest_server, app_name, NULL, TRUE, TRUE, allowed_origins);
+       g_list_free_full(allowed_origins, g_free);
+       free(app_name);
+
+       json_object_iter_next(&it);
     }
 
-    if (g_strstr_len(app_list_low, app_list_len, "youtube")) {
-      g_print("youtube is enabled from cmdline\r\n");
-      GList *allowed_origins = g_list_prepend(NULL, ".youtube.com");
-      gdial_rest_server_register_app(dial_rest_server, "YouTube", NULL, TRUE, TRUE, allowed_origins);
-      g_list_free(allowed_origins);
-    }
-    else {
-      g_print("youtube is not enabled from cmdline\r\n");
-    }
-
-    if (g_strstr_len(app_list_low, app_list_len, "amazoninstantvideo")) {
-      g_print("AmazonInstantVideo is enabled from cmdline\r\n");
-      GList *allowed_origins = g_list_prepend(NULL, ".amazonprime.com");
-      gdial_rest_server_register_app(dial_rest_server, "AmazonInstantVideo", NULL, TRUE, TRUE, allowed_origins);
-      g_list_free(allowed_origins);
-    }
-    else {
-      g_print("AmazonInstantVideo is not enabled from cmdline\r\n");
-    }
-
-    if (g_strstr_len(app_list_low, app_list_len, "spotify")) {
-      g_print("spotify is enabled from cmdline\r\n");
-      GList *app_prefixes= g_list_prepend(NULL, "com.spotify");
-      GList *allowed_origins = g_list_prepend(NULL, ".spotify.com");
-      gdial_rest_server_register_app(dial_rest_server, "com.spotify.Spotify.TV", app_prefixes, TRUE, TRUE, allowed_origins);
-      g_list_free(allowed_origins);
-      g_list_free(app_prefixes);
-    }
-    else {
-      g_print("spotify is not enabled from cmdline\r\n");
-    }
-    g_free(app_list_low);
+    json_object_put(root);
   }
 
   g_signal_connect(dial_rest_server, "invalid-uri", G_CALLBACK(signal_handler_rest_server_invalid_uri), NULL);
