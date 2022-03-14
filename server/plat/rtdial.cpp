@@ -34,6 +34,7 @@
 #include "gdial-app.h"
 #include "gdial-plat-dev.h"
 #include "gdial-os-app.h"
+#include "gdial-config.h"
 #include "rtcast.hpp"
 #include "rtcache.hpp"
 #include "rtdial.hpp"
@@ -191,6 +192,12 @@ public:
        return RT_OK;
     }
 
+    rtError getProtocolVersion(rtString& result) {
+        printf("RTDIAL : rtDialCastRemoteObject::getProtocolVersion \n");
+        result = GDIAL_PROTOCOL_VERSION_STR;
+        return RT_OK;
+    }
+
     rtError activationChanged(const rtObjectRef& params) {
         rtObjectRef AppObj = new rtMapObject;
         AppObj = params;
@@ -299,6 +306,7 @@ rtDefineMethod(rtCastRemoteObject, applicationStateChanged);
 rtDefineMethod(rtCastRemoteObject, activationChanged);
 rtDefineMethod(rtCastRemoteObject, friendlyNameChanged);
 rtDefineMethod(rtCastRemoteObject, registerApplications);
+rtDefineMethod(rtCastRemoteObject, getProtocolVersion);
 
 rtDialCastRemoteObject* DialObj;
 
