@@ -32,8 +32,8 @@ extern "C" {
 
 #define GDIAL_HIDDEN __attribute__ ((visibility ("hidden")))
 
-#define GDIAL_PROTOCOL_VERSION 2.1
-#define GDIAL_PROTOCOL_VERSION_STR "2.1"
+#define GDIAL_PROTOCOL_VERSION 2.2.1
+#define GDIAL_PROTOCOL_VERSION_STR "2.2.1"
 #define GDIAL_PROTOCOL_XMLNS_SCHEMA "urn:dial-multiscreen-org:schemas:dial"
 
 /*
