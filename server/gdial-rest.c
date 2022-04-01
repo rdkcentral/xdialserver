@@ -252,7 +252,7 @@ GDIAL_STATIC gboolean gdial_rest_server_is_allowed_origin(GDialRestServer *self,
   const gchar *uri_scheme = origin_uri ? soup_uri_get_scheme(origin_uri) : NULL;
 
   if (origin_uri && uri_scheme &&
-    (uri_scheme == SOUP_URI_SCHEME_HTTP || uri_scheme == SOUP_URI_SCHEME_HTTPS || uri_scheme == SOUP_URI_SCHEME_FILE)) {
+    (uri_scheme == "package" || uri_scheme == SOUP_URI_SCHEME_HTTPS )) {
     GDialAppRegistry *app_registry = gdial_rest_server_find_app_registry(self, app_name);
     if (app_registry) {
       is_allowed = gdial_app_registry_is_allowed_origin (app_registry, header_origin);
