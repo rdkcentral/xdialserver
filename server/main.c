@@ -374,7 +374,6 @@ int main(int argc, char *argv[]) {
         {
           sleep (1);
           g_object_unref(app);
-          break;
         }
       }  
     }
