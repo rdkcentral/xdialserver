@@ -358,24 +358,29 @@ int main(int argc, char *argv[]) {
   g_main_loop_run (loop_);
   gdial_rest_server_unregister_all_apps(dial_rest_server);
   
+  int retryCount = 3; 
+
   GDialRestServerPrivate *priv = gdial_rest_server_get_instance_private(dial_rest_server);
   /*Stopping all registread Apps*/
   while (priv->registered_apps) {
+    if(retryCount == 0)
+      break;
     GDialAppRegistry *app_registry = priv->registered_apps->data;
     GDialApp *app = gdial_app_find_instance_by_name(app_registry->name);
     if (app) {
         if (DIAL_APP_GET_STATE(app) == GDIAL_APP_STATE_STOPPED)
         {
           priv->registered_apps = priv->registered_apps->next;
-          g_object_unref(app);
-          continue;
+          retryCount = 3;
         }
         else
         {
           sleep (1);
-          g_object_unref(app);
+          retryCount--;
         }
       }  
+      g_object_unref(app);
+      
     }
   }
 
