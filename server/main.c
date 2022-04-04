@@ -356,6 +356,30 @@ int main(int argc, char *argv[]) {
    */
   loop_ = g_main_loop_new (NULL, TRUE);
   g_main_loop_run (loop_);
+  gdial_rest_server_unregister_all_apps(dial_rest_server);
+  
+  GDialRestServerPrivate *priv = gdial_rest_server_get_instance_private(dial_rest_server);
+  /*Stopping all registread Apps*/
+  while (priv->registered_apps) {
+    GDialAppRegistry *app_registry = priv->registered_apps->data;
+    GDialApp *app = gdial_app_find_instance_by_name(app_registry->name);
+    if (app) {
+        if (DIAL_APP_GET_STATE(app) == GDIAL_APP_STATE_STOPPED)
+        {
+          priv->registered_apps = priv->registered_apps->next;
+          g_object_unref(app);
+          continue;
+        }
+        else
+        {
+          sleep (1);
+          g_object_unref(app);
+          break;
+        }
+      }  
+    }
+  }
+
 
   for (int i = 0; i < sizeof(servers)/sizeof(servers[0]); i++) {
     soup_server_disconnect(servers[i]);
