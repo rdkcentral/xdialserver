@@ -179,7 +179,7 @@ static void gdial_quit_thread(int signum)
 {
   g_print("Exiting DIAL Server thread %d \r\n",signum);
   server_activation_handler(0, "");
-  sleep(3);
+  sleep(3);               //Sleeping 3 sec to allow existing request to finish processing.
   g_main_loop_quit(loop_);
   
 }
