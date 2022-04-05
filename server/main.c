@@ -178,6 +178,8 @@ static void gdial_http_server_throttle_callback(SoupServer *server,
 static void gdial_quit_thread(int signum)
 {
   g_print("Exiting DIAL Server thread %d \r\n",signum);
+  server_activation_handler(0, "");
+  sleep(3);
   g_main_loop_quit(loop_);
   
 }
@@ -356,35 +358,7 @@ int main(int argc, char *argv[]) {
    */
   loop_ = g_main_loop_new (NULL, TRUE);
   g_main_loop_run (loop_);
-  gdial_rest_server_unregister_all_apps(dial_rest_server);
-  
-  int retryCount = 3; 
-
-  GDialRestServerPrivate *priv = gdial_rest_server_get_instance_private(dial_rest_server);
-  /*Stopping all registread Apps*/
-  while (priv->registered_apps) {
-    if(retryCount == 0)
-      break;
-    GDialAppRegistry *app_registry = priv->registered_apps->data;
-    GDialApp *app = gdial_app_find_instance_by_name(app_registry->name);
-    if (app) {
-        if (DIAL_APP_GET_STATE(app) == GDIAL_APP_STATE_STOPPED)
-        {
-          priv->registered_apps = priv->registered_apps->next;
-          retryCount = 3;
-        }
-        else
-        {
-          sleep (1);
-          retryCount--;
-        }
-      }  
-      g_object_unref(app);
-      
-    }
-  }
-
-
+ 
   for (int i = 0; i < sizeof(servers)/sizeof(servers[0]); i++) {
     soup_server_disconnect(servers[i]);
     g_object_unref(servers[i]);
