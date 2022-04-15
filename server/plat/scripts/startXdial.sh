@@ -97,7 +97,7 @@ fi
 FriendlyName=`echo "${PartnerId}_${ModelName}"`
 echo "Friendly Name: $FriendlyName"
 
-Manufacturer=$MFG_NAME
+Manufacturer=$PartnerId
 echo "Manufacturer: $Manufacturer"
 #Get UUID
 UUID=$(getReceiverId)
