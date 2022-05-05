@@ -18,6 +18,7 @@
  */
 
 #include <stdlib.h>
+#include <signal.h>
 #include <string.h>
 #include <stdio.h>
 #include <glib.h>
@@ -174,11 +175,21 @@ static void gdial_http_server_throttle_callback(SoupServer *server,
   soup_message_set_status(msg, SOUP_STATUS_NOT_FOUND);
 }
 
+static void gdial_quit_thread(int signum)
+{
+  g_print("Exiting DIAL Server thread %d \r\n",signum);
+  server_activation_handler(0, "");
+  sleep(3);               //Sleeping 3 sec to allow existing request to finish processing.
+  g_main_loop_quit(loop_);
+  
+}
+
 int main(int argc, char *argv[]) {
 
   GError *error = NULL;
   GOptionContext *option_context = g_option_context_new(NULL);
   g_option_context_add_main_entries(option_context, option_entries_, NULL);
+  signal(SIGTERM,gdial_quit_thread);
 
   if (!g_option_context_parse (option_context, &argc, &argv, &error)) {
     g_print ("%s\r\n", error->message);
@@ -357,7 +368,7 @@ int main(int argc, char *argv[]) {
    */
   loop_ = g_main_loop_new (NULL, TRUE);
   g_main_loop_run (loop_);
-
+ 
   for (int i = 0; i < sizeof(servers)/sizeof(servers[0]); i++) {
     soup_server_disconnect(servers[i]);
     g_object_unref(servers[i]);
