@@ -203,13 +203,13 @@ int gdial_ssdp_set_available(bool activation_status, const gchar *friendlyname)
 {
   g_print("gdial_ssdp_set_available activation_status :%d \n ",activation_status);
   gdial_ssdp_set_friendlyname(friendlyname);
-  gssdp_resource_group_set_available (ssdp_resource_group_, activation_status);
+  if(ssdp_resource_group_) gssdp_resource_group_set_available (ssdp_resource_group_, activation_status);
   return 0;
 }
 
 int gdial_ssdp_set_friendlyname(const gchar *friendlyname)
 {
-  if(gdial_options_->feature_friendlyname && friendlyname)
+  if(gdial_options_ && gdial_options_->feature_friendlyname && friendlyname)
   {
      if (app_friendly_name != NULL) g_free(app_friendly_name);
      app_friendly_name = g_strdup(friendlyname);

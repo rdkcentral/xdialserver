@@ -179,8 +179,9 @@ static void gdial_quit_thread(int signum)
 {
   g_print("Exiting DIAL Server thread %d \r\n",signum);
   server_activation_handler(0, "");
-  sleep(3);               //Sleeping 3 sec to allow existing request to finish processing.
-  g_main_loop_quit(loop_);
+  usleep(50000);               //Sleeping 50 ms to allow existing request to finish processing.
+  g_print(" calling g_main_loop_quit loop_: %p \r\n",loop_);
+  if(loop_)g_main_loop_quit(loop_);
   
 }
 
@@ -189,7 +190,6 @@ int main(int argc, char *argv[]) {
   GError *error = NULL;
   GOptionContext *option_context = g_option_context_new(NULL);
   g_option_context_add_main_entries(option_context, option_entries_, NULL);
-  signal(SIGTERM,gdial_quit_thread);
 
   if (!g_option_context_parse (option_context, &argc, &argv, &error)) {
     g_print ("%s\r\n", error->message);
@@ -357,8 +357,9 @@ int main(int argc, char *argv[]) {
    * Use global context
    */
   loop_ = g_main_loop_new (NULL, TRUE);
+  signal(SIGTERM,gdial_quit_thread);
   g_main_loop_run (loop_);
- 
+
   for (int i = 0; i < sizeof(servers)/sizeof(servers[0]); i++) {
     soup_server_disconnect(servers[i]);
     g_object_unref(servers[i]);
