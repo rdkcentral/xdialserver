@@ -60,11 +60,11 @@ public:
     rtMethod1ArgAndNoReturn("onFriendlyNameChanged", friendlyNameChanged, rtObjectRef);
     rtMethod1ArgAndNoReturn("onRegisterApplications", registerApplications, rtObjectRef);
     rtMethodNoArgAndReturn("getProtocolVersion", getProtocolVersion, rtString);
-    virtual rtError applicationStateChanged(const rtObjectRef& params){ printf("applicationStateChanged rtCastRemoteObject");}
-    virtual rtError activationChanged (const rtObjectRef& params){ printf("activationChanged rtCastRemoteObject");}
-    virtual rtError friendlyNameChanged (const rtObjectRef& params){ printf("friendlyNameChanged rtCastRemoteObject");}
-    virtual rtError registerApplications (const rtObjectRef& params){ printf("registerApplications rtCastRemoteObject");}
-    virtual rtError getProtocolVersion(rtString& result){ printf("getProtocolVersion rtCastRemoteObject");}
+    virtual rtError applicationStateChanged(const rtObjectRef& params){ printf("applicationStateChanged rtCastRemoteObject");return RT_OK;}
+    virtual rtError activationChanged (const rtObjectRef& params){ printf("activationChanged rtCastRemoteObject");return RT_OK;}
+    virtual rtError friendlyNameChanged (const rtObjectRef& params){ printf("friendlyNameChanged rtCastRemoteObject");return RT_OK;}
+    virtual rtError registerApplications (const rtObjectRef& params){ printf("registerApplications rtCastRemoteObject");return RT_OK;}
+    virtual rtError getProtocolVersion(rtString& result){ printf("getProtocolVersion rtCastRemoteObject");return RT_OK;}
   /*
     * rtCast implementation should emit these events:
     * onApplicationLaunchRequest
