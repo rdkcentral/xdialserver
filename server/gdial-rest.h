@@ -40,7 +40,7 @@ struct _GDialRestServer {
 };
 
 GDialRestServer *gdial_rest_server_new(SoupServer *rest_http_server,SoupServer *local_rest_http_server, gchar *random_uuid);
-gboolean gdial_rest_server_register_app(GDialRestServer *self, const gchar *app_name, const GList *app_prefixes, const GHashTable *properties, gboolean is_singleton, gboolean use_additional_data, const GList *allowed_origin);
+gboolean gdial_rest_server_register_app(GDialRestServer *self, const gchar *app_name, const GList *app_prefixes, GHashTable *properties, gboolean is_singleton, gboolean use_additional_data, const GList *allowed_origin);
 gboolean gdial_rest_server_register_app_registry(GDialRestServer *self, GDialAppRegistry *app_registry);
 gboolean gdial_rest_server_is_app_registered(GDialRestServer *self, const gchar *app_name);
 gboolean gdial_rest_server_unregister_app(GDialRestServer *self, const gchar *app_name);
