@@ -43,7 +43,7 @@ typedef struct _GDialAppRegistry {
 
 void gdial_app_regstry_dispose (GDialAppRegistry *app_registry);
 gboolean gdial_app_registry_is_allowed_origin(GDialAppRegistry *app_registry, const gchar *header_origin);
-GDialAppRegistry* gdial_app_registry_new (const gchar *app_name, const GList *app_prefixes, const GHashTable *properties, gboolean is_singleton, gboolean use_additional_data, const GList *allowed_origins);
+GDialAppRegistry* gdial_app_registry_new (const gchar *app_name, const GList *app_prefixes, GHashTable *properties, gboolean is_singleton, gboolean use_additional_data, const GList *allowed_origins);
 
 G_END_DECLS
 
