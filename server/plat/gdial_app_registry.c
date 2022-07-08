@@ -25,7 +25,7 @@
 #define GDIAL_STR_ENDS_WITH(s1, s2) ((s1 != NULL) && (s2 != NULL) && ((strlen(s2) == 0) || (g_str_has_suffix(s1, s2))))
 
 void gdial_app_regstry_dispose (GDialAppRegistry *app_registry) {
-  g_return_val_if_fail(app_registry != NULL, TRUE);
+  g_return_if_fail(app_registry != NULL);
   printf ("freeing app name:%s\n", app_registry->name);
   g_free(app_registry->name);
   g_list_free_full(app_registry->allowed_origins, g_free);
@@ -60,7 +60,7 @@ gboolean gdial_app_registry_is_allowed_origin(GDialAppRegistry *app_registry, co
   return is_allowed;
 }
 
-GDialAppRegistry* gdial_app_registry_new (const gchar *app_name, const GList *app_prefixes, const GHashTable *properties, gboolean is_singleton, gboolean use_additional_data, const GList *allowed_origins) {
+GDialAppRegistry* gdial_app_registry_new (const gchar *app_name, const GList *app_prefixes, GHashTable *properties, gboolean is_singleton, gboolean use_additional_data, const GList *allowed_origins) {
   g_return_val_if_fail(app_name != NULL, NULL);
   g_return_val_if_fail(is_singleton, NULL);
 
@@ -82,7 +82,7 @@ GDialAppRegistry* gdial_app_registry_new (const gchar *app_name, const GList *ap
     app_registry->properties = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_free);
     g_hash_table_iter_init(&prop_iter, properties);
     while (g_hash_table_iter_next(&prop_iter, &key, &value)) {
-      g_print("inside register app properties key:%s value:%s\n",key, value);
+      g_print("inside register app properties key:%s value:%s\n",(gchar*)key, (gchar*)value);
       g_hash_table_insert(app_registry->properties,g_strdup(key),g_strdup(value));
     }
   }
