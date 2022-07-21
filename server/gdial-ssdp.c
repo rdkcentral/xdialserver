@@ -112,6 +112,23 @@ static void ssdp_http_server_callback(SoupServer *server, SoupMessage *msg, cons
   GDIAL_CHECK("Application-URL: exist");
 }
 
+void gdial_ssdp_networkstandbymode_handler(const bool nwstandby)
+{
+  if(ssdp_client_){
+     if(nwstandby){
+        g_print("gdial_ssdp_networkstandbymode_handler add WAKEUP header\n ");
+        gchar *dial_ssdp_WAKEUP = g_strdup_printf(dial_ssdp_WAKEUP_fmt,gdial_plat_util_get_iface_mac_addr(gdial_options_->iface_name),MAX_POWERON_TIME);
+        gssdp_client_append_header(ssdp_client_, "WAKEUP", dial_ssdp_WAKEUP);
+        g_free(dial_ssdp_WAKEUP);
+     }
+     else{
+        g_print("gdial_ssdp_networkstandbymode_handler remove WAKEUP header \n ");
+        gssdp_client_remove_header(ssdp_client_, "WAKEUP");
+     }
+  }
+  return 0;
+}
+
 int gdial_ssdp_new(SoupServer *ssdp_http_server, GDialOptions *options) {
 
   g_return_val_if_fail(ssdp_http_server != NULL, -1);
@@ -139,6 +156,9 @@ int gdial_ssdp_new(SoupServer *ssdp_http_server, GDialOptions *options) {
       return EXIT_FAILURE;
   }
 
+  gdail_plat_dev_register_nwstandbymode_cb(gdial_ssdp_networkstandbymode_handler);
+  bool nwstandby_mode = gdial_plat_dev_get_nwstandby_mode();
+  g_print("gdial_ssdp_new nwstandby_mode:%d \n",nwstandby_mode);
   /*
    * setup configurable headers.
    * header "SERVER" is populated by gssdp.
@@ -146,7 +166,7 @@ int gdial_ssdp_new(SoupServer *ssdp_http_server, GDialOptions *options) {
    * header "CACHE-CONTROL" is mandatory, set by gssdp, default 1800
    */
   gssdp_client_append_header(ssdp_client, "BOOTID.UPNP.ORG", "1");
-  if(gdial_options_->feature_wolwake) {
+  if(gdial_options_->feature_wolwake && nwstandby_mode) {
     g_print("WOL Wake feature is enabled");
     gchar *dial_ssdp_WAKEUP = g_strdup_printf(dial_ssdp_WAKEUP_fmt,gdial_plat_util_get_iface_mac_addr(gdial_options_->iface_name),MAX_POWERON_TIME);
     gssdp_client_append_header(ssdp_client, "WAKEUP", dial_ssdp_WAKEUP);

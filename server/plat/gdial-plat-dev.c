@@ -26,6 +26,8 @@ IARM_Bus_PWRMgr_PowerState_t m_powerstate = IARM_BUS_PWRMGR_POWERSTATE_STANDBY;
 static int m_sleeptime = 1;
 static bool m_is_restart_req = false;
 
+static gdial_plat_dev_nwstandbymode_cb g_nwstandbymode_cb = NULL;
+
 const char * gdial_plat_dev_get_manufacturer() {
   return g_getenv("GDIAL_DEV_MANUFACTURER");
 }
@@ -56,11 +58,23 @@ void gdial_plat_dev_power_mode_change(const char *owner, IARM_EventId_t eventId,
   }
 }
 
+void gdial_plat_dev_nwstandby_mode_change(const char *owner, IARM_EventId_t eventId, void *data, size_t len)
+{
+  if ((strcmp(owner, IARM_BUS_PWRMGR_NAME)  == 0) && ( eventId == IARM_BUS_PWRMGR_EVENT_NETWORK_STANDBYMODECHANGED )) {
+    IARM_Bus_PWRMgr_EventData_t *param = (IARM_Bus_PWRMgr_EventData_t *)data;
+    if(g_nwstandbymode_cb) g_nwstandbymode_cb(param->data.bNetworkStandbyMode);
+    printf("gdial_plat_dev_nwstandby_mode_change  new nwstandby_mode :%d \n ",param->data.bNetworkStandbyMode);
+  }
+}
+
 bool gdial_plat_dev_initialize() {
   IARM_Bus_Init("xdialserver");
   IARM_Bus_Connect();
   IARM_Result_t res;
+
   IARM_Bus_RegisterEventHandler(IARM_BUS_PWRMGR_NAME,IARM_BUS_PWRMGR_EVENT_MODECHANGED, gdial_plat_dev_power_mode_change);
+  IARM_Bus_RegisterEventHandler(IARM_BUS_PWRMGR_NAME,IARM_BUS_PWRMGR_EVENT_NETWORK_STANDBYMODECHANGED, gdial_plat_dev_nwstandby_mode_change);
+
   IARM_Bus_PWRMgr_GetPowerState_Param_t param;
   res = IARM_Bus_Call(IARM_BUS_PWRMGR_NAME, IARM_BUS_PWRMGR_API_GetPowerState,
                 (void *)&param, sizeof(param));
@@ -107,4 +121,21 @@ bool gdial_plat_dev_set_power_state_off() {
     }
   }
   return ret;
+}
+void gdail_plat_dev_register_nwstandbymode_cb(gdial_plat_dev_nwstandbymode_cb cb)
+{
+   g_nwstandbymode_cb = cb;
+}
+
+bool gdial_plat_dev_get_nwstandby_mode() {
+  bool nw_standby_mode = false;
+  IARM_Bus_PWRMgr_NetworkStandbyMode_Param_t param;
+  IARM_Result_t res = IARM_Bus_Call(IARM_BUS_PWRMGR_NAME,
+                         IARM_BUS_PWRMGR_API_GetNetworkStandbyMode, (void *)&param,
+                         sizeof(param));
+  if(res == IARM_RESULT_SUCCESS) {
+     nw_standby_mode = param.bStandbyMode;
+  }
+  printf("gdial_plat_dev_get_nwstandby_mode  nwstandby_mode:%d \n",nw_standby_mode);
+  return nw_standby_mode;
 }
