@@ -93,12 +93,17 @@ if [ $expValue = "Flex" ]; then
     echo "Flex experience ModelName:$ModelName"
 fi
 
+if [ $RDK_PROFILE = "TV" ]; then
+  Manufacturer=$MFG_NAME
+else
+  Manufacturer=$PartnerId
+fi
+echo "Manufacturer: $Manufacturer"
+
 #Construct Friendly Name for Netflix
-FriendlyName=`echo "${PartnerId}_${ModelName}"`
+FriendlyName=`echo "${Manufacturer}_${ModelName}"`
 echo "Friendly Name: $FriendlyName"
 
-Manufacturer=$PartnerId
-echo "Manufacturer: $Manufacturer"
 #Get UUID
 UUID=$(getReceiverId)
 echo "UUID: $UUID"
