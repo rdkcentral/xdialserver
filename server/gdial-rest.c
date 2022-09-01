@@ -60,6 +60,7 @@ enum {
 #define GDIAL_MERGE_URL_AND_BODY_QUERY 0
 
 static guint gdial_rest_server_signals[N_SIGNALS] =  {0};
+static gchar *GDIAL_REST_HTTP_APPS_URI = NULL;
 
 G_DEFINE_TYPE_WITH_PRIVATE(GDialRestServer, gdial_rest_server, G_TYPE_OBJECT)
 
@@ -916,6 +917,7 @@ static void gdial_rest_http_server_apps_callback(SoupServer *server,
 static void gdial_rest_server_dispose(GObject *object) {
   GDialRestServerPrivate *priv = gdial_rest_server_get_instance_private(GDIAL_REST_SERVER(object));
   soup_server_remove_handler(priv->soup_instance, GDIAL_REST_HTTP_APPS_URI);
+  if(GDIAL_REST_HTTP_APPS_URI) g_free(GDIAL_REST_HTTP_APPS_URI);
   g_object_unref(priv->soup_instance);
   g_object_unref(priv->local_soup_instance);
   while (priv->registered_apps) {
@@ -1028,8 +1030,7 @@ static void gdial_rest_server_init(GDialRestServer *self) {
   GDialRestServerPrivate *priv = gdial_rest_server_get_instance_private(self);
   priv->registered_apps = NULL;
 }
-
-GDialRestServer *gdial_rest_server_new(SoupServer *rest_http_server,SoupServer * local_rest_http_server) {
+GDialRestServer *gdial_rest_server_new(SoupServer *rest_http_server,SoupServer * local_rest_http_server, gchar *random_id) {
   g_return_val_if_fail(rest_http_server != NULL, NULL);
   g_return_val_if_fail(local_rest_http_server != NULL, NULL);
   g_object_ref(local_rest_http_server);
@@ -1042,6 +1043,7 @@ GDialRestServer *gdial_rest_server_new(SoupServer *rest_http_server,SoupServer *
   soup_server_add_handler(rest_http_server, "/apps/system", gdial_rest_http_server_system_callback, object, NULL);
 #endif
   g_print("gdial_local_rest_http_server_callback add handler\n");
+  GDIAL_REST_HTTP_APPS_URI = g_strdup_printf("/%s", random_id);
 
   soup_server_add_handler(local_rest_http_server, GDIAL_REST_HTTP_APPS_URI, gdial_local_rest_http_server_callback, object, NULL);
   return object;
