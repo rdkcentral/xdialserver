@@ -34,8 +34,11 @@
 #include "gdial-plat-dev.h"
 #include "gdial-plat-app.h"
 #include "gdial_app_registry.h"
+#include <uuid/uuid.h>
 
 static const char *dial_specification_copyright = "Copyright (c) 2017 Netflix, Inc. All rights reserved.";
+
+#define MAX_UUID_SIZE 64
 
 static GDialOptions options_;
 
@@ -250,8 +253,13 @@ int main(int argc, char *argv[]) {
       }
     }
   }
+  gchar random_uuid_str[MAX_UUID_SIZE] = {0};
+  uuid_t random_uuid;
+  uuid_generate_random(random_uuid);
+  uuid_unparse(random_uuid, random_uuid_str);
+  g_print("random_uuid_str  :%s\r\n", random_uuid_str);
 
-  dial_rest_server = gdial_rest_server_new(rest_http_server,local_rest_http_server);
+  dial_rest_server = gdial_rest_server_new(rest_http_server,local_rest_http_server,random_uuid_str);
   if (!options_.app_list) {
     g_print("no application is enabled from cmdline \r\n");
   }
@@ -346,7 +354,7 @@ int main(int argc, char *argv[]) {
   g_signal_connect(dial_rest_server, "gmainloop-quit", G_CALLBACK(signal_handler_rest_server_gmainloop_quit), NULL);
   g_signal_connect(dial_rest_server, "rest-enable", G_CALLBACK(signal_handler_rest_server_rest_enable), NULL);
 
-  gdial_ssdp_new(ssdp_http_server, &options_);
+  gdial_ssdp_new(ssdp_http_server, &options_,random_uuid_str);
   gdial_shield_init();
   gdial_shield_server(rest_http_server);
   gdial_shield_server(ssdp_http_server);

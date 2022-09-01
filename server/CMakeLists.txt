@@ -84,4 +84,5 @@ target_link_libraries (gdial-server
   ${SOUP_LIBRARIES}
   ${XML2_LIBRARIES}
   gdial-plat
+  uuid
 )

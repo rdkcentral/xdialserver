@@ -40,7 +40,7 @@ static int ssdp_resource_id_ = 0;
  */
 static const char *dial_ssdp_ST_target = "urn:dial-multiscreen-org:service:dial:1";
 static const char *dial_ssdp_USN_fmt = "uuid:%s::urn:dial-multiscreen-org:service:dial:1";
-static const char *dial_ssdp_LOCATION_fmt = "http://%s:%d/dd.xml";
+static const char *dial_ssdp_LOCATION_fmt = "http://%s:%d/%s/dd.xml";
 static const char *dial_ssdp_WAKEUP_fmt = "MAC=%s;Timeout=%d";
 
 
@@ -72,6 +72,7 @@ static const char ssdp_device_xml_template[] = ""
 
 static gchar *dd_xml_response_str_ = NULL;
 static gchar *app_friendly_name = NULL;
+static gchar *app_random_uuid = NULL;
 
 static void ssdp_http_server_callback(SoupServer *server, SoupMessage *msg, const char *path, GHashTable *query, SoupClientContext  *client, gpointer user_data) {
   /*
@@ -83,7 +84,6 @@ static void ssdp_http_server_callback(SoupServer *server, SoupMessage *msg, cons
     GDIAL_DEBUG("warning: SSDP HTTP Method is not GET\r\n");
     return;
   }
-
   /*
    * there is no variant here, so we can cache the response.
    */
@@ -103,7 +103,7 @@ static void ssdp_http_server_callback(SoupServer *server, SoupMessage *msg, cons
     dd_xml_response_str_len = strlen(dd_xml_response_str_);
   }
 
-  gchar *application_url_str = g_strdup_printf("http://%s:%d%s/", iface_ipv4_address, GDIAL_REST_HTTP_PORT, GDIAL_REST_HTTP_APPS_URI);
+  gchar *application_url_str = g_strdup_printf("http://%s:%d/%s/", iface_ipv4_address, GDIAL_REST_HTTP_PORT,app_random_uuid);
   soup_message_headers_replace (msg->response_headers, "Application-URL", application_url_str);
   g_free(application_url_str);
   soup_message_set_response(msg, "text/xml; charset=utf-8", SOUP_MEMORY_STATIC, dd_xml_response_str_, dd_xml_response_str_len);
@@ -129,7 +129,7 @@ void gdial_ssdp_networkstandbymode_handler(const bool nwstandby)
   return 0;
 }
 
-int gdial_ssdp_new(SoupServer *ssdp_http_server, GDialOptions *options) {
+int gdial_ssdp_new(SoupServer *ssdp_http_server, GDialOptions *options, const gchar *random_uuid) {
 
   g_return_val_if_fail(ssdp_http_server != NULL, -1);
   g_return_val_if_fail(options != NULL, -1);
@@ -181,7 +181,7 @@ int gdial_ssdp_new(SoupServer *ssdp_http_server, GDialOptions *options) {
 
   GSSDPResourceGroup *ssdp_resource_group = gssdp_resource_group_new(ssdp_client);
   gchar *dial_ssdp_USN = g_strdup_printf(dial_ssdp_USN_fmt, gdial_options_->uuid);
-  gchar *dial_ssdp_LOCATION = g_strdup_printf(dial_ssdp_LOCATION_fmt, iface_ipv4_address, GDIAL_SSDP_HTTP_PORT);
+  gchar *dial_ssdp_LOCATION = g_strdup_printf(dial_ssdp_LOCATION_fmt, iface_ipv4_address, GDIAL_SSDP_HTTP_PORT,random_uuid);
   ssdp_resource_id_ =
     gssdp_resource_group_add_resource_simple (ssdp_resource_group, dial_ssdp_ST_target, dial_ssdp_USN, dial_ssdp_LOCATION);
   gssdp_resource_group_set_available (ssdp_resource_group, FALSE);
@@ -192,8 +192,9 @@ int gdial_ssdp_new(SoupServer *ssdp_http_server, GDialOptions *options) {
 
   g_object_ref(ssdp_http_server);
   ssdp_http_server_ = ssdp_http_server;
-
-  soup_server_add_handler(ssdp_http_server_, "/dd.xml", ssdp_http_server_callback, NULL, NULL);
+  app_random_uuid = g_strdup(random_uuid);
+  gchar *dail_ssdp_handler = g_strdup_printf("/%s/%s", random_uuid,"dd.xml");
+  soup_server_add_handler(ssdp_http_server_, dail_ssdp_handler, ssdp_http_server_callback, NULL, NULL);
   ssdp_client_ = ssdp_client;
 
   return 0;
@@ -209,6 +210,7 @@ int gdial_ssdp_destroy() {
   if (gdial_options_->friendly_name != NULL) g_free(gdial_options_->friendly_name);
   if (gdial_options_->uuid != NULL) g_free(gdial_options_->uuid);
   if (gdial_options_->iface_name != NULL) g_free(gdial_options_->iface_name);
+  if (app_random_uuid) g_free(app_random_uuid);
 
   gssdp_client_clear_headers(ssdp_client_);
 
