@@ -108,6 +108,27 @@ echo "Friendly Name: $FriendlyName"
 UUID=$(getReceiverId)
 echo "UUID: $UUID"
 
+# Get Moca and Wifi default ip
+Default_Moca_IP=$DEFAULT_MOCA_IFACE_IP
+Default_Wifi_IP=$DEFAULT_WIFI_IFACE_IP
+
+if [ -z "$DEFAULT_MOCA_IFACE_IP" ]
+then
+    Default_Moca_IP="192.168.18.10"
+else
+    Default_Moca_IP=$DEFAULT_MOCA_IFACE_IP
+fi
+
+if [ -z "$DEFAULT_WIFI_IFACE_IP" ]
+then
+    Default_Wifi_IP="192.168.28.10"
+else
+    Default_Wifi_IP=$DEFAULT_WIFI_IFACE_IP
+fi
+
+echo "default MOCA ip address : $Default_Moca_IP"
+echo "default Wifi ip address:  $Default_Wifi_IP"
+
 #Opening Required PORTS
 XDIAL_IFNAME=$(getESTBInterfaceName)
 AppList=$(tr181Set -g Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.XDial.AppList 2>&1)
@@ -173,9 +194,9 @@ if tr181Set -g Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.XDial.Enable 2>&1 
     retry_count=0
     inet_addr_str=`ifconfig ${XDIAL_IFNAME} |grep "inet addr"`
     if [ "${XDIAL_IFNAME:0:4}" == "eth0" ]; then
-        curr_ip_addr=`echo $inet_addr_str |grep "192.168.18.10"`
+        curr_ip_addr=`echo $inet_addr_str |grep $Default_Moca_IP`
     else
-        curr_ip_addr=`echo $inet_addr_str |grep "192.168.28.10"`
+        curr_ip_addr=`echo $inet_addr_str |grep $Default_Wifi_IP`
     fi
     while [ $(retry_logic "$curr_ip_addr" "$inet_addr_str" ) == "RETRY" ]
     do
@@ -189,9 +210,9 @@ if tr181Set -g Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.XDial.Enable 2>&1 
       echo "++++++++++++++++++"
       inet_addr_str=`ifconfig ${XDIAL_IFNAME} |grep "inet addr"`
       if [ "${XDIAL_IFNAME:0:4}" == "eth0" ]; then
-          curr_ip_addr=`echo $inet_addr_str |grep "192.168.18.10"`
+          curr_ip_addr=`echo $inet_addr_str |grep $Default_Moca_IP`
       else
-          curr_ip_addr=`echo $inet_addr_str |grep "192.168.28.10"`
+          curr_ip_addr=`echo $inet_addr_str |grep $Default_Wifi_IP`
       fi
       retry_count=`expr $retry_count + 1`
     done
