@@ -74,26 +74,6 @@ restartXdialService() {
 
 XDIAL_IFNAME=$(getESTBInterfaceName)
 
-# Get Moca and Wifi default ip
-Default_Moca_IP=$DEFAULT_MOCA_IFACE_IP
-Default_Wifi_IP=$DEFAULT_WIFI_IFACE_IP
-
-if [ -z "$DEFAULT_MOCA_IFACE_IP" ]
-then
-    Default_Moca_IP="192.168.18.10"
-else
-    Default_Moca_IP=$DEFAULT_MOCA_IFACE_IP
-fi
-
-if [ -z "$DEFAULT_WIFI_IFACE_IP" ]
-then
-    Default_Wifi_IP="192.168.28.10"
-else
-    Default_Wifi_IP=$DEFAULT_WIFI_IFACE_IP
-fi
-
-echo "default Moca ip address : $Default_Moca_IP"
-echo "default Wifi ip address :  $Default_Wifi_IP"
 
 if [[ $DEVICE_TYPE != *"hybrid"* ]] && [[ $DEVICE_NAME != *"XI3"* ]] && [[ $DEVICE_NAME != *"XID"* ]]; then
     XDIAL_IFNAME="${XDIAL_IFNAME}:0"
@@ -118,18 +98,14 @@ if [ "$1" == "add" ] && [ "$2" == "ipv4" ] && [ "$3" == "$XDIAL_IFNAME" ];then
     fi
     echo "file count for ls /tmp/XDIAL_* : $file_count \n " >> $LOG_FILE
     if [ $file_count -gt 0 ]; then
-      if [ $4 != $DEFAULT_WIFI_IFACE_IP ] && [ $4 != $DEFAULT_MOCA_IFACE_IP ]; then
+      if [ $4 != "192.168.28.10" ] && [ $4 != "192.168.18.10" ] && [ $4 != "192.0.2.11" ] && [ $4 != "192.0.2.10" ]; then
         printf "IP change to new valid ip: $4 proceed with restart  " >> $LOG_FILE
-        rm -f /tmp/XDIAL_$2*
-        touch $new_xcast_ip_addr_file
         restartXdialService &
       else
         printf "IP change to default so ignore the event until next event $4 \n" >> $LOG_FILE
       fi
     else
-      printf " bootup scenario so no file in /tmp proceed with restart  \n" >> $LOG_FILE
-      restartXdialService &
-      touch $new_xcast_ip_addr_file
+      printf " gdial server has not started yet on any interface \n" >> $LOG_FILE
     fi
   fi
 else
