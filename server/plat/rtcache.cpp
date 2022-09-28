@@ -44,12 +44,12 @@ void rtAppStatusCache :: setAppCacheId(const char *app_name,std::string id)
      if(!strcmp(app_name,"Netflix"))
      {
          rtAppStatusCache::Netflix_AppCacheId = id;
-         printf("App cache Id of Netflix updated to %s\n",rtAppStatusCache::Netflix_AppCacheId);
+         printf("App cache Id of Netflix updated to %s\n",rtAppStatusCache::Netflix_AppCacheId.c_str());
      }
      else if(!strcmp(app_name,"YouTube"))
      {
          rtAppStatusCache::Youtube_AppCacheId = id;
-         printf("App cache Id of Youtube updated to %s\n",rtAppStatusCache::Youtube_AppCacheId);
+         printf("App cache Id of Youtube updated to %s\n",rtAppStatusCache::Youtube_AppCacheId.c_str());
      }
      else
      {

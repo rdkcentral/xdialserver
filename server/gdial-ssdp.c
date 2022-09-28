@@ -39,9 +39,9 @@ static int ssdp_resource_id_ = 0;
  * ssdp settings
  */
 static const char *dial_ssdp_ST_target = "urn:dial-multiscreen-org:service:dial:1";
-static const char *dial_ssdp_USN_fmt = "uuid:%s::urn:dial-multiscreen-org:service:dial:1";
-static const char *dial_ssdp_LOCATION_fmt = "http://%s:%d/%s/dd.xml";
-static const char *dial_ssdp_WAKEUP_fmt = "MAC=%s;Timeout=%d";
+#define DIAL_SSDP_USN_FMT "uuid:%s::urn:dial-multiscreen-org:service:dial:1"
+#define DIAL_SSDP_LOCATION_FMT "http://%s:%d/%s/dd.xml"
+#define DIAL_SSDP_WAKEUP_FMT "MAC=%s;Timeout=%d"
 
 
 /*
@@ -117,7 +117,7 @@ void gdial_ssdp_networkstandbymode_handler(const bool nwstandby)
   if(ssdp_client_){
      if(nwstandby){
         g_print("gdial_ssdp_networkstandbymode_handler add WAKEUP header\n ");
-        gchar *dial_ssdp_WAKEUP = g_strdup_printf(dial_ssdp_WAKEUP_fmt,gdial_plat_util_get_iface_mac_addr(gdial_options_->iface_name),MAX_POWERON_TIME);
+        gchar *dial_ssdp_WAKEUP = g_strdup_printf(DIAL_SSDP_WAKEUP_FMT,gdial_plat_util_get_iface_mac_addr(gdial_options_->iface_name),MAX_POWERON_TIME);
         gssdp_client_append_header(ssdp_client_, "WAKEUP", dial_ssdp_WAKEUP);
         g_free(dial_ssdp_WAKEUP);
      }
@@ -173,7 +173,7 @@ int gdial_ssdp_new(SoupServer *ssdp_http_server, GDialOptions *options, const gc
   gssdp_client_append_header(ssdp_client, "BOOTID.UPNP.ORG", "1");
   if(gdial_options_->feature_wolwake && nwstandby_mode) {
     g_print("WOL Wake feature is enabled");
-    gchar *dial_ssdp_WAKEUP = g_strdup_printf(dial_ssdp_WAKEUP_fmt,gdial_plat_util_get_iface_mac_addr(gdial_options_->iface_name),MAX_POWERON_TIME);
+    gchar *dial_ssdp_WAKEUP = g_strdup_printf(DIAL_SSDP_WAKEUP_FMT,gdial_plat_util_get_iface_mac_addr(gdial_options_->iface_name),MAX_POWERON_TIME);
     gssdp_client_append_header(ssdp_client, "WAKEUP", dial_ssdp_WAKEUP);
     g_free(dial_ssdp_WAKEUP);
   }
@@ -185,8 +185,8 @@ int gdial_ssdp_new(SoupServer *ssdp_http_server, GDialOptions *options, const gc
   GDIAL_CHECK("BOOTID.UPNP.ORG");
 
   GSSDPResourceGroup *ssdp_resource_group = gssdp_resource_group_new(ssdp_client);
-  gchar *dial_ssdp_USN = g_strdup_printf(dial_ssdp_USN_fmt, gdial_options_->uuid);
-  gchar *dial_ssdp_LOCATION = g_strdup_printf(dial_ssdp_LOCATION_fmt, iface_ipv4_address, GDIAL_SSDP_HTTP_PORT,random_uuid);
+  gchar *dial_ssdp_USN = g_strdup_printf(DIAL_SSDP_USN_FMT, gdial_options_->uuid);
+  gchar *dial_ssdp_LOCATION = g_strdup_printf(DIAL_SSDP_LOCATION_FMT, iface_ipv4_address, GDIAL_SSDP_HTTP_PORT,random_uuid);
   ssdp_resource_id_ =
     gssdp_resource_group_add_resource_simple (ssdp_resource_group, dial_ssdp_ST_target, dial_ssdp_USN, dial_ssdp_LOCATION);
   gssdp_resource_group_set_available (ssdp_resource_group, FALSE);
