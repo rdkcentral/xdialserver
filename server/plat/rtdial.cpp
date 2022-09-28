@@ -235,7 +235,7 @@ public:
     }
 
     rtCastError launchApplicationWithLaunchParams(const char *appName, const char *argPayload, const char *argQueryString, const char *argAdditionalDataUrl) {
-        printf("RTDIAL: rtDialCastRemoteObject::launchApplicationWithLaunchParams App:%s  payload:%s query_string:%s additional_data_url\n",
+        printf("RTDIAL: rtDialCastRemoteObject::launchApplicationWithLaunchParams App:%s  payload:%s query_string:%s additional_data_url: %s\n",
                                                                         appName, argPayload, argQueryString, argAdditionalDataUrl);
         rtObjectRef AppObj = new rtMapObject;
         AppObj.set("applicationName",appName);
