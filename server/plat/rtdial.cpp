@@ -179,7 +179,7 @@ public:
            }
        }
        int appListSize = g_list_length (gAppList);
-       if( g_registerapps_cb && appListSize) {
+       if( g_registerapps_cb ) {
            printf("RTDIAL: rtDialCastRemoteObject:: calling register_applications callback \n");
            g_registerapps_cb(gAppList);
        }
