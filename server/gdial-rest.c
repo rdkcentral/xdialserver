@@ -431,7 +431,10 @@ static void gdial_rest_server_handle_POST(GDialRestServer *gdial_rest_server, So
     if(query_str && strlen(query_str)) {
     g_print("query = %s\r\n", query_str);
       if (!use_query_directly_from_soup) {
-        query_str_safe = soup_uri_encode(query_str, NULL);
+        char *tmp = soup_uri_encode(query_str, NULL);
+        // note that we later g_free(query_str_safe) which doesn't necessarily work with malloc'ed memory (seems to depend on glib version)
+        query_str_safe = g_strdup(tmp);
+        free(tmp);
       }
       else {
         query_str_safe = g_strdup(query_str);
@@ -445,13 +448,16 @@ static void gdial_rest_server_handle_POST(GDialRestServer *gdial_rest_server, So
         payload_safe = g_strdup(payload);
       }
       else {
-        payload_safe = soup_uri_encode(payload, "=&");
+        char *tmp = soup_uri_encode(payload, "=&");
+        // note that we later g_free(payload_safe) which doesn't necessarily work with malloc'ed memory (seems to depend on glib version)
+        payload_safe = g_strdup(tmp);
+        free(tmp);
       }
     }
     start_error = gdial_app_start(app, payload_safe, query_str_safe, additional_data_url_safe, gdial_rest_server);
     if (query_str_safe) g_free(query_str_safe);
     if (payload_safe) g_free(payload_safe);
-    g_free(additional_data_url_safe);
+    free(additional_data_url_safe);
     g_free(additional_data_url);
   }
   else {
@@ -1189,6 +1195,7 @@ GDIAL_STATIC_INLINE void *GET_APP_response_builder_set_option(void *builder, con
    * Simple check only...
    */
   if (option_name && option_value) {
+    // note that this will leak if option_name key is already in the table
     g_hash_table_insert(rbuilder->options, g_strdup(option_name), g_strdup(option_value));
   }
   return builder;
@@ -1208,7 +1215,9 @@ GDIAL_STATIC_INLINE void *GET_APP_response_builder_set_link_href(void *builder, 
   GDialServerResponseBuilderGetApp * rbuilder = (GDialServerResponseBuilderGetApp *)builder;
   g_free(rbuilder->link_href);
   if (encoded_href) {
-    rbuilder->link_href= soup_uri_encode(encoded_href, NULL);
+    char *tmp = soup_uri_encode(encoded_href, NULL);
+    rbuilder->link_href= g_strdup(tmp);
+    free(tmp);
   }
   else {
     rbuilder->link_href = g_strdup("run");
