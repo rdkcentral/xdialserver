@@ -173,9 +173,9 @@ if tr181Set -g Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.XDial.Enable 2>&1 
     retry_count=0
     inet_addr_str=`ifconfig ${XDIAL_IFNAME} |grep "inet addr"`
     if [ "${XDIAL_IFNAME:0:4}" == "eth0" ]; then
-        curr_ip_addr=`echo $inet_addr_str |grep "192.168.18.10"`
+        curr_ip_addr=`echo $inet_addr_str |egrep "192.168.18.10|192.0.2.10"`
     else
-        curr_ip_addr=`echo $inet_addr_str |grep "192.168.28.10"`
+        curr_ip_addr=`echo $inet_addr_str |egrep "192.168.28.10|192.0.2.11"`
     fi
     while [ $(retry_logic "$curr_ip_addr" "$inet_addr_str" ) == "RETRY" ]
     do
@@ -189,12 +189,19 @@ if tr181Set -g Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.XDial.Enable 2>&1 
       echo "++++++++++++++++++"
       inet_addr_str=`ifconfig ${XDIAL_IFNAME} |grep "inet addr"`
       if [ "${XDIAL_IFNAME:0:4}" == "eth0" ]; then
-          curr_ip_addr=`echo $inet_addr_str |grep "192.168.18.10"`
+          curr_ip_addr=`echo $inet_addr_str |egrep "192.168.18.10|192.0.2.10"`
       else
-          curr_ip_addr=`echo $inet_addr_str |grep "192.168.28.10"`
+          curr_ip_addr=`echo $inet_addr_str |egrep "192.168.28.10|192.0.2.11"`
       fi
       retry_count=`expr $retry_count + 1`
     done
+
+    xcast_ip_addr_file_prefix=`echo "/tmp/XDIAL_ipv4_$XDIAL_IFNAME" | sed 's/:/_/g'`
+    ipAddress=$(echo "$inet_addr_str" | awk -F'inet addr:' '{print $2}' | cut -d ' ' -f 1)
+    new_xcast_ip_addr_file=$xcast_ip_addr_file_prefix"_"$ipAddress
+    echo "new file name: $new_xcast_ip_addr_file"
+    rm -f /tmp/XDIAL_$2*
+    touch $new_xcast_ip_addr_file
 
     XDIAL_IFNAME_OPTION=$(getCmdlineOption "-I" "$XDIAL_IFNAME")
     FriendlyName_OPTION=$(getCmdlineOption "-F" "$FriendlyName")
