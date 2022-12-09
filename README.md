@@ -1,4 +1,4 @@
-# DIAL 2.1 Server Implementation
+# DIAL 2.2.1 Server Implementation
 
 ## XCAST Overview
 ![Architecture Overview](/docs/overview.png)
