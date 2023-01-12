@@ -195,7 +195,7 @@ GDialAppError gdial_app_start(GDialApp *app, const gchar *payload, const gchar *
   GDialAppPrivate *priv = gdial_app_get_instance_private(app);
   priv->state_cb_data = state_cb_data;
   GDialAppError app_err = gdial_plat_application_start(app->name, payload, query, additional_data_url, &app->instance_id);
-  if (app_err == GDIAL_APP_ERROR_NONE || app->instance_id != GDIAL_APP_INSTANCE_NONE) {
+  if (app_err == GDIAL_APP_ERROR_NONE || (strcmp("system", app->name) != 0 && app->instance_id != GDIAL_APP_INSTANCE_NONE)) {
     gdial_plat_application_state_async(app->name, app->instance_id, app);
     app_err = gdial_plat_application_state(app->name, app->instance_id, &app->state);
     g_warn_if_fail(app->state == GDIAL_APP_STATE_RUNNING);
@@ -203,6 +203,7 @@ GDialAppError gdial_app_start(GDialApp *app, const gchar *payload, const gchar *
   else {
     app->state = GDIAL_APP_STATE_STOPPED;
   }
+
   return app_err;
 }
 
