@@ -19,6 +19,7 @@
 
 
 #include <string>
+#include <map>
 #include <unistd.h>
 #include <pthread.h>
 #include <glib.h>
@@ -449,16 +450,40 @@ void rtdial_term() {
 
 #define DIAL_MAX_ADDITIONALURL (1024)
 
+map<string,string> parse_query(const char* query_string) {
+    string query{query_string};
+    map<string,string> ret;
+    size_t begin = 0, end;
+
+    while (begin < query.size()) {
+        end = query.find('&', begin);
+        if (end == string::npos) end = query.size();
+        string next {query.substr(begin, end - begin)};
+        size_t split = next.find('=');
+        if (split > 0 && split != string::npos) {
+            ret[next.substr(0, split)] = next.substr(split + 1,string::npos);
+        }
+        begin = end + 1;
+    }
+    return ret;
+}
 
 int gdial_os_application_start(const char *app_name, const char *payload, const char *query_string, const char *additional_data_url, int *instance_id) {
     printf("RTDIAL gdial_os_application_start : Application launch request: appName: %s  query: [%s], payload: [%s], additionalDataUrl [%s]\n",
         app_name, query_string, payload, additional_data_url);
-    if (strcmp(app_name,"system") == 0 && strcmp(query_string,"action=sleep") == 0 ) {
-        if(strcmp(query_string,"action=sleep") == 0){
-            printf("RTDIAL: system app request to change device to sleep mode");
+
+    if (strcmp(app_name,"system") == 0) {
+        auto parsed_query{parse_query(query_string)};
+        if (parsed_query["action"] == "sleep") {
+            const char *system_key = getenv("SYSTEM_SLEEP_REQUEST_KEY");
+            if (system_key && parsed_query["key"] != system_key) {
+                printf("RTDIAL: system app request to change device to sleep mode, key comparison failed: user provided %s\n", system_key);
+                return GDIAL_APP_ERROR_INTERNAL;
+            }
+            printf("RTDIAL: system app request to change device to sleep mode\n");
             gdial_plat_dev_set_power_state_off();
+            return GDIAL_APP_ERROR_NONE;
         }
-        return GDIAL_APP_ERROR_NONE;
     }
     gdial_plat_dev_set_power_state_on();
     rtCastError ret = DialObj->launchApplicationWithLaunchParams(app_name, payload, query_string, additional_data_url);
