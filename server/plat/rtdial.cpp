@@ -179,7 +179,7 @@ public:
 
            }
        }
-       int appListSize = g_list_length (gAppList);
+
        if( g_registerapps_cb ) {
            printf("RTDIAL: rtDialCastRemoteObject:: calling register_applications callback \n");
            g_registerapps_cb(gAppList);
@@ -217,7 +217,7 @@ public:
             {
                 g_activation_cb(0,friendlyName.cString());
             }
-            printf("RTDIAL: rtDialCastRemoteObject:: status: %s  g_activation_cb :%d \n",status.cString(), g_activation_cb);
+            printf("RTDIAL: rtDialCastRemoteObject:: status: %s  g_activation_cb :%p \n",status.cString(), g_activation_cb);
         }
         return RT_OK;
     }
