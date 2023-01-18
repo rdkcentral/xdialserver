@@ -253,7 +253,7 @@ GDIAL_STATIC gboolean gdial_rest_server_is_allowed_origin(GDialRestServer *self,
   const gchar *uri_scheme = origin_uri ? soup_uri_get_scheme(origin_uri) : NULL;
 
   if (origin_uri && uri_scheme &&
-    (uri_scheme == "package" || uri_scheme == SOUP_URI_SCHEME_HTTPS )) {
+    (!g_strcmp0(uri_scheme, "package") || !g_strcmp0(uri_scheme, SOUP_URI_SCHEME_HTTPS))) {
     GDialAppRegistry *app_registry = gdial_rest_server_find_app_registry(self, app_name);
     if (app_registry) {
       is_allowed = gdial_app_registry_is_allowed_origin (app_registry, header_origin);
@@ -564,7 +564,7 @@ static void gdial_rest_server_handle_GET_app(GDialRestServer *gdial_rest_server,
   GET_APP_response_builder_destroy(builder);
   #else
   int response_len = 0;
-  gpointer allow_stop = g_hash_table_lookup(app_registry->properties,"allowStop");
+  gchar *allow_stop = (gchar*)g_hash_table_lookup(app_registry->properties,"allowStop");
   if(allow_stop == NULL) {
     allow_stop = "false";
   }
@@ -630,7 +630,7 @@ static void gdial_rest_server_handle_POST_dial_data(GDialRestServer *gdial_rest_
   soup_message_set_status(msg, SOUP_STATUS_OK);
 }
 
-static void gdial_rest_http_server_system_callback(SoupServer *server,
+inline static void gdial_rest_http_server_system_callback(SoupServer *server,
             SoupMessage *msg, const gchar *path, GHashTable *query,
             SoupClientContext  *client, gpointer user_data) {
 
@@ -1055,7 +1055,7 @@ GDialRestServer *gdial_rest_server_new(SoupServer *rest_http_server,SoupServer *
   return object;
 }
 
-gboolean gdial_rest_server_register_app(GDialRestServer *self, const gchar *app_name, const GList *app_prefixes, const GHashTable *properties, gboolean is_singleton, gboolean use_additional_data, const GList *allowed_origins) {
+gboolean gdial_rest_server_register_app(GDialRestServer *self, const gchar *app_name, const GList *app_prefixes, GHashTable *properties, gboolean is_singleton, gboolean use_additional_data, const GList *allowed_origins) {
 
   g_return_val_if_fail(self != NULL && app_name != NULL, FALSE);
   /*

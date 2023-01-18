@@ -126,7 +126,7 @@ void gdial_ssdp_networkstandbymode_handler(const bool nwstandby)
         gssdp_client_remove_header(ssdp_client_, "WAKEUP");
      }
   }
-  return 0;
+  return;
 }
 
 int gdial_ssdp_new(SoupServer *ssdp_http_server, GDialOptions *options, const gchar *random_uuid) {
