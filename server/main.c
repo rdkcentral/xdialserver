@@ -344,6 +344,17 @@ int main(int argc, char *argv[]) {
       g_print("pairing is not enabled from cmdline\r\n");
     }
 
+    if (g_strstr_len(app_list_low, app_list_len, "appletv")) {
+      g_print("appletv is enabled from cmdline\r\n");
+      GList *allowed_origins = g_list_prepend(NULL, "tv.apple.com");
+      gdial_rest_server_register_app(dial_rest_server, "com.apple.appletv", NULL, NULL, TRUE, TRUE, allowed_origins);
+      g_list_free(allowed_origins);
+    }
+    else {
+      g_print("appletv is not enabled from cmdline\r\n");
+    }
+
+
     if (g_strstr_len(app_list_low, app_list_len, "system")) {
       g_print("system is enabled from cmdline\r\n");
       gdial_rest_server_register_app(dial_rest_server, "system", NULL, NULL, TRUE, TRUE, NULL);
