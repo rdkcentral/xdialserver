@@ -254,10 +254,15 @@ int main(int argc, char *argv[]) {
     }
   }
   gchar random_uuid_str[MAX_UUID_SIZE] = {0};
-  uuid_t random_uuid;
-  uuid_generate_random(random_uuid);
-  uuid_unparse(random_uuid, random_uuid_str);
-  g_print("random_uuid_str  :%s\r\n", random_uuid_str);
+  char * static_apps_location = getenv("XDIAL_STATIC_APPS_LOCATION");
+  if (static_apps_location != NULL && strlen(static_apps_location)) {
+    g_snprintf(random_uuid_str, MAX_UUID_SIZE, "%s", static_apps_location);
+  } else {
+    uuid_t random_uuid;
+    uuid_generate_random(random_uuid);
+    uuid_unparse(random_uuid, random_uuid_str);
+    g_print("random_uuid_str  :%s\r\n", random_uuid_str);
+  }
 
   dial_rest_server = gdial_rest_server_new(rest_http_server,local_rest_http_server,random_uuid_str);
   if (!options_.app_list) {
