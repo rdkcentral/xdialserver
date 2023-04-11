@@ -39,6 +39,7 @@
 static const char *dial_specification_copyright = "Copyright (c) 2017 Netflix, Inc. All rights reserved.";
 
 #define MAX_UUID_SIZE 64
+#define UUID_FILE_PATH "/opt/.dial_uuid.txt"
 
 static GDialOptions options_;
 
@@ -253,18 +254,32 @@ int main(int argc, char *argv[]) {
       }
     }
   }
-  gchar random_uuid_str[MAX_UUID_SIZE] = {0};
+  gchar uuid_str[MAX_UUID_SIZE] = {0};
   char * static_apps_location = getenv("XDIAL_STATIC_APPS_LOCATION");
   if (static_apps_location != NULL && strlen(static_apps_location)) {
-    g_snprintf(random_uuid_str, MAX_UUID_SIZE, "%s", static_apps_location);
+    g_snprintf(uuid_str, MAX_UUID_SIZE, "%s", static_apps_location);
+    g_print("static uuid_str  :%s\r\n", uuid_str);
   } else {
-    uuid_t random_uuid;
-    uuid_generate_random(random_uuid);
-    uuid_unparse(random_uuid, random_uuid_str);
-    g_print("random_uuid_str  :%s\r\n", random_uuid_str);
+    FILE *fuuid = fopen(UUID_FILE_PATH, "r");
+    if (fuuid == NULL) {
+      uuid_t random_uuid;
+      uuid_generate_random(random_uuid);
+      uuid_unparse(random_uuid, uuid_str);
+      g_print("generated uuid_str  :%s\r\n", uuid_str);
+      fuuid = fopen(UUID_FILE_PATH, "w");
+      if (fuuid != NULL) {
+        fprintf(fuuid, "%s", uuid_str);
+        fclose(fuuid);
+      }
+    }
+    else {
+      fgets(uuid_str, sizeof(uuid_str), fuuid);
+      printf("Persistent uuid_str: %s", uuid_str);
+      fclose(fuuid);
+    }
   }
 
-  dial_rest_server = gdial_rest_server_new(rest_http_server,local_rest_http_server,random_uuid_str);
+  dial_rest_server = gdial_rest_server_new(rest_http_server,local_rest_http_server,uuid_str);
   if (!options_.app_list) {
     g_print("no application is enabled from cmdline \r\n");
   }
@@ -359,7 +374,7 @@ int main(int argc, char *argv[]) {
   g_signal_connect(dial_rest_server, "gmainloop-quit", G_CALLBACK(signal_handler_rest_server_gmainloop_quit), NULL);
   g_signal_connect(dial_rest_server, "rest-enable", G_CALLBACK(signal_handler_rest_server_rest_enable), NULL);
 
-  gdial_ssdp_new(ssdp_http_server, &options_,random_uuid_str);
+  gdial_ssdp_new(ssdp_http_server, &options_,uuid_str);
   gdial_shield_init();
   gdial_shield_server(rest_http_server);
   gdial_shield_server(ssdp_http_server);
