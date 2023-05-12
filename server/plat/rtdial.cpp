@@ -484,6 +484,16 @@ int gdial_os_application_start(const char *app_name, const char *payload, const 
             gdial_plat_dev_set_power_state_off();
             return GDIAL_APP_ERROR_NONE;
         }
+        else if (parsed_query["action"] == "togglepower") {
+            const char *system_key = getenv("SYSTEM_SLEEP_REQUEST_KEY");
+            if (system_key && parsed_query["key"] != system_key) {
+                printf("RTDIAL: system app request to toggle the power state, key comparison failed: user provided '%s'\n", parsed_query["key"].c_str());
+                return GDIAL_APP_ERROR_INTERNAL;
+            }
+            printf("RTDIAL: system app request to toggle the power state \n");
+            gdial_plat_dev_toggle_power_state();
+            return GDIAL_APP_ERROR_NONE;
+        }
     }
     gdial_plat_dev_set_power_state_on();
     rtCastError ret = DialObj->launchApplicationWithLaunchParams(app_name, payload, query_string, additional_data_url);
