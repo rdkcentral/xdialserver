@@ -122,6 +122,26 @@ bool gdial_plat_dev_set_power_state_off() {
   }
   return ret;
 }
+
+bool gdial_plat_dev_toggle_power_state() {
+  bool ret = true;
+  IARM_Bus_PWRMgr_SetPowerState_Param_t param;
+  if(IARM_BUS_PWRMGR_POWERSTATE_ON != m_powerstate) {
+    param.newState = IARM_BUS_PWRMGR_POWERSTATE_ON;
+  }
+  else
+  {
+    param.newState = IARM_BUS_PWRMGR_POWERSTATE_STANDBY;
+  }
+  printf("gdial_plat_dev_toggle_power_state new power state: %d \n", param.newState);
+  IARM_Result_t res = IARM_Bus_Call(IARM_BUS_PWRMGR_NAME, IARM_BUS_PWRMGR_API_SetPowerState,
+                  (void *)&param, sizeof(param));
+  if(res != IARM_RESULT_SUCCESS) {
+    ret = false;
+  }
+  return ret;
+}
+
 void gdail_plat_dev_register_nwstandbymode_cb(gdial_plat_dev_nwstandbymode_cb cb)
 {
    g_nwstandbymode_cb = cb;
