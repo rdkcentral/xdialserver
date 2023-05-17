@@ -13,4 +13,10 @@ _deps
 *.o
 *.pc
 server/gdial-server
+server/plat/Makefile
+server/Makefile
+oe-logs-xdialserver
+oe-workdir-xdialserver
+oe-logs-lib32-xdialserver
+oe-workdir-lib32-xdialserver
 
