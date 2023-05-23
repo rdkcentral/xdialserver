@@ -30,6 +30,7 @@ const char * gdial_plat_dev_get_manufacturer();
 const char * gdial_plat_dev_get_model();
 bool gdial_plat_dev_set_power_state_on();
 bool gdial_plat_dev_set_power_state_off();
+bool gdial_plat_dev_toggle_power_state();
 bool gdial_plat_dev_get_nwstandby_mode();
 bool gdial_plat_dev_initialize();
 bool gdial_plat_dev_deinitialize();
