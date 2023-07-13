@@ -192,6 +192,7 @@ static void gdial_quit_thread(int signum)
 int main(int argc, char *argv[]) {
 
   GError *error = NULL;
+  GMutex mutex;
   GOptionContext *option_context = g_option_context_new(NULL);
   g_option_context_add_main_entries(option_context, option_entries_, NULL);
 
@@ -397,7 +398,7 @@ int main(int argc, char *argv[]) {
   loop_ = g_main_loop_new (NULL, TRUE);
   signal(SIGTERM,gdial_quit_thread);
   g_main_loop_run (loop_);
-
+  g_mutex_lock(&mutex);
   for (int i = 0; i < sizeof(servers)/sizeof(servers[0]); i++) {
     soup_server_disconnect(servers[i]);
     g_object_unref(servers[i]);
@@ -407,7 +408,7 @@ int main(int argc, char *argv[]) {
   gdial_ssdp_destroy();
   g_object_unref(dial_rest_server);
   gdial_plat_term();
-
+  g_mutex_unlock(&mutex);
   g_main_loop_unref(loop_);
   g_option_context_free(option_context);
   return 0;
