@@ -7,7 +7,7 @@ After=tr69hostif.service virtual-wifi-iface.service virtual-moca-iface.service
 Type=simple
 Environment="LD_LIBRARY_PATH=/lib/:/usr/lib/:/usr/local/lib/:/usr/share/xdial/"
 ExecStart=/bin/sh /usr/share/xdial/startXdial.sh
-Restart=on-failure
+Restart=always
 
 [Install]
 WantedBy=multi-user.target

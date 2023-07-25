@@ -44,9 +44,10 @@ void gdial_plat_dev_power_mode_change(const char *owner, IARM_EventId_t eventId,
     if(m_powerstate == IARM_BUS_PWRMGR_POWERSTATE_ON) {
       m_sleeptime = 1;
       if (m_is_restart_req) {
-        //xdial restart to work in deepsleep wakeup
-        system("systemctl restart xdial.service");
         m_is_restart_req = false;
+        printf("gdial_plat_dev_power_mode_change restarting xdial from DEEPSLEEP wakeup \n " );
+        //xdial restart to work in deepsleep wakeup
+        exit(0);
       }
     }
     else if(m_powerstate == IARM_BUS_PWRMGR_POWERSTATE_STANDBY_DEEP_SLEEP) {
