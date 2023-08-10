@@ -131,6 +131,10 @@ if [ "$rule_exist" -ne 0 ]; then
     iptables -I INPUT -i ${XDIAL_IFNAME} -p tcp --dport 56890 -j ACCEPT #(SSDP PORT)
 fi
 
+if [[ $DEVICE_TYPE != *"hybrid"* ]] && [[ $DEVICE_NAME != *"XI3"* ]] && [[ $DEVICE_NAME != *"XID"* ]]; then
+    XDIAL_IFNAME="${XDIAL_IFNAME}:0"
+fi
+
 echo ${XDIAL_IFNAME} > /tmp/dial_interface
 
 if tr181Set -g Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.XDial.FriendlyNameEnable 2>&1 1>/dev/null  | grep -q 'true'; then

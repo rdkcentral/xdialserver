@@ -75,6 +75,10 @@ restartXdialService() {
 XDIAL_IFNAME=$(getESTBInterfaceName)
 
 
+if [[ $DEVICE_TYPE != *"hybrid"* ]] && [[ $DEVICE_NAME != *"XI3"* ]] && [[ $DEVICE_NAME != *"XID"* ]]; then
+    XDIAL_IFNAME="${XDIAL_IFNAME}:0"
+fi
+
 echo "$XDIAL_IFNAME" >> $LOG_FILE
 
 if [ "$1" == "add" ] && [ "$2" == "ipv4" ] && [ "$3" == "$XDIAL_IFNAME" ];then
