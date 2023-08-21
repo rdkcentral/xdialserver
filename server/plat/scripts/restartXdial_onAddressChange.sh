@@ -98,7 +98,7 @@ if [ "$1" == "add" ] && [ "$2" == "ipv4" ] && [ "$3" == "$XDIAL_IFNAME" ];then
     fi
     echo "file count for ls /tmp/XDIAL_* : $file_count \n " >> $LOG_FILE
     if [ $file_count -gt 0 ]; then
-      if [ $4 != "192.168.28.10" ] && [ $4 != "192.168.18.10" ] && [ $4 != "192.0.2.11" ] && [ $4 != "192.0.2.10" ]; then
+      if [ $4 != "192.168.28.10" ] && [ $4 != "192.168.18.10" ] && [ $4 != "192.0.2.11" ] && [ $4 != "192.0.2.10" ] && [$4 != "10.0.0.3"]; then
         printf "IP change to new valid ip: $4 proceed with restart  " >> $LOG_FILE
         restartXdialService &
       else
