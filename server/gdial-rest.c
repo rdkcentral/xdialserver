@@ -253,7 +253,7 @@ GDIAL_STATIC gboolean gdial_rest_server_is_allowed_origin(GDialRestServer *self,
   const gchar *uri_scheme = origin_uri ? soup_uri_get_scheme(origin_uri) : NULL;
 
   if (origin_uri && uri_scheme &&
-    (!g_strcmp0(uri_scheme, "package") || !g_strcmp0(uri_scheme, SOUP_URI_SCHEME_HTTPS))) {
+    (uri_scheme == "package" || uri_scheme == SOUP_URI_SCHEME_HTTPS )) {
     GDialAppRegistry *app_registry = gdial_rest_server_find_app_registry(self, app_name);
     if (app_registry) {
       is_allowed = gdial_app_registry_is_allowed_origin (app_registry, header_origin);
@@ -431,10 +431,7 @@ static void gdial_rest_server_handle_POST(GDialRestServer *gdial_rest_server, So
     if(query_str && strlen(query_str)) {
     g_print("query = %s\r\n", query_str);
       if (!use_query_directly_from_soup) {
-        char *tmp = soup_uri_encode(query_str, NULL);
-        // note that we later g_free(query_str_safe) which doesn't necessarily work with malloc'ed memory (seems to depend on glib version)
-        query_str_safe = g_strdup(tmp);
-        free(tmp);
+        query_str_safe = soup_uri_encode(query_str, NULL);
       }
       else {
         query_str_safe = g_strdup(query_str);
@@ -448,16 +445,13 @@ static void gdial_rest_server_handle_POST(GDialRestServer *gdial_rest_server, So
         payload_safe = g_strdup(payload);
       }
       else {
-        char *tmp = soup_uri_encode(payload, "=&");
-        // note that we later g_free(payload_safe) which doesn't necessarily work with malloc'ed memory (seems to depend on glib version)
-        payload_safe = g_strdup(tmp);
-        free(tmp);
+        payload_safe = soup_uri_encode(payload, "=&");
       }
     }
     start_error = gdial_app_start(app, payload_safe, query_str_safe, additional_data_url_safe, gdial_rest_server);
     if (query_str_safe) g_free(query_str_safe);
     if (payload_safe) g_free(payload_safe);
-    free(additional_data_url_safe);
+    g_free(additional_data_url_safe);
     g_free(additional_data_url);
   }
   else {
@@ -564,7 +558,7 @@ static void gdial_rest_server_handle_GET_app(GDialRestServer *gdial_rest_server,
   GET_APP_response_builder_destroy(builder);
   #else
   int response_len = 0;
-  gchar *allow_stop = (gchar*)g_hash_table_lookup(app_registry->properties,"allowStop");
+  gpointer allow_stop = g_hash_table_lookup(app_registry->properties,"allowStop");
   if(allow_stop == NULL) {
     allow_stop = "false";
   }
@@ -630,7 +624,7 @@ static void gdial_rest_server_handle_POST_dial_data(GDialRestServer *gdial_rest_
   soup_message_set_status(msg, SOUP_STATUS_OK);
 }
 
-inline static void gdial_rest_http_server_system_callback(SoupServer *server,
+static void gdial_rest_http_server_system_callback(SoupServer *server,
             SoupMessage *msg, const gchar *path, GHashTable *query,
             SoupClientContext  *client, gpointer user_data) {
 
@@ -1055,7 +1049,7 @@ GDialRestServer *gdial_rest_server_new(SoupServer *rest_http_server,SoupServer *
   return object;
 }
 
-gboolean gdial_rest_server_register_app(GDialRestServer *self, const gchar *app_name, const GList *app_prefixes, GHashTable *properties, gboolean is_singleton, gboolean use_additional_data, const GList *allowed_origins) {
+gboolean gdial_rest_server_register_app(GDialRestServer *self, const gchar *app_name, const GList *app_prefixes, const GHashTable *properties, gboolean is_singleton, gboolean use_additional_data, const GList *allowed_origins) {
 
   g_return_val_if_fail(self != NULL && app_name != NULL, FALSE);
   /*
@@ -1195,7 +1189,6 @@ GDIAL_STATIC_INLINE void *GET_APP_response_builder_set_option(void *builder, con
    * Simple check only...
    */
   if (option_name && option_value) {
-    // note that this will leak if option_name key is already in the table
     g_hash_table_insert(rbuilder->options, g_strdup(option_name), g_strdup(option_value));
   }
   return builder;
@@ -1215,9 +1208,7 @@ GDIAL_STATIC_INLINE void *GET_APP_response_builder_set_link_href(void *builder, 
   GDialServerResponseBuilderGetApp * rbuilder = (GDialServerResponseBuilderGetApp *)builder;
   g_free(rbuilder->link_href);
   if (encoded_href) {
-    char *tmp = soup_uri_encode(encoded_href, NULL);
-    rbuilder->link_href= g_strdup(tmp);
-    free(tmp);
+    rbuilder->link_href= soup_uri_encode(encoded_href, NULL);
   }
   else {
     rbuilder->link_href = g_strdup("run");
