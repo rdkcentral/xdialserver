@@ -21,8 +21,6 @@
 #include "gdial-plat-dev.h"
 #include "libIBus.h"
 #include "pwrMgr.h"
-#include <stdio.h>
-#include <unistd.h>
 
 IARM_Bus_PWRMgr_PowerState_t m_powerstate = IARM_BUS_PWRMGR_POWERSTATE_STANDBY;
 static int m_sleeptime = 1;
@@ -47,7 +45,7 @@ void gdial_plat_dev_power_mode_change(const char *owner, IARM_EventId_t eventId,
       m_sleeptime = 1;
       if (m_is_restart_req) {
         //xdial restart to work in deepsleep wakeup
-        printf("systemctl restart xdial.service result: %d\n", system("systemctl restart xdial.service"));
+        system("systemctl restart xdial.service");
         m_is_restart_req = false;
       }
     }

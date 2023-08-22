@@ -44,12 +44,12 @@ void rtAppStatusCache :: setAppCacheId(const char *app_name,std::string id)
      if(!strcmp(app_name,"Netflix"))
      {
          rtAppStatusCache::Netflix_AppCacheId = id;
-         printf("App cache Id of Netflix updated to %s\n",rtAppStatusCache::Netflix_AppCacheId.c_str());
+         printf("App cache Id of Netflix updated to %s\n",rtAppStatusCache::Netflix_AppCacheId);
      }
      else if(!strcmp(app_name,"YouTube"))
      {
          rtAppStatusCache::Youtube_AppCacheId = id;
-         printf("App cache Id of Youtube updated to %s\n",rtAppStatusCache::Youtube_AppCacheId.c_str());
+         printf("App cache Id of Youtube updated to %s\n",rtAppStatusCache::Youtube_AppCacheId);
      }
      else
      {
@@ -65,10 +65,10 @@ rtError rtAppStatusCache::UpdateAppStatusCache(rtValue app_status)
       rtError err;
       rtObjectRef temp = app_status.toObject();
 
-      std::string App_name {temp.get<rtString>("applicationName").cString()};
-      printf("RTCACHE : %s App Name = %s App ID = %s App State = %s Error = %s\n",__FUNCTION__,App_name.c_str(),temp.get<rtString>("applicationId").cString(),temp.get<rtString>("state").cString(),temp.get<rtString>("error").cString());
+      const char *App_name = strdup(temp.get<rtString>("applicationName").cString());
+      printf("RTCACHE : %s App Name = %s App ID = %s App State = %s Error = %s\n",__FUNCTION__,App_name,temp.get<rtString>("applicationId").cString(),temp.get<rtString>("state").cString(),temp.get<rtString>("error").cString());
 
-      std::string id = getAppCacheId(App_name.c_str());
+      std::string id = getAppCacheId(App_name);
 
       if(doIdExist(id)) {
           printf("erasing old data\n");
@@ -79,7 +79,7 @@ rtError rtAppStatusCache::UpdateAppStatusCache(rtValue app_status)
       return err;
 }
 
-std::string rtAppStatusCache::SearchAppStatusInCache(const char *app_name)
+const char * rtAppStatusCache::SearchAppStatusInCache(const char *app_name)
 {
      printf("RTCACHE : %s\n",__FUNCTION__);
 
@@ -88,9 +88,9 @@ std::string rtAppStatusCache::SearchAppStatusInCache(const char *app_name)
       {
          rtObjectRef state_param = ObjectCache->findObject(id);
 
-         std::string state {state_param.get<rtString>("state").cString()};
+         char *state = strdup(state_param.get<rtString>("state").cString());
          printf("RTCACHE : %s App Name = %s App ID = %s Error = %s ",__FUNCTION__,state_param.get<rtString>("applicationName").cString(),state_param.get<rtString>("applicationId").cString(),state_param.get<rtString>("error").cString());
-         printf("App State = %s\n",state.c_str());
+         printf("App State = %s\n",state);
          return state;
       }
 
