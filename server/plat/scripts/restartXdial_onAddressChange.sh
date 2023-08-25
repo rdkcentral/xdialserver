@@ -37,12 +37,6 @@ LOG_FILE=$LOG_PATH/$LOG_INPUT
 printf "$(date) $0: Input Parameters : event $1, ipaddress type $2, interface name $3, ipaddress $4, ipaddress scope $5  \n" >> $LOG_FILE
 
 
-RFC_XDIAL_ENABLED=`tr181 -g Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.XDial.Enable 2>&1`
-if [ "x$RFC_XDIAL_ENABLED" == "xfalse" ]; then
-    echo "XDIAL is disabled, exit without xdial restart" >> $LOG_FILE
-    exit 0
-fi
-
 getESTBInterfaceName()
 {
    if [ -f /tmp/wifi-on ]; then

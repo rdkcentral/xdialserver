@@ -137,16 +137,8 @@ fi
 
 echo ${XDIAL_IFNAME} > /tmp/dial_interface
 
-if tr181Set -g Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.XDial.FriendlyNameEnable 2>&1 1>/dev/null  | grep -q 'true'; then
-    XDIAL_FRIENDLYNAME_ENABLED=" --feature-friendlyname "
-fi
-
 if [ "$BUILD_TYPE" != "prod" ] && [ -f /opt/enableXdialNetflixStop ]; then
     export ENABLE_NETFLIX_STOP="true"
-fi
-
-if tr181Set -g Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.XDial.WolWakeEnable 2>&1 1>/dev/null  | grep -q 'true'; then
-    XDIAL_WOLWAKE_ENABLED=" --feature-wolwake"
 fi
 
 retry_logic () {
@@ -165,8 +157,6 @@ retry_logic () {
 }
 
 echo -en '\n'
-if tr181Set -g Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.XDial.Enable 2>&1 1>/dev/null  | grep -q 'true'; then
-    echo "rfc enabled :starting gdial-server"
     export LD_LIBRARY_PATH=/usr/share/xdial/:/lib/:/usr/lib/:/usr/local/lib/
 
     #wait for udhcpc to complete, do not use default ip
@@ -210,8 +200,5 @@ if tr181Set -g Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.XDial.Enable 2>&1 
     UUID_OPTION=$(getCmdlineOption "-U" "$UUID")
     AppList_OPTION=$(getCmdlineOption "-A" "$AppList")
 
-    echo "gdial-server args: ${XDIAL_IFNAME_OPTION} ${FriendlyName_OPTION} ${Manufacturer_OPTION} ${ModelName_OPTION} ${UUID_OPTION} ${AppList_OPTION} ${XDIAL_FRIENDLYNAME_ENABLED} ${XDIAL_WOLWAKE_ENABLED}"
-    exec /usr/share/xdial/gdial-server ${XDIAL_IFNAME_OPTION} ${FriendlyName_OPTION} ${Manufacturer_OPTION} ${ModelName_OPTION} ${UUID_OPTION} ${AppList_OPTION} ${XDIAL_FRIENDLYNAME_ENABLED} ${XDIAL_WOLWAKE_ENABLED}
-else
-    echo "rfc disabled: gdial-server not started"
-fi
+    echo "gdial-server args: ${XDIAL_IFNAME_OPTION} ${FriendlyName_OPTION} ${Manufacturer_OPTION} ${ModelName_OPTION} ${UUID_OPTION} ${AppList_OPTION}"
+    exec /usr/share/xdial/gdial-server ${XDIAL_IFNAME_OPTION} ${FriendlyName_OPTION} ${Manufacturer_OPTION} ${ModelName_OPTION} ${UUID_OPTION} ${AppList_OPTION} 

@@ -86,18 +86,6 @@ static GOptionEntry option_entries_[] = {
         0, G_OPTION_ARG_STRING, &options_.app_list,
         APP_LIST_DESCRIPTION, NULL
     },
-    {
-        FEATURE_FRIENDLYNAME_OPTION_LONG,
-        0,
-        0, G_OPTION_ARG_NONE, &options_.feature_friendlyname,
-        FEATURE_FRIENDLYNAME_DESCRIPTION, NULL
-    },
-    {
-        FEATURE_WOLWAKE_OPTION_LONG,
-        0,
-        0, G_OPTION_ARG_NONE, &options_.feature_wolwake,
-        FEATURE_WOLWAKE_DESCRIPTION, NULL
-    },
     { NULL }
 };
 static GMainLoop *loop_ = NULL;
