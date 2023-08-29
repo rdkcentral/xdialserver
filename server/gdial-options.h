@@ -50,12 +50,6 @@
 #define APP_LIST_OPTION_LONG "app-list"
 #define APP_LIST_DESCRIPTION "A preset list of apps to support"
 
-#define FEATURE_FRIENDLYNAME_OPTION_LONG "feature-friendlyname"
-#define FEATURE_FRIENDLYNAME_DESCRIPTION "feature friendly name support"
-
-#define FEATURE_WOLWAKE_OPTION_LONG "feature-wolwake"
-#define FEATURE_WOLWAKE_DESCRIPTION "feature wol wake support"
-
 typedef struct {
   gchar *friendly_name;
   gchar *manufacturer;
@@ -64,8 +58,6 @@ typedef struct {
   gchar *wake;
   gchar *iface_name;
   gchar *app_list;
-  gboolean feature_friendlyname;
-  gboolean feature_wolwake;
 } GDialOptions;
 
 #endif

@@ -95,7 +95,7 @@ static void ssdp_http_server_callback(SoupServer *server, SoupMessage *msg, cons
 
     if (manufacturer == NULL) {manufacturer = gdial_options_->manufacturer;}
     if (model == NULL) {model = gdial_options_->model_name;}
-    if(gdial_options_->feature_friendlyname && strlen(app_friendly_name))
+    if(strlen(app_friendly_name))
         dd_xml_response_str_ = g_strdup_printf(ssdp_device_xml_template, app_friendly_name, manufacturer, model, gdial_options_->uuid);
     else
         dd_xml_response_str_ = g_strdup_printf(ssdp_device_xml_template, gdial_options_->friendly_name, manufacturer, model, gdial_options_->uuid);
@@ -166,15 +166,14 @@ int gdial_ssdp_new(SoupServer *ssdp_http_server, GDialOptions *options, const gc
    * header "CACHE-CONTROL" is mandatory, set by gssdp, default 1800
    */
   gssdp_client_append_header(ssdp_client, "BOOTID.UPNP.ORG", "1");
-  if(gdial_options_->feature_wolwake && nwstandby_mode) {
-    g_print("WOL Wake feature is enabled");
+#ifndef ENABLE_WOL_WAKE_FEATURE
+  if(nwstandby_mode) {
+    g_print(" network standby mode  enabled add WAKEUP tag");
     gchar *dial_ssdp_WAKEUP = g_strdup_printf(dial_ssdp_WAKEUP_fmt,gdial_plat_util_get_iface_mac_addr(gdial_options_->iface_name),MAX_POWERON_TIME);
     gssdp_client_append_header(ssdp_client, "WAKEUP", dial_ssdp_WAKEUP);
     g_free(dial_ssdp_WAKEUP);
   }
-  else {
-    g_print("WOL Wake feature is disabled");
-  }
+#endif
   GDIAL_CHECK("EXT");
   GDIAL_CHECK("CACHE-CONTROL");
   GDIAL_CHECK("BOOTID.UPNP.ORG");
@@ -231,7 +230,7 @@ int gdial_ssdp_set_available(bool activation_status, const gchar *friendlyname)
 
 int gdial_ssdp_set_friendlyname(const gchar *friendlyname)
 {
-  if(gdial_options_ && gdial_options_->feature_friendlyname && friendlyname)
+  if(friendlyname && strlen(friendlyname))
   {
      if (app_friendly_name != NULL) g_free(app_friendly_name);
      app_friendly_name = g_strdup(friendlyname);
