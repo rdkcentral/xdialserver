@@ -27,6 +27,7 @@
 #include <iostream>
 #include <chrono>
 #include <stdbool.h>
+#include <string>
 
 using namespace std;
 
@@ -38,7 +39,7 @@ public:
     std::string getAppCacheId(const char *app_name);
     void setAppCacheId(const char *app_name,std::string id);
     rtError UpdateAppStatusCache(rtValue app_status);
-    const char * SearchAppStatusInCache(const char *app_name);
+    std::string SearchAppStatusInCache(const char *app_name);
     bool doIdExist(std::string id);
 
 private:
