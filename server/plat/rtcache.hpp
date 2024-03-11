@@ -28,11 +28,19 @@
 #include <chrono>
 #include <stdbool.h>
 
+#include <functional>
+#include <mutex>
+#include <map>
+
 using namespace std;
 
 class rtAppStatusCache : public rtObject
 {
 public:
+
+    using StateChangedCallbackHandle = size_t;
+    using StateChangedCallback = std::function<void(const std::string&)>;
+
     rtAppStatusCache(rtRemoteEnvironment* env) {ObjectCache = new rtRemoteObjectCache(env);};
     ~rtAppStatusCache() {delete(ObjectCache); };
     std::string getAppCacheId(const char *app_name);
@@ -41,10 +49,19 @@ public:
     const char * SearchAppStatusInCache(const char *app_name);
     bool doIdExist(std::string id);
 
+    StateChangedCallbackHandle registerStateChangedCallback(StateChangedCallback callback);
+    void unregisterStateChangedCallback(StateChangedCallbackHandle callbackId);
+
 private:
+
+    void notifyStateChanged(std::string& id);
+
     rtRemoteObjectCache* ObjectCache;
     static std::string Netflix_AppCacheId;
     static std::string Youtube_AppCacheId;
+    StateChangedCallbackHandle next_handle = 0;
+    std::map<StateChangedCallbackHandle, StateChangedCallback> state_changed_listeners;
+    std::mutex state_changed_listeners_mutex;
 };
 
 #endif

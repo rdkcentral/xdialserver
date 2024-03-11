@@ -383,6 +383,17 @@ static void gdial_rest_server_handle_DELETE(SoupMessage *msg, GHashTable *query,
   g_object_unref(app);
 }
 
+static void refresh_app_state(GDialApp *app) {
+  static int xdial_is_waiting_rtremote_state_response = -1;
+  if (xdial_is_waiting_rtremote_state_response == -1) {
+    xdial_is_waiting_rtremote_state_response = getenv("XDIAL_WAIT_FOR_RTREMOTE_STATE_RESPONSE_MS") && atoi(getenv("XDIAL_WAIT_FOR_RTREMOTE_STATE_RESPONSE_MS")) > 0;
+  }
+  // trying to refresh the app state only makes sense if xdial is configured to wait for rt state responses
+  if (app && xdial_is_waiting_rtremote_state_response) {
+    gdial_app_state(app);
+  }
+}
+
 static void gdial_rest_server_handle_POST(GDialRestServer *gdial_rest_server, SoupMessage* msg, GHashTable *query, const gchar *app_name) {
   GDialAppRegistry *app_registry = gdial_rest_server_find_app_registry(gdial_rest_server, app_name);
   gdial_rest_server_http_return_if_fail(app_registry, msg, SOUP_STATUS_NOT_FOUND);
@@ -395,6 +406,7 @@ static void gdial_rest_server_handle_POST(GDialRestServer *gdial_rest_server, So
 
   g_printerr("Starting the app with payload %.*s\n", (int)msg->request_body->length, msg->request_body->data);
   GDialApp *app = gdial_app_find_instance_by_name(app_registry->name);
+  refresh_app_state(app);
   gboolean new_app_instance = FALSE;
   gboolean first_instance_created = FALSE;
   GDialAppState current_state = GDIAL_APP_STATE_STOPPED;
@@ -411,8 +423,11 @@ static void gdial_rest_server_handle_POST(GDialRestServer *gdial_rest_server, So
   }
   else {
     app = gdial_app_new(app_registry->name);
+    refresh_app_state(app);
     new_app_instance = TRUE;
-    first_instance_created = TRUE;
+    // we did not have GDialApp instance created yet, but the application might've already been running
+    // so check the state before assuming that we've actually created the app
+    first_instance_created = (app->state == GDIAL_APP_STATE_STOPPED);
   }
 
   GDialAppError start_error = GDIAL_APP_ERROR_NONE;
@@ -584,10 +599,12 @@ static void gdial_rest_server_handle_POST_dial_data(GDialRestServer *gdial_rest_
    * Cache dial_data so as to use on future queries.
    */
   GDialApp *app = gdial_app_find_instance_by_name(app_name);
+  refresh_app_state(app);
   if(app == NULL)
   {
     g_print("gdial_rest_server_handle_POST_dial_data creating app instance \n");
     app = gdial_app_new(app_name);
+    refresh_app_state(app);
   }
   gdial_rest_server_http_return_if_fail(app, msg, SOUP_STATUS_NOT_FOUND);
   /*
@@ -863,6 +880,7 @@ static void gdial_rest_http_server_apps_callback(SoupServer *server,
       }
       else if (msg->method == SOUP_METHOD_DELETE) {
         GDialApp *app = gdial_app_find_instance_by_name(app_name);
+        refresh_app_state(app);
         GDialApp *app_by_instance = gdial_rest_server_check_instance(app, instance);
         if (app_by_instance) {
           gdial_rest_server_handle_DELETE(msg, query, app);
@@ -890,6 +908,7 @@ static void gdial_rest_http_server_apps_callback(SoupServer *server,
       else if (msg->method == SOUP_METHOD_POST) {
 
         GDialApp *app = gdial_app_find_instance_by_name(app_name);
+        refresh_app_state(app);
         GDialApp *app_by_instance = gdial_rest_server_check_instance(app, instance);
         if (app_by_instance) {
           gdial_rest_server_handle_POST_hide(msg, app);

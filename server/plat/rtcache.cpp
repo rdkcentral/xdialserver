@@ -76,8 +76,29 @@ rtError rtAppStatusCache::UpdateAppStatusCache(rtValue app_status)
       }
 
       err = ObjectCache->insert(id,temp);
+      notifyStateChanged(App_name);
       return err;
 }
+
+rtAppStatusCache::StateChangedCallbackHandle rtAppStatusCache::registerStateChangedCallback(StateChangedCallback callback) {
+     std::unique_lock<std::mutex> lock(state_changed_listeners_mutex);
+     const auto handle = ++next_handle;
+     state_changed_listeners[handle] = callback;
+     return handle;
+}
+
+void rtAppStatusCache::unregisterStateChangedCallback(rtAppStatusCache::StateChangedCallbackHandle callbackId) {
+     std::unique_lock<std::mutex> lock(state_changed_listeners_mutex);
+     state_changed_listeners.erase(callbackId);
+}
+
+void rtAppStatusCache::notifyStateChanged(std::string& id) {
+     std::unique_lock<std::mutex> lock(state_changed_listeners_mutex);
+     for (auto& it : state_changed_listeners) {
+          it.second(id);
+     }
+}
+
 
 const char * rtAppStatusCache::SearchAppStatusInCache(const char *app_name)
 {
