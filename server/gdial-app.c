@@ -189,6 +189,8 @@ GDialApp *gdial_app_new(const gchar *app_name) {
   return app;
 };
 
+int gdial_get_wait_for_rtremote_state_response();
+
 GDialAppError gdial_app_start(GDialApp *app, const gchar *payload, const gchar *query, const gchar *additional_data_url, gpointer state_cb_data) {
   g_return_val_if_fail (GDIAL_IS_APP (app), GDIAL_APP_ERROR_BAD_REQUEST);
 
@@ -196,7 +198,10 @@ GDialAppError gdial_app_start(GDialApp *app, const gchar *payload, const gchar *
   priv->state_cb_data = state_cb_data;
   GDialAppError app_err = gdial_plat_application_start(app->name, payload, query, additional_data_url, &app->instance_id);
   if (app_err == GDIAL_APP_ERROR_NONE || (strcmp("system", app->name) != 0 && app->instance_id != GDIAL_APP_INSTANCE_NONE)) {
-    gdial_plat_application_state_async(app->name, app->instance_id, app);
+    // don't need to ask for state asynchronously if we're configured to refresh the state at each query anyway
+    if (gdial_get_wait_for_rtremote_state_response() < 1) {
+      gdial_plat_application_state_async(app->name, app->instance_id, app);
+    }
     app_err = gdial_plat_application_state(app->name, app->instance_id, &app->state);
     g_warn_if_fail(app->state == GDIAL_APP_STATE_RUNNING);
   }
