@@ -161,7 +161,21 @@ retry_logic () {
 }
 
 echo -en '\n'
-if tr181Set -g Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.XDial.Enable 2>&1 1>/dev/null  | grep -q 'true'; then
+XDIAL_RFC=$(tr181Set -g Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.XDial.Enable  2>&1 1>/dev/null)
+if  [ "$XDIAL_RFC" = "" ]; then
+    retry_count=0
+    while [ "$retry_count" -le 40 ] && [ "$XDIAL_RFC" = "" ]
+    do
+        sleep 2
+        XDIAL_RFC=$(tr181Set -g Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.XDial.Enable  2>&1 1>/dev/null)
+        retry_count=`expr $retry_count + 1`
+        echo "XDAIL RFC value:$XDIAL_RFC  retry_count:$retry_count "
+    done
+fi
+
+XDIAL_RFC=$(tr181Set -g Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.XDial.Enable  2>&1 1>/dev/null)
+
+if  [ "$XDIAL_RFC" = "true" ]; then
     echo "rfc enabled :starting gdial-server"
     export LD_LIBRARY_PATH=/usr/share/xdial/:/lib/:/usr/lib/:/usr/local/lib/
 
