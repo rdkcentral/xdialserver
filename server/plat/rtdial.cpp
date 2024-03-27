@@ -22,6 +22,7 @@
 #include <map>
 #include <unistd.h>
 #include <pthread.h>
+#include <atomic>
 #include <glib.h>
 
 #include "Module.h"
@@ -40,6 +41,7 @@
 #include "rtcache.hpp"
 #include "rtdial.hpp"
 #include "gdial_app_registry.h"
+#include <rtRemoteEnvironment.h>
 
 rtRemoteEnvironment* env;
 static GSource *remoteSource = nullptr;
@@ -450,6 +452,8 @@ void rtdial_term() {
 
 #define DIAL_MAX_ADDITIONALURL (1024)
 
+static bool await_application_state_update(const char *app_name);
+
 map<string,string> parse_query(const char* query_string) {
     if (!query_string) return {};
     char *unescaped = g_uri_unescape_string(query_string, nullptr);
@@ -661,6 +665,10 @@ int gdial_os_application_state(const char *app_name, int instance_id, GDialAppSt
         if (RTCAST_ERROR_RT(ret) != RT_OK) {
             printf("RTDIAL: DialObj.getApplicationState failed!!! Error: %s\n",rtStrError(RTCAST_ERROR_RT(ret)));
             return GDIAL_APP_ERROR_INTERNAL;
+        } else {
+            if (await_application_state_update(app_name)) {
+                State = AppCache->SearchAppStatusInCache(app_name);
+            }
         }
     }
 
@@ -695,4 +703,33 @@ int gdial_os_application_state(const char *app_name, int instance_id, GDialAppSt
     }
 
     return GDIAL_APP_ERROR_NONE;
+}
+
+static bool await_application_state_update(const char *app_name) {
+    static int xdial_wait_for_rtremote_state_response_ms = -1;
+    if (xdial_wait_for_rtremote_state_response_ms == -1) {
+        const char* waitstr = getenv("XDIAL_WAIT_FOR_RTREMOTE_STATE_RESPONSE_MS");
+        xdial_wait_for_rtremote_state_response_ms = waitstr ? atoi(waitstr) : 0;
+    }
+    std::atomic_bool updated {false};
+    if (xdial_wait_for_rtremote_state_response_ms > 0) {
+        // the cached status could be wrong; rtremote state update request has already been launched
+        // so lets give it some time & report the updated value, if possible
+        using namespace std::chrono;
+
+        auto handlerid = AppCache->registerStateChangedCallback([&](const std::string& application){
+            if (application == app_name) {
+                updated = true;
+            }
+        });
+        const auto timemax = steady_clock::now() + milliseconds(xdial_wait_for_rtremote_state_response_ms);
+        while (steady_clock::now() < timemax && !updated) {
+            auto time_left = duration_cast<milliseconds>(timemax - steady_clock::now());
+            if (time_left.count() > 0) {
+                rtEnvironmentGetGlobal()->processSingleWorkItem(time_left, true, nullptr);
+            }
+        }
+        AppCache->unregisterStateChangedCallback(handlerid);
+    }
+    return updated;
 }
