@@ -53,6 +53,8 @@ public:
     StateChangedCallbackHandle registerStateChangedCallback(StateChangedCallback callback);
     void unregisterStateChangedCallback(StateChangedCallbackHandle callbackId);
 
+    std::chrono::milliseconds getUpdateAge(const char *app_name);
+
 private:
 
     void notifyStateChanged(std::string& id);
@@ -63,6 +65,7 @@ private:
     StateChangedCallbackHandle next_handle = 0;
     std::map<StateChangedCallbackHandle, StateChangedCallback> state_changed_listeners;
     std::mutex state_changed_listeners_mutex;
+    std::map<std::string, std::chrono::steady_clock::time_point> last_updated;
 };
 
 #endif

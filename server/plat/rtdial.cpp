@@ -706,17 +706,25 @@ int gdial_os_application_state(const char *app_name, int instance_id, GDialAppSt
 }
 
 static bool await_application_state_update(const char *app_name) {
+    using namespace std::chrono;
     static int xdial_wait_for_rtremote_state_response_ms = -1;
     if (xdial_wait_for_rtremote_state_response_ms == -1) {
         const char* waitstr = getenv("XDIAL_WAIT_FOR_RTREMOTE_STATE_RESPONSE_MS");
         xdial_wait_for_rtremote_state_response_ms = waitstr ? atoi(waitstr) : 0;
     }
+    static auto xdial_max_state_value_age = milliseconds::max();
+    if (xdial_max_state_value_age == milliseconds::max()) {
+        const char* str = getenv("XDIAL_MAX_STATE_VALUE_AGE_MS");
+        xdial_max_state_value_age = milliseconds(str ? atoi(str) : 0);
+    }
+    // do not poll for the state update if currently held value is younger than XDIAL_MAX_STATE_VALUE_AGE_MS
+    if (xdial_max_state_value_age > milliseconds(0) && AppCache->getUpdateAge(app_name) < xdial_max_state_value_age) {
+        return false;
+    }
     std::atomic_bool updated {false};
     if (xdial_wait_for_rtremote_state_response_ms > 0) {
         // the cached status could be wrong; rtremote state update request has already been launched
         // so lets give it some time & report the updated value, if possible
-        using namespace std::chrono;
-
         auto handlerid = AppCache->registerStateChangedCallback([&](const std::string& application){
             if (application == app_name) {
                 updated = true;

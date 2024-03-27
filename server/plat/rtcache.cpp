@@ -60,6 +60,7 @@ void rtAppStatusCache :: setAppCacheId(const char *app_name,std::string id)
 
 rtError rtAppStatusCache::UpdateAppStatusCache(rtValue app_status)
 {
+     const auto now = std::chrono::steady_clock::now();
      printf("RTCACHE : %s\n",__FUNCTION__);
 
       rtError err;
@@ -77,6 +78,10 @@ rtError rtAppStatusCache::UpdateAppStatusCache(rtValue app_status)
 
       err = ObjectCache->insert(id,temp);
       notifyStateChanged(App_name);
+      if (err == RT_OK) {
+          err = ObjectCache->markUnevictable(id, true);
+          last_updated[id] = now;
+      }
       return err;
 }
 
@@ -130,4 +135,16 @@ bool rtAppStatusCache::doIdExist(std::string id)
     }
     printf("True\n");
     return true;
+}
+
+std::chrono::milliseconds rtAppStatusCache::getUpdateAge(const char *app_name)
+{
+     const auto now = std::chrono::steady_clock::now();
+     std::string id = getAppCacheId(app_name);
+     auto it = last_updated.find(id);
+     if (it != last_updated.end()) {
+          return std::chrono::duration_cast<std::chrono::milliseconds>(now - it->second);
+     } else {
+          return std::chrono::milliseconds::max();
+     }
 }
