@@ -182,6 +182,24 @@ static void gdial_app_init(GDialApp *self) {
   application_instances_ = g_list_prepend(application_instances_, self);
 }
 
+static int compare_versions(const char *version1, const char *version2) {
+    unsigned major1 = 0, minor1 = 0, bugfix1 = 0;
+    unsigned major2 = 0, minor2 = 0, bugfix2 = 0;
+    if(version1 != NULL) {
+        sscanf(version1, "%u.%u.%u", &major1, &minor1, &bugfix1);
+    }
+    if(version2 != NULL) {
+        sscanf(version2, "%u.%u.%u", &major2, &minor2, &bugfix2);
+    }
+    if (major1 < major2) return -1;
+    if (major1 > major2) return 1;
+    if (minor1 < minor2) return -1;
+    if (minor1 > minor2) return 1;
+    if (bugfix1 < bugfix2) return -1;
+    if (bugfix1 > bugfix2) return 1;
+    return 0;
+}
+
 GDialApp *gdial_app_new(const gchar *app_name) {
   GDialApp *app = (GDialApp*)g_object_new(GDIAL_TYPE_APP, GDIAL_APP_NAME, app_name, NULL);
   g_print("After create has %d app %s instances created\r\n", g_list_length(application_instances_), app_name);
@@ -469,8 +487,14 @@ GDIAL_STATIC gboolean gdial_app_remove_additional_dial_data_file(const gchar *ap
   return result;
 }
 
-gchar * gdial_app_state_response_new(GDialApp *app, const gchar *dial_ver, const gchar *xmlns, int *len)
+gchar * gdial_app_state_response_new(GDialApp *app, const gchar *dial_ver, const gchar *client_dial_version, const gchar *xmlns, int *len)
 {
+  GDialAppState state = app->state;
+  if(compare_versions(client_dial_version, "2.1") < 0) {
+      g_print("gdial_app_state_response_new client: %s less than 2.1\n", (client_dial_version != NULL) ? client_dial_version : "-- none --");
+      state = (state == GDIAL_APP_STATE_HIDE) ? GDIAL_APP_STATE_STOPPED : state;
+  }
+
   g_return_val_if_fail(app && app->name && strlen(app->name), NULL);
   g_return_val_if_fail(dial_ver && xmlns && len, NULL);
   GDialAppPrivate *priv = gdial_app_get_instance_private(app);
@@ -486,7 +510,7 @@ gchar * gdial_app_state_response_new(GDialApp *app, const gchar *dial_ver, const
   xmlNodePtr noptions = xmlNewChild(nservice, NULL, BAD_CAST "options", BAD_CAST NULL); {
     xmlNewProp(noptions, BAD_CAST "allowStop", BAD_CAST "true");
   }
-  xmlNewChild(nservice, NULL, BAD_CAST "state", BAD_CAST gdial_app_state_to_string(app->state));
+  xmlNewChild(nservice, NULL, BAD_CAST "state", BAD_CAST gdial_app_state_to_string(state));
   if (app->state != GDIAL_APP_STATE_STOPPED) {
     xmlNodePtr nlink  = xmlNewChild(nservice, NULL, BAD_CAST "link", BAD_CAST NULL);
     xmlNewProp(nlink, BAD_CAST "rel", BAD_CAST "run");
