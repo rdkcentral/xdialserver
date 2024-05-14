@@ -88,7 +88,7 @@ void gdial_app_set_additional_dial_data(GDialApp *app, GHashTable *additional_di
 GHashTable *gdial_app_get_additional_dial_data(GDialApp *app);
 void gdial_app_refresh_additional_dial_data(GDialApp *app);
 void gdial_app_clear_additional_dial_data(GDialApp *app);
-gchar * gdial_app_state_response_new(GDialApp *app, const gchar *dial_ver, const gchar *xmlns, int *len);
+gchar * gdial_app_state_response_new(GDialApp *app, const gchar *dial_ver, const gchar *client_dial_version, const gchar *xmlns, int *len);
 
 GDIAL_STATIC gboolean gdial_app_write_additional_dial_data(const gchar *app_name, const gchar *data, size_t length);
 GDIAL_STATIC gboolean gdial_app_read_additional_dial_data(const gchar *app_name, gchar **data, size_t *length);
