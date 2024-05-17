@@ -665,7 +665,7 @@ int gdial_os_application_state(const char *app_name, int instance_id, GDialAppSt
     if (strcmp(State,"running") == 0) {
         *state = GDIAL_APP_STATE_RUNNING;
     }
-    else if (strcmp(State,"suspended") == 0) {
+    else if (State == "suspended" || State == "hidden") {
         *state = GDIAL_APP_STATE_HIDE;
     }
     else {
@@ -681,7 +681,7 @@ int gdial_os_application_state(const char *app_name, int instance_id, GDialAppSt
            *state = GDIAL_APP_STATE_STOPPED;
            printf("RTDIAL: app [%s] state converted to [%d]\r\n", app_name, *state);
          }
-         else if (app_state == "suspended")
+         else if (app_state == "suspended" || app_state == "hidden")
          {
             *state = GDIAL_APP_STATE_HIDE;
             printf("RTDIAL: app [%s] state converted to [%d]\r\n", app_name, *state);
