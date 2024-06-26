@@ -511,9 +511,13 @@ static void gdial_rest_server_handle_POST(GDialRestServer *gdial_rest_server, So
 }
 
 static void gdial_rest_server_handle_GET_app(GDialRestServer *gdial_rest_server, SoupMessage *msg, GHashTable *query, const gchar *app_name, gint instance_id) {
-  gchar *client_dial_version_str = NULL;
+  gdouble client_dial_version = 0.;
   if (query) {
-    client_dial_version_str = g_hash_table_lookup(query, "clientDialVer");
+    gchar *client_dial_version_str = g_hash_table_lookup(query, "clientDialVer");
+    if (client_dial_version_str) {
+      client_dial_version = g_ascii_strtod(client_dial_version_str, NULL);
+      g_print("clientDialVer = %s = %f\r\n",client_dial_version_str, client_dial_version);
+    }
   }
 
   GDialAppRegistry *app_registry = gdial_rest_server_find_app_registry(gdial_rest_server, app_name);
@@ -565,7 +569,7 @@ static void gdial_rest_server_handle_GET_app(GDialRestServer *gdial_rest_server,
     allow_stop = "false";
   }
   g_print("server_register_application allowStop:%s\n",allow_stop);
-  gchar *response_str = gdial_app_state_response_new(app, GDIAL_PROTOCOL_VERSION_STR, client_dial_version_str, GDIAL_PROTOCOL_XMLNS_SCHEMA, &response_len);
+  gchar *response_str = gdial_app_state_response_new(app, GDIAL_PROTOCOL_VERSION_STR, GDIAL_PROTOCOL_XMLNS_SCHEMA, &response_len);
   #endif
   soup_message_set_response(msg, "text/xml; charset=utf-8", SOUP_MEMORY_TAKE, response_str, response_len);
   if (app_state == GDIAL_APP_STATE_STOPPED) {
