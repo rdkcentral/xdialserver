@@ -141,16 +141,20 @@ static void server_register_application(gpointer data)
         g_app_list = g_app_list->next;
     }
 
-    size_t app_list_len = strlen(options_.app_list);
-    gchar *app_list_low = g_ascii_strdown(options_.app_list, app_list_len);
-    if (g_strstr_len(app_list_low, app_list_len , "system")) {
-      g_print("Register system app -  enabled from cmdline\r\n");
-      gdial_rest_server_register_app(dial_rest_server, "system", NULL, NULL, TRUE, TRUE, NULL);
+    if (!options_.app_list) {
+        g_print(" No application is enabled from cmdline so ignore system app \r\n");
     }
-    else {
-      g_print("Dont register system app - not enabled from cmdline\r\n");
+    else{
+       size_t app_list_len = strlen(options_.app_list);
+       gchar *app_list_low = g_ascii_strdown(options_.app_list, app_list_len);
+       if (g_strstr_len(app_list_low, app_list_len , "system")) {
+         g_print("Register system app -  enabled from cmdline\r\n");
+         gdial_rest_server_register_app(dial_rest_server, "system", NULL, NULL, TRUE, TRUE, NULL);
+       }
+       else {
+         g_print("Dont register system app - not enabled from cmdline\r\n");
+       }
     }
-
 }
 
 static void server_friendlyname_handler(const gchar * friendlyname)
