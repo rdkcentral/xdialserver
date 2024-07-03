@@ -504,7 +504,6 @@ int gdial_os_application_start(const char *app_name, const char *payload, const 
             return GDIAL_APP_ERROR_NONE;
         }
     }
-    gdial_plat_dev_set_power_state_on();
     rtCastError ret = DialObj->launchApplicationWithLaunchParams(app_name, payload, query_string, additional_data_url);
     if (RTCAST_ERROR_RT(ret) != RT_OK) {
         printf("RTDIAL: DialObj.launchApplication failed!!! Error=%s\n",rtStrError(RTCAST_ERROR_RT(ret)));
