@@ -21,29 +21,35 @@
 #define _RT_CACHE_H_
 
 #include "rtRemoteObjectCache.hpp"
-#include "rtObject.h"
-#include "rtRemote.h"
 #include <sstream>
 #include <iostream>
 #include <chrono>
 #include <stdbool.h>
 #include <string>
 
+#include "gdialservicecommon.h"
+
 using namespace std;
 
-class rtAppStatusCache : public rtObject
+class rtAppStatusCache
 {
 public:
-    rtAppStatusCache(rtRemoteEnvironment* env) {ObjectCache = new rtRemoteObjectCache(env);};
+    rtAppStatusCache() {ObjectCache = new rtRemoteObjectCache();};
     ~rtAppStatusCache() {delete(ObjectCache); };
-    std::string getAppCacheId(const char *app_name);
-    void setAppCacheId(const char *app_name,std::string id);
-    rtError UpdateAppStatusCache(rtValue app_status);
-    std::string SearchAppStatusInCache(const char *app_name);
+    std::string getAppCacheId(const char* app_name);
+    void setAppCacheId(std::string app_name,std::string id);
+    AppCacheErrorCodes UpdateAppStatusCache(AppInfo* appEntry);
+    const char * SearchAppStatusInCache(const char* app_name);
     bool doIdExist(std::string id);
+
+    void setService(GDialNotifier* service)
+    {
+        m_observer = service;
+    }
 
 private:
     rtRemoteObjectCache* ObjectCache;
+    GDialNotifier* m_observer;
     static std::string Netflix_AppCacheId;
     static std::string Youtube_AppCacheId;
 };

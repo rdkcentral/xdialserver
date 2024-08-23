@@ -20,11 +20,6 @@
 #ifndef _RT_CAST_H_
 #define _RT_CAST_H_
 
-#include "rtabstractservice.hpp"
-#include "rtRemote.h"
-#include "rtObject.h"
-#include "rtError.h"
-
 /*
  * Error strings
  */
@@ -37,43 +32,11 @@ enum CastError {
 };
 
 struct rtCastError {
-  rtCastError(rtError errRt = RT_OK, CastError errCast = CAST_ERROR_NONE) : errRt(errRt),errCast(errCast){}
-  rtError errRt;
+  rtCastError(CastError errCast = CAST_ERROR_NONE) : errCast(errCast){}
   CastError errCast;
 };
 
-#define RTCAST_ERROR_NONE(v) ((v).errRt==RT_OK && (v).errCast==CAST_ERROR_NONE)
-#define RTCAST_ERROR_RT(v) ((v).errRt)
+#define RTCAST_ERROR_NONE(v) ((v).errCast==CAST_ERROR_NONE)
 #define RTCAST_ERROR_CAST(v) ((v).errCast)
-
-
-class rtCastRemoteObject: public rtAbstractService
-{
-    rtDeclareObject(rtCastRemoteObject, rtAbstractService);
-
-public:
-    rtCastRemoteObject(rtString SERVICE_NAME) : rtAbstractService(SERVICE_NAME){}
-    ~rtCastRemoteObject() {}
-
-    rtMethod1ArgAndNoReturn("onApplicationStateChanged", applicationStateChanged, rtObjectRef);
-    rtMethod1ArgAndNoReturn("onActivationChanged", activationChanged, rtObjectRef);
-    rtMethod1ArgAndNoReturn("onFriendlyNameChanged", friendlyNameChanged, rtObjectRef);
-    rtMethod1ArgAndNoReturn("onRegisterApplications", registerApplications, rtObjectRef);
-    rtMethodNoArgAndReturn("getProtocolVersion", getProtocolVersion, rtString);
-    virtual rtError applicationStateChanged(const rtObjectRef& params){ printf("applicationStateChanged rtCastRemoteObject");return RT_OK;}
-    virtual rtError activationChanged (const rtObjectRef& params){ printf("activationChanged rtCastRemoteObject");return RT_OK;}
-    virtual rtError friendlyNameChanged (const rtObjectRef& params){ printf("friendlyNameChanged rtCastRemoteObject");return RT_OK;}
-    virtual rtError registerApplications (const rtObjectRef& params){ printf("registerApplications rtCastRemoteObject");return RT_OK;}
-    virtual rtError getProtocolVersion(rtString& result){ printf("getProtocolVersion rtCastRemoteObject");return RT_OK;}
-  /*
-    * rtCast implementation should emit these events:
-    * onApplicationLaunchRequest
-    * onApplicationStopRequest
-    * onApplicationHideRequest
-    * onApplicationResumeRequest
-    * onApplicationStatusRequest
-    * For details please reference XCAST spec
-    */
-};
 
 #endif
