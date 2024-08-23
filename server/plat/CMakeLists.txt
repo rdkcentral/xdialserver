@@ -63,7 +63,6 @@ set (GDIAL_PLAT_LIB_SOURCE_FILES
   ${PROJECT_SOURCE_DIR}/plat/gdial_app_registry.c
   ${PROJECT_SOURCE_DIR}/plat/rtdial.cpp
   ${PROJECT_SOURCE_DIR}/plat/rtcache.cpp
-  ${PROJECT_SOURCE_DIR}/plat/rtabstractservice.cpp
   ${PROJECT_SOURCE_DIR}/plat/Module.cpp
 )
 
@@ -72,4 +71,4 @@ if(PLATFORM)
 endif()
 
 add_library(gdial-plat SHARED ${GDIAL_PLAT_LIB_SOURCE_FILES})
-target_link_Libraries(gdial-plat PRIVATE ${GLIB_LIBRARIES} ${GOBJECT_LIBRARIES} -lpthread -lrtRemote -lrtCore -lWPEFrameworkCore -lWPEFrameworkTracing -lWPEFrameworkDefinitions -lWPEFrameworkProtocols -lWPEFrameworkPlugins -lWPEFrameworkSecurityUtil -lIARMBus)
+target_link_Libraries(gdial-plat PRIVATE ${GLIB_LIBRARIES} ${GOBJECT_LIBRARIES} -lpthread -lWPEFrameworkCore -lWPEFrameworkTracing -lWPEFrameworkDefinitions -lWPEFrameworkProtocols -lWPEFrameworkPlugins -lWPEFrameworkSecurityUtil -lIARMBus)

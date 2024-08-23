@@ -17,6 +17,7 @@
  * limitations under the License.
 */
 #include "rtabstractservice.hpp"
+
 rtAbstractService::rtAbstractService(rtString serviceName)
     : mServiceName(serviceName)
     , mApiVersion(1), mEmit()

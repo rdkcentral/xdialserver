@@ -281,3 +281,46 @@ void gdial_plat_term() {
   g_hash_table_unref(gdial_plat_app_async_contexts);
   return;
 }
+
+GDialAppError gdial_plat_application_state_changed(const char *applicationName, const char *applicationId, const char *state, const char *error)
+{
+  g_return_val_if_fail(applicationName != NULL, GDIAL_APP_ERROR_BAD_REQUEST);
+  g_return_val_if_fail(applicationId != NULL, GDIAL_APP_ERROR_BAD_REQUEST);
+  g_return_val_if_fail(state != NULL, GDIAL_APP_ERROR_BAD_REQUEST);
+  g_return_val_if_fail(error != NULL, GDIAL_APP_ERROR_BAD_REQUEST);
+
+  return gdial_os_application_state_changed(applicationName,applicationId,state,error);
+}
+
+GDialAppError gdial_plat_application_activation_changed(const char *activation, const char *friendlyname)
+{
+  g_return_val_if_fail(activation != NULL, GDIAL_APP_ERROR_BAD_REQUEST);
+  g_return_val_if_fail(friendlyname != NULL, GDIAL_APP_ERROR_BAD_REQUEST);
+
+  return gdial_os_application_activation_changed(activation,friendlyname);
+}
+
+GDialAppError gdial_plat_application_friendlyname_changed(const char *friendlyname)
+{
+  g_return_val_if_fail(friendlyname != NULL, GDIAL_APP_ERROR_BAD_REQUEST);
+
+  return gdial_os_application_friendlyname_changed(friendlyname);
+}
+
+const char* gdial_plat_application_get_protocol_version(void)
+{
+  return gdial_os_application_get_protocol_version();
+}
+
+GDialAppError gdial_plat_application_register_applications(void* appList)
+{
+  g_return_val_if_fail(appList != NULL, GDIAL_APP_ERROR_BAD_REQUEST);
+
+  return gdial_os_application_register_applications(appList);
+}
+
+GDialAppError gdial_plat_application_service_notification(gboolean isNotifyRequired, void* notifier)
+{
+    g_return_val_if_fail(notifier != NULL, GDIAL_APP_ERROR_BAD_REQUEST);
+    return gdial_os_application_service_notification(isNotifyRequired,notifier);
+}

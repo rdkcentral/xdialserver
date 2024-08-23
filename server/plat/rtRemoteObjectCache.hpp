@@ -23,31 +23,93 @@
 #include <string>
 
 #include <assert.h>
-#include <rtError.h>
-#include <rtObject.h>
+//#include <rtError.h>
+//#include <rtObject.h>
 #include <chrono>
+#include <unordered_map>
 
-class rtRemoteEnvironment;
+enum AppCacheErrorCodes {
+    OK,
+    NOT_FOUND,
+    DUPLICATE_ENTRY,
+    NULL_ENTRY
+};
+
+class AppInfo
+{
+    public:
+        std::string appName;
+        std::string appId;
+        std::string appState;
+        std::string appError;
+
+        AppInfo(const std::string& name, const std::string& id, const std::string& state, const std::string& error)
+            : appName(name),
+              appId(id),
+              appState(state),
+              appError(error),
+              lastTouched(std::chrono::steady_clock::now()) {}
+        std::chrono::steady_clock::time_point lastTouched;
+};
 
 class rtRemoteObjectCache
 {
 public:
-  rtRemoteObjectCache(rtRemoteEnvironment* env)
-    : m_env(env)
-  { }
+  rtRemoteObjectCache(){ }
 
-  rtObjectRef findObject(std::string const& id);
-  rtFunctionRef findFunction(std::string const& id);
-  rtError insert(std::string const& id, rtObjectRef const& ref);
-  rtError insert(std::string const& id, rtFunctionRef const& ref);
-  rtError touch(std::string const& id, std::chrono::steady_clock::time_point now);
-  rtError erase(std::string const& id);
-  rtError markUnevictable(std::string const& id, bool state);
-  rtError removeUnused();
-  rtError clear();
+    AppInfo* findObject(const std::string& appName) const
+    {
+        auto it = objects.find(appName);
+        if (it != objects.end())
+        {
+            return it->second;
+        }
+        return nullptr;
+    }
 
+    AppCacheErrorCodes insert(std::string id, AppInfo* entry)
+    {
+        AppCacheErrorCodes returnValue = AppCacheErrorCodes::NULL_ENTRY;
+        if (nullptr != entry)
+        {
+            auto result = objects.emplace(id, entry);
+            if (!result.second)
+            {
+                returnValue = AppCacheErrorCodes::DUPLICATE_ENTRY;
+            }
+            else
+            {
+                returnValue = AppCacheErrorCodes::OK;
+            }
+        }
+        return returnValue;
+    }
+
+    AppCacheErrorCodes touch(const std::string& appname)
+    {
+        AppCacheErrorCodes returnValue = AppCacheErrorCodes::NOT_FOUND;
+        auto it = objects.find(appname);
+        if (it != objects.end())
+        {
+            it->second->lastTouched = std::chrono::steady_clock::now();
+            returnValue = AppCacheErrorCodes::OK;
+        }
+        return returnValue;
+    }
+
+    AppCacheErrorCodes erase(const std::string& appname)
+    {
+        AppCacheErrorCodes returnValue = AppCacheErrorCodes::NOT_FOUND;
+        auto it = objects.find(appname);
+        if (it != objects.end())
+        {
+            delete it->second;
+            objects.erase(it);
+            returnValue = AppCacheErrorCodes::OK;
+        }
+        return returnValue;
+    }
 private:
-  rtRemoteEnvironment* m_env;
+    std::unordered_map<std::string, AppInfo*> objects;
 };
-
 #endif
