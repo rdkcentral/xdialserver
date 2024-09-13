@@ -95,10 +95,10 @@ target_link_libraries (gdial-server
   ${GSSDP_LIBRARIES}
   ${SOUP_LIBRARIES}
   ${XML2_LIBRARIES}
-  uuid
   gdial-plat
+  uuid
 )
 
 add_executable (gdial-server-ut gdialserver_ut.cpp)
 
-target_link_libraries (gdial-server-ut gdial-server)
+target_link_libraries (gdial-server-ut gdial-plat gdial-server)

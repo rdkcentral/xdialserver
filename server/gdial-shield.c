@@ -37,7 +37,7 @@ static void server_request_remove_callback (SoupMessage *msg) {
   DialShieldConnectionContext * conn_context = (DialShieldConnectionContext *) g_hash_table_lookup(active_conns_, msg);
   if (conn_context) {
     if (conn_context->read_timeout_source != 0) {
-      g_print_with_timestamp("server_request_remove_callback tid=[%lx] msg=%p timeout source %d removed\r\n",
+      g_print_with_timestamp("server_request_remove_callback tid=[%lx] msg=%p timeout source %d removed",
         pthread_self(), msg, conn_context->read_timeout_source);
       g_source_remove(conn_context->read_timeout_source);
     }
@@ -49,7 +49,7 @@ static void server_request_remove_callback (SoupMessage *msg) {
 static gboolean soup_message_read_timeout_callback(gpointer user_data) {
   SoupMessage *msg = (SoupMessage*)user_data;
   DialShieldConnectionContext * conn_context = (DialShieldConnectionContext *)g_hash_table_lookup(active_conns_, msg);
-  g_print_with_timestamp("soup_message_read_timeout_callback tid=[%lx] msg=%p\r\n", pthread_self(), msg);
+  g_print_with_timestamp("soup_message_read_timeout_callback tid=[%lx] msg=%p", pthread_self(), msg);
   if (conn_context) {
     conn_context->read_timeout_source = 0;
     g_socket_close(conn_context->read_gsocket, NULL);//this will trigger abort callback
@@ -60,7 +60,7 @@ static gboolean soup_message_read_timeout_callback(gpointer user_data) {
 
 static void server_request_read_callback (SoupServer *server, SoupMessage *msg,
     SoupClientContext *context, gpointer data) {
-  g_print_with_timestamp("server_request_read_callback tid=[%lx] msg=%p\r\n", pthread_self(), msg);
+  g_print_with_timestamp("server_request_read_callback tid=[%lx] msg=%p", pthread_self(), msg);
   g_object_weak_unref(G_OBJECT(msg), (GWeakNotify)soup_message_weak_ref_callback, msg);
   server_request_remove_callback(msg);
 }
@@ -71,7 +71,7 @@ static void server_request_finished_callback (SoupServer *server, SoupMessage *m
 
 static void server_request_aborted_callback (SoupServer *server, SoupMessage *msg,
     SoupClientContext *context, gpointer data) {
-  g_print_with_timestamp("server_request_aborted_callback tid=[%lx] msg=%p\r\n", pthread_self(), msg);
+  g_print_with_timestamp("server_request_aborted_callback tid=[%lx] msg=%p", pthread_self(), msg);
   g_object_weak_unref(G_OBJECT(msg), (GWeakNotify)soup_message_weak_ref_callback, msg);
   server_request_remove_callback(msg);
 }
@@ -80,7 +80,7 @@ static void soup_message_weak_ref_callback(gpointer user_data, GObject *obj) {
   SoupMessage *msg0=(SoupMessage*)obj;
   SoupMessage *msg=(SoupMessage*)user_data;
   assert(msg0==msg);
-  g_print_with_timestamp("soup_message_weak_ref_callback tid=[%lx] msg=%p\r\n", pthread_self(), msg);
+  g_print_with_timestamp("soup_message_weak_ref_callback tid=[%lx] msg=%p", pthread_self(), msg);
   server_request_remove_callback(msg);
 }
 
@@ -92,7 +92,7 @@ static void server_request_started_callback (SoupServer *server, SoupMessage *ms
   guint read_timeout_source = g_timeout_add(2000, (GSourceFunc)soup_message_read_timeout_callback, msg);
   conn_context->read_gsocket = soup_client_context_get_gsocket(context);
   conn_context->read_timeout_source = read_timeout_source;
-  g_print_with_timestamp("server_request_started_callback tid=[%lx] msg=%p timeout source %d added with socket fd = %d\r\n",
+  g_print_with_timestamp("server_request_started_callback tid=[%lx] msg=%p timeout source %d added with socket fd = %d",
     pthread_self(), msg, read_timeout_source, g_socket_get_fd(conn_context->read_gsocket));
   g_hash_table_insert(active_conns_, msg, conn_context);
   g_object_weak_ref(G_OBJECT(msg), (GWeakNotify)soup_message_weak_ref_callback, msg);
@@ -114,13 +114,13 @@ void gdial_shield_server(SoupServer *server) {
 void gdial_shield_term(void) {
   GHashTableIter iter;
   gpointer key, value;
-  printf("gdial_shield_term: hash_table_size start= %d\r\n", g_hash_table_size(active_conns_));
+  GDIAL_LOGINFO("gdial_shield_term: hash_table_size start= %d", g_hash_table_size(active_conns_));
   g_hash_table_iter_init(&iter, (GHashTable *)active_conns_);
   while (g_hash_table_iter_next(&iter, &key, &value)) {
     SoupMessage *msg = (SoupMessage *)key;
     server_request_remove_callback(msg);
   }
-  printf("gdial_shield_term: hash_table_size end= %d\r\n", g_hash_table_size(active_conns_));
+  GDIAL_LOGINFO("gdial_shield_term: hash_table_size end= %d", g_hash_table_size(active_conns_));
   g_hash_table_unref(active_conns_);
   active_conns_ = NULL;
 }

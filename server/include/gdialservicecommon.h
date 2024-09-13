@@ -23,10 +23,16 @@
 #include <string>
 #include <vector>
 #include <glib.h>
-#include <pthread.h>
 #include <stdint.h>
 
 using namespace std;
+
+typedef enum gdialServiceErrorCodes
+{
+    GDIAL_SERVICE_ERROR_NONE,
+    GDIAL_SERVICE_ERROR_FAILED
+}
+GDIAL_SERVICE_ERROR_CODES;
 
 class RegisterAppEntry
 {
@@ -72,5 +78,7 @@ public:
     virtual void onApplicationHideRequest(string appName, string appID)=0;
     virtual void onApplicationResumeRequest(string appName, string appID)=0;
     virtual void onApplicationStateRequest(string appName, string appID)=0;
+    virtual void onDisconnect(void)=0;
+    virtual void updatePowerState(string powerState)=0;
 };
-#endif /* gdialService_hpp */
+#endif /* _GDIAL_SERVICE_COMMON_H_ */

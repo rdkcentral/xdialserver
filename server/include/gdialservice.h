@@ -32,14 +32,15 @@ using namespace std;
 class gdialService
 {
 public:
-    static gdialService* getInstance(GDialNotifier* observer, const std::vector<std::string>& gdial_args);
+    static gdialService* getInstance(GDialNotifier* observer, const std::vector<std::string>& gdial_args,const std::string& actualprocessName );
     static void destroyInstance();
 
-    int ApplicationStateChanged(string applicationName, string applicationId, string state, string error);
-    int ActivationChanged(string activation, string friendlyname);
-    int FriendlyNameChanged(string friendlyname);
+    GDIAL_SERVICE_ERROR_CODES ApplicationStateChanged(string applicationName, string appState, string applicationId, string error);
+    GDIAL_SERVICE_ERROR_CODES ActivationChanged(string activation, string friendlyname);
+    GDIAL_SERVICE_ERROR_CODES FriendlyNameChanged(string friendlyname);
     string getProtocolVersion(void);
-    int RegisterApplications(RegisterAppEntryList* appConfigList);
+    GDIAL_SERVICE_ERROR_CODES RegisterApplications(RegisterAppEntryList* appConfigList);
+    void setNetworkStandbyMode(bool nwStandbymode);
 
 private:
     GDialNotifier* m_observer{nullptr};

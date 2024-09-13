@@ -28,6 +28,7 @@
 #include "gdial-plat-util.h"
 #include "gdial-plat-dev.h"
 #include "gdial-ssdp.h"
+#include "gdialservicelogging.h"
 
 #define MAX_POWERON_TIME 10
 static SoupServer *ssdp_http_server_ = NULL;
@@ -81,7 +82,7 @@ static void ssdp_http_server_callback(SoupServer *server, SoupMessage *msg, cons
   if (!msg || !msg->method || msg->method != SOUP_METHOD_GET) {
     soup_message_set_status(msg, SOUP_STATUS_BAD_REQUEST);
     GDIAL_CHECK("GET_method_only");
-    GDIAL_DEBUG("warning: SSDP HTTP Method is not GET\r\n");
+    GDIAL_DEBUG("warning: SSDP HTTP Method is not GET");
     return;
   }
   /*
@@ -116,13 +117,13 @@ void gdial_ssdp_networkstandbymode_handler(const bool nwstandby)
 {
   if(ssdp_client_){
      if(nwstandby){
-        g_print("gdial_ssdp_networkstandbymode_handler add WAKEUP header\n ");
+        GDIAL_LOGINFO("gdial_ssdp_networkstandbymode_handler add WAKEUP header ");
         gchar *dial_ssdp_WAKEUP = g_strdup_printf(DIAL_SSDP_WAKEUP_FMT,gdial_plat_util_get_iface_mac_addr(gdial_options_->iface_name),MAX_POWERON_TIME);
         gssdp_client_append_header(ssdp_client_, "WAKEUP", dial_ssdp_WAKEUP);
         g_free(dial_ssdp_WAKEUP);
      }
      else{
-        g_print("gdial_ssdp_networkstandbymode_handler remove WAKEUP header \n ");
+        GDIAL_LOGINFO("gdial_ssdp_networkstandbymode_handler remove WAKEUP header  ");
         gssdp_client_remove_header(ssdp_client_, "WAKEUP");
      }
   }
@@ -156,14 +157,12 @@ int gdial_ssdp_new(SoupServer *ssdp_http_server, GDialOptions *options, const gc
     gdial_options_->iface_name, &error);
 
   if (!ssdp_client || error) {
-      g_printerr("%s\r\n", error->message);
+      GDIAL_LOGERROR("%s", error->message);
       g_error_free(error);
       return EXIT_FAILURE;
   }
 
   gdail_plat_dev_register_nwstandbymode_cb(gdial_ssdp_networkstandbymode_handler);
-  bool nwstandby_mode = gdial_plat_dev_get_nwstandby_mode();
-  g_print("gdial_ssdp_new nwstandby_mode:%d \n",nwstandby_mode);
   /*
    * setup configurable headers.
    * header "SERVER" is populated by gssdp.
@@ -171,14 +170,16 @@ int gdial_ssdp_new(SoupServer *ssdp_http_server, GDialOptions *options, const gc
    * header "CACHE-CONTROL" is mandatory, set by gssdp, default 1800
    */
   gssdp_client_append_header(ssdp_client, "BOOTID.UPNP.ORG", "1");
-  if(gdial_options_->feature_wolwake && nwstandby_mode) {
-    g_print("WOL Wake feature is enabled");
+
+  /* feature_wolwake should be handled gdialservice users*/
+  if(gdial_options_->feature_wolwake) {
+    GDIAL_LOGINFO("WOL Wake feature is enabled");
     gchar *dial_ssdp_WAKEUP = g_strdup_printf(DIAL_SSDP_WAKEUP_FMT,gdial_plat_util_get_iface_mac_addr(gdial_options_->iface_name),MAX_POWERON_TIME);
     gssdp_client_append_header(ssdp_client, "WAKEUP", dial_ssdp_WAKEUP);
     g_free(dial_ssdp_WAKEUP);
   }
   else {
-    g_print("WOL Wake feature is disabled");
+    GDIAL_LOGINFO("WOL Wake feature is disabled");
   }
   GDIAL_CHECK("EXT");
   GDIAL_CHECK("CACHE-CONTROL");
@@ -228,7 +229,7 @@ int gdial_ssdp_destroy() {
 
 int gdial_ssdp_set_available(bool activation_status, const gchar *friendlyname)
 {
-  g_print("gdial_ssdp_set_available activation_status :%d \n ",activation_status);
+  GDIAL_LOGINFO("gdial_ssdp_set_available activation_status :%d  ",activation_status);
   gdial_ssdp_set_friendlyname(friendlyname);
   if(ssdp_resource_group_) gssdp_resource_group_set_available (ssdp_resource_group_, activation_status);
   return 0;
@@ -240,7 +241,7 @@ int gdial_ssdp_set_friendlyname(const gchar *friendlyname)
   {
      if (app_friendly_name != NULL) g_free(app_friendly_name);
      app_friendly_name = g_strdup(friendlyname);
-     g_print("gdial_ssdp_set_friendlyname app_friendly_name :%s \n ",app_friendly_name);
+     GDIAL_LOGINFO("gdial_ssdp_set_friendlyname app_friendly_name :%s  ",app_friendly_name);
      if (dd_xml_response_str_!= NULL){
       g_free(dd_xml_response_str_);
       dd_xml_response_str_ = NULL;

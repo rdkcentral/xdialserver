@@ -47,6 +47,7 @@ GDialAppError gdial_plat_application_activation_changed(const char *activation, 
 GDialAppError gdial_plat_application_friendlyname_changed(const char *friendlyname);
 const char* gdial_plat_application_get_protocol_version();
 GDialAppError gdial_plat_application_register_applications(void*);
+void gdial_plat_application_update_network_standby_mode(gboolean nwstandbyMode);
 GDialAppError gdial_plat_application_service_notification(gboolean isNotifyRequired, void* notifier);
 
 void * gdial_plat_application_start_async(const gchar *app_name, const gchar *payload, const gchar *query, const gchar *additional_data_url, void *user_data);
