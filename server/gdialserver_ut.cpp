@@ -18,87 +18,230 @@
  */
 
 #include <iostream>
+#include <csignal>
+#include <atomic>
+#include <thread>
+#include <unistd.h>
 #include "gdialservice.h"
+#include "gdialservicelogging.h"
 
 class gdialServiceTest: public GDialNotifier
 {
     public:
         gdialServiceTest(const std::vector<std::string>& args)
         {
-            service = gdialService::getInstance(this,args);
+            service = gdialService::getInstance(this,args,"GDialUT");
         }
-        virtual void onApplicationLaunchRequestWithLaunchParam(string appName,string strPayLoad, string strQuery, string strAddDataUrl) override;
-        virtual void onApplicationLaunchRequest(string appName, string parameter) override;
-        virtual void onApplicationStopRequest(string appName, string appID) override;
-        virtual void onApplicationHideRequest(string appName, string appID) override;
-        virtual void onApplicationResumeRequest(string appName, string appID) override;
-        virtual void onApplicationStateRequest(string appName, string appID) override;
+
+        ~gdialServiceTest()
+        {
+            gdialService::destroyInstance();
+            service = nullptr;
+        }
+
+        void ActivationChanged(bool status)
+        {
+            GDIAL_LOGINFO("Entering ...");
+            std::string activation = status ? "true" : "false";
+            service->ActivationChanged(activation,"SampleTest");
+            GDIAL_LOGINFO("Exiting ...");
+        }
+
+        void RegisterApplications(void)
+        {
+            RegisterAppEntryList *appReqList = new RegisterAppEntryList;
+            GDIAL_LOGINFO("[%p] Freeing appConfigList",appReqList);
+            for (int i=0; i < 9;i++)
+            {
+                RegisterAppEntry* appReq = new RegisterAppEntry;
+                std::string Names;
+                std::string prefixes;
+                std::string cors;
+                int allowStop = 0;
+
+
+                switch(i)
+                {
+                    case 0:
+                    {
+                        Names = "Netflix";
+                        prefixes = "";
+                        cors = ".netflix.com";
+                        allowStop = 0;
+                    }
+                    break;
+                    case 1:
+                    {
+                        Names = "YouTube";
+                        prefixes = "";
+                        cors = ".youtube.com";
+                        allowStop = 0;
+                    }
+                    break;
+                    case 2:
+                    {
+                        Names = "YouTubeTV";
+                        prefixes = "";
+                        cors = ".youtube.com";
+                        allowStop = 0;
+                    }
+                    break;
+                    case 3:
+                    {
+                        Names = "YouTubeKids";
+                        prefixes = "";
+                        cors = ".youtube.com";
+                        allowStop = 0;
+                    }
+                    break;
+                    case 4:
+                    {
+                        Names = "AmazonInstantVideo";
+                        prefixes = "";
+                        cors = ".amazonprime.com";
+                        allowStop = 0;
+                    }
+                    break;
+                    case 5:
+                    {
+                        Names = "com.spotify.Spotify.TV";
+                        prefixes = "com.spotify";
+                        cors = ".spotify.com";
+                        allowStop = 0;
+                    }
+                    break;
+                    case 6:
+                    {
+                        Names = "com.apple.appletv";
+                        prefixes = "com.apple";
+                        cors = "tv.apple.com";
+                        allowStop = 0;
+                    }
+                    break;
+                    case 7:
+                    {
+                        Names = "Pairing";
+                        prefixes = "";
+                        cors = ".comcast.com";
+                        allowStop = 0;
+                    }
+                    break;
+                    case 8:
+                    default:
+                    {
+                        Names = "Hello";
+                        prefixes = "Hello";
+                        cors = "Hello";
+                        allowStop = 0;
+                    }
+                    break;
+                }
+                
+                appReq->Names = Names;
+                appReq->prefixes = prefixes;
+                appReq->cors = prefixes;
+                appReq->allowStop = allowStop;
+
+                appReqList->pushBack(appReq);
+            }
+            service->RegisterApplications(appReqList);
+        }        
+
+        virtual void onApplicationLaunchRequestWithLaunchParam(string appName,string strPayLoad, string strQuery, string strAddDataUrl) override
+        {
+            GDIAL_LOGINFO("App:%s  payload:%s query_string:%s additional_data_url:%s",
+                            appName.c_str(),
+                            strPayLoad.c_str(),
+                            strQuery.c_str(),
+                            strAddDataUrl.c_str());
+        }
+
+        virtual void onApplicationLaunchRequest(string appName, string parameter) override
+        {
+            GDIAL_LOGINFO("App:%s  parameter:%s",appName.c_str(),parameter.c_str());
+        }
+
+        virtual void onApplicationStopRequest(string appName, string appID) override
+        {
+            GDIAL_LOGINFO("App:%s  appID:%s",appName.c_str(),appID.c_str());
+        }
+
+        virtual void onApplicationHideRequest(string appName, string appID) override
+        {
+            GDIAL_LOGINFO("App:%s  appID:%s",appName.c_str(),appID.c_str());
+        }
+
+        virtual void onApplicationResumeRequest(string appName, string appID) override
+        {
+            GDIAL_LOGINFO("App:%s  appID:%s",appName.c_str(),appID.c_str());
+        }
+
+        virtual void onApplicationStateRequest(string appName, string appID) override
+        {
+            GDIAL_LOGINFO("App:%s  appID:%s",appName.c_str(),appID.c_str());
+        }
+
+        virtual void onDisconnect() override
+        {
+            GDIAL_LOGINFO("~~~~~~~~~~~");
+        }
+
+        virtual void updatePowerState(string powerState) override
+        {
+            GDIAL_LOGINFO("powerState : %s",powerState.c_str());
+        }
     private:
         gdialService* service{nullptr};
 };
 
-void gdialServiceTest::onApplicationLaunchRequestWithLaunchParam(string appName,string strPayLoad, string strQuery, string strAddDataUrl )
-{
-    std::cout << "[" << __FUNCTION__ << "] "
-              << "appName: " << appName.c_str() << ", "
-              << "strPayLoad: " << strPayLoad.c_str() << ", "
-              << "strQuery: " << strQuery.c_str() << ", "
-              << "strAddDataUrl: " << strAddDataUrl.c_str() << std::endl;
-}
+std::atomic<bool> running(true);
 
-void gdialServiceTest::onApplicationLaunchRequest(string appName, string parameter)
+void signalHandler(int signum)
 {
-    std::cout << "[" << __FUNCTION__ << "] "
-              << "appName: " << appName.c_str() << ", "
-              << "parameter: " << parameter.c_str() << std::endl;
-}
-
-void gdialServiceTest::onApplicationStopRequest(string appName, string appID)
-{
-    std::cout << "[" << __FUNCTION__ << "] "
-              << "appName: " << appName.c_str() << ", "
-              << "appID: " << appID.c_str() << std::endl;
-}
-
-void gdialServiceTest::onApplicationHideRequest(string appName, string appID)
-{
-    std::cout << "[" << __FUNCTION__ << "] "
-              << "appName: " << appName.c_str() << ", "
-              << "appID: " << appID.c_str() << std::endl;
-}
-
-void gdialServiceTest::onApplicationResumeRequest(string appName, string appID)
-{
-    std::cout << "[" << __FUNCTION__ << "] "
-              << "appName: " << appName.c_str() << ", "
-              << "appID: " << appID.c_str() << std::endl;
-}
-
-void gdialServiceTest::onApplicationStateRequest(string appName, string appID)
-{
-    std::cout << "[" << __FUNCTION__ << "] "
-              << "appName: " << appName.c_str() << ", "
-              << "appID: " << appID.c_str() << std::endl;
+    GDIAL_LOGINFO("Interrupt signal:%d",signum);
+    running = false;
 }
 
 int main(int argc, char *argv[])
 {
+    std::signal(SIGINT, signalHandler);
     std::vector<std::string> gdial_args;
-    gdial_args.push_back("-F");
-    gdial_args.push_back("Element_ELTE11MWR");
-    
-    gdial_args.push_back("-R");
-    gdial_args.push_back("Element");
-
-    gdial_args.push_back("-M");
-    gdial_args.push_back("ELTE11MWR");
-
-    gdial_args.push_back("-U");
-    gdial_args.push_back("881b6ed8-5185-499e-8c33-58f467186764");
-
-    gdial_args.push_back("-A");
-    gdial_args.push_back("youtube:spotify:netflix:pairing:youtubetv:youtubekids:system");
+    for (int i = 1; i < argc; ++i)
+    {
+        gdial_args.push_back(argv[i]);
+    }
     gdialServiceTest* testObject = new gdialServiceTest(gdial_args);
+
+    std::string input;
+    GDIAL_LOGINFO("Enter commands (type 'q' to quit):");
+
+    while (running) {
+        std::cout << "> ";
+        std::getline(std::cin, input);
+
+        if (input == "q") {
+            GDIAL_LOGINFO("Exiting ...");
+            break;
+        }
+
+        if (input == "enable") {
+            GDIAL_LOGINFO("Activation enabled");
+            testObject->ActivationChanged(true);
+        }
+        else if (input == "disable") {
+            GDIAL_LOGINFO("Activation disabled");
+            testObject->ActivationChanged(false);
+        }
+        else if (input == "register")
+        {
+            GDIAL_LOGINFO("RegisterApps");
+            testObject->RegisterApplications();
+        }
+        else{
+            GDIAL_LOGINFO("Unknown option: ");
+        }
+    }
+    delete testObject;
 
     return 0;
 }

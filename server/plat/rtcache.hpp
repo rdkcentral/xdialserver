@@ -26,8 +26,8 @@
 #include <chrono>
 #include <stdbool.h>
 #include <string>
-
 #include "gdialservicecommon.h"
+#include "gdialservicelogging.h"
 
 using namespace std;
 
@@ -39,7 +39,7 @@ public:
     std::string getAppCacheId(const char* app_name);
     void setAppCacheId(std::string app_name,std::string id);
     AppCacheErrorCodes UpdateAppStatusCache(AppInfo* appEntry);
-    const char * SearchAppStatusInCache(const char* app_name);
+    std::string SearchAppStatusInCache(const char* app_name);
     bool doIdExist(std::string id);
 
     void setService(GDialNotifier* service)

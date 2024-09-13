@@ -25,6 +25,7 @@
 #include "gdial-plat-app.h"
 #include "gdial-os-app.h"
 #include "rtdial.hpp"
+#include "gdialservicelogging.h"
 
 static void gdial_app_state_cb_default(gint instance_id, GDialAppState state, gpointer user_data);
 static GMainContext *g_main_context_ = NULL;
@@ -58,7 +59,7 @@ typedef struct {
 static GHashTable *gdial_plat_app_async_contexts = NULL;
 
 static void gdial_app_state_cb_default(gint instance_id, GDialAppState state, gpointer user_data) {
-  g_print("instance [%d] state = [%d]\r\n", instance_id, state);
+  GDIAL_LOGINFO("instance [%d] state = [%d] data = [%p]", instance_id, state, user_data);
 }
 
 static gboolean GSourceFunc_application_start_async_cb(gpointer user_data) {
@@ -96,7 +97,7 @@ static void GDestroyNotify_async_source_destory(gpointer data) {
 static void GDialPlatAppAsyncContext_destroy(gpointer data) {
   GDialPlatAppAsyncContext *app_async_context = (GDialPlatAppAsyncContext *)data;
   g_warn_if_fail(app_async_context->async_gsource == 0);
-  g_print("GDialPlatAppAsyncContext_destroy(%s)\r\n", app_async_context->type_str);
+  GDIAL_LOGINFO("GDialPlatAppAsyncContext_destroy(%s)", app_async_context->type_str);
   g_free(app_async_context->name);
   g_free(app_async_context->type_str);
   app_async_context->user_data = NULL;
@@ -154,7 +155,7 @@ gint gdial_plat_init(GMainContext *main_context) {
   g_main_context_ = g_main_context_ref(main_context);
 
   if(!rtdial_init(g_main_context_)) {
-      g_print("rtdial_init failed !!!!!\n");
+      GDIAL_LOGERROR("rtdial_init failed !!!!!");
       return GDIAL_APP_ERROR_INTERNAL;
   }
 
@@ -235,7 +236,7 @@ void *gdial_plat_application_stop_async(const gchar *app_name, gint instance_id,
 }
 
 GDialAppError gdial_plat_application_state(const gchar *app_name, gint instance_id, GDialAppState *state) {
-  g_print("GDIAL : Inside gdial_plat_application_state\n");
+  GDIAL_LOGINFO("GDIAL : Inside gdial_plat_application_state");
   g_return_val_if_fail(app_name != NULL, GDIAL_APP_ERROR_BAD_REQUEST);
   g_return_val_if_fail(state != NULL, GDIAL_APP_ERROR_BAD_REQUEST);
   g_return_val_if_fail(instance_id != GDIAL_APP_INSTANCE_NONE, GDIAL_APP_ERROR_BAD_REQUEST);
@@ -319,8 +320,13 @@ GDialAppError gdial_plat_application_register_applications(void* appList)
   return gdial_os_application_register_applications(appList);
 }
 
+void gdial_plat_application_update_network_standby_mode(gboolean nwstandby)
+{
+  gdial_os_application_update_network_standby_mode(nwstandby);
+}
+
 GDialAppError gdial_plat_application_service_notification(gboolean isNotifyRequired, void* notifier)
 {
-    g_return_val_if_fail(notifier != NULL, GDIAL_APP_ERROR_BAD_REQUEST);
+    g_return_val_if_fail((notifier != NULL)||(false == isNotifyRequired), GDIAL_APP_ERROR_BAD_REQUEST);
     return gdial_os_application_service_notification(isNotifyRequired,notifier);
 }

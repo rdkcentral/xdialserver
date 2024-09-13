@@ -36,6 +36,7 @@ typedef enum _AppRequestEvents
     ACTIVATION_CHANGED,
     FRIENDLYNAME_CHANGED,
     REGISTER_APPLICATIONS,
+    UPDATE_NW_STANDBY,
     INVALID_REQUEST
 }
 AppRequestEvents;
@@ -59,6 +60,7 @@ typedef struct _RequestHandlerPayload
     std::string state;
     std::string error;
     void* data_param;
+    bool user_param1;
     AppRequestEvents event;
 }RequestHandlerPayload;
 
@@ -74,12 +76,9 @@ typedef struct _ResponseHandlerPayload
 class gdialServiceImpl: public GDialNotifier
 {
 public:
-    gdialServiceImpl() {
-        std::cout << "gdialServiceImpl Constructor Called" << std::endl;
-    };
-    ~gdialServiceImpl() {
-        std::cout << "gdialServiceImpl Destructor Called" << std::endl;
-    };
+    static gdialServiceImpl* getInstance(void);
+    static void destroyInstance();
+
     int start_GDialServer(int argc, char *argv[]);
     bool stop_GDialServer();
     void sendRequest( const RequestHandlerPayload& payload );
@@ -94,8 +93,13 @@ public:
     virtual void onApplicationHideRequest(string appName, string appID) override;
     virtual void onApplicationResumeRequest(string appName, string appID) override;
     virtual void onApplicationStateRequest(string appName, string appID) override;
+    virtual void onDisconnect() override;
+    virtual void updatePowerState(string powerState) override;
 
 private:
+    gdialServiceImpl(){};
+    virtual ~gdialServiceImpl(){};
+
     GDialNotifier *m_observer;
     pthread_t m_gdialserver_main_thread{0};
 

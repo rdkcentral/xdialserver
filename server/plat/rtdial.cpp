@@ -40,8 +40,9 @@
 #include "rtcache.hpp"
 #include "rtdial.hpp"
 #include "gdial_app_registry.h"
+#include "gdialservicelogging.h"
 
-static GSource *remoteSource = nullptr;
+//static GSource *remoteSource = nullptr;
 static GMainContext *main_context_ = nullptr;
 static int INIT_COMPLETED = 0;
 //cache
@@ -60,44 +61,47 @@ class DialCastObject
 
 public:
 
-    DialCastObject(const char* SERVICE_NAME){ printf("DialCastObject() const %s\n",SERVICE_NAME); }
+    DialCastObject(const char* SERVICE_NAME){ GDIAL_LOGINFO("DialCastObject() const %s",SERVICE_NAME); }
 
     ~DialCastObject() {}
 
     rtCastError applicationStateChanged(const char *applicationName, const char *applicationId, const char *state, const char *error)
     {
         rtCastError reterror(CAST_ERROR_NONE);
-        printf("RTDIAL: DialCastObject::applicationStateChanged \n");
+        GDIAL_LOGINFO("RTDIAL: DialCastObject::applicationStateChanged ");
         AppInfo* AppObj = new AppInfo(applicationName,applicationId,state,error);
-        printf("applicationStateChanged AppName : %s AppID : %s State : %s Error : %s\n",
+        GDIAL_LOGINFO("applicationStateChanged AppName : %s AppID : %s State : %s Error : %s",
                 AppObj->appName.c_str(),
                 AppObj->appId.c_str(),
                 AppObj->appState.c_str(),
                 AppObj->appError.c_str());
         AppCache->UpdateAppStatusCache(AppObj);
+        GDIAL_LOGINFO("Exiting ...");
         return reterror;
     }
 
     rtCastError friendlyNameChanged(const char* friendlyname)
     {
+        GDIAL_LOGINFO("Entering ...");
         rtCastError error(CAST_ERROR_NONE);
         if( g_friendlyname_cb && friendlyname )
         {
-            printf("RTDIAL: DialCastObject::friendlyNameChanged :%s \n",friendlyname);
+            GDIAL_LOGINFO("RTDIAL: DialCastObject::friendlyNameChanged :%s ",friendlyname);
             g_friendlyname_cb(friendlyname);
         }
+        GDIAL_LOGINFO("Exiting ...");
         return error;
     }
 
     rtCastError registerApplications(void* appList)
     {
         rtCastError error(CAST_ERROR_NONE);
-        printf("RTDIAL : DialCastObject::registerApplications\n");
+        GDIAL_LOGINFO("RTDIAL : DialCastObject::registerApplications");
         RegisterAppEntryList* appConfigList = static_cast<RegisterAppEntryList*>(appList);
         GList *gAppList = NULL;
         int i = 0;
-    
-        for (RegisterAppEntry* appEntry : appConfigList->getValues()) 
+
+        for (RegisterAppEntry* appEntry : appConfigList->getValues())
         {
             GList *gAppPrefxes = nullptr,
                   *allowed_origins = nullptr;
@@ -105,20 +109,20 @@ public:
             {
                 break;
             }
-            printf("Application: %d \n", i);
+            GDIAL_LOGINFO("Application: %d ", i);
             gAppPrefxes = g_list_prepend (gAppPrefxes, g_strdup(appEntry->prefixes.c_str()));
-            printf("%s, ", appEntry->prefixes.c_str());
-            printf("\n");
+            GDIAL_LOGINFO("%s, ", appEntry->prefixes.c_str());
+            GDIAL_LOGINFO("");
 
             allowed_origins = g_list_prepend (allowed_origins, g_strdup(appEntry->cors.c_str()));
-            printf("%s, ", appEntry->cors.c_str());
-            printf("\n");
+            GDIAL_LOGINFO("%s, ", appEntry->cors.c_str());
+            GDIAL_LOGINFO("");
 
             GHashTable *gProperties = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_free);
             std::string appAllowStop = appEntry->allowStop ? "true" : "false";
             g_hash_table_insert(gProperties,g_strdup("allowStop"),g_strdup(appAllowStop.c_str()));
-            printf("allowStop: %s", appAllowStop.c_str());
-            printf("\n");
+            GDIAL_LOGINFO("allowStop: %s", appAllowStop.c_str());
+            GDIAL_LOGINFO("");
 
             GDialAppRegistry*  app_registry = gdial_app_registry_new( g_strdup(appEntry->Names.c_str()),
                                                                       gAppPrefxes,
@@ -127,14 +131,14 @@ public:
                                                                       TRUE,
                                                                       allowed_origins);
             gAppList = g_list_prepend (gAppList, app_registry);
-            printf("%s, ", appEntry->Names.c_str());
-            printf("\n");
+            GDIAL_LOGINFO("%s, ", appEntry->Names.c_str());
+            GDIAL_LOGINFO("");
             ++i;
         }
 
-        int appListSize = g_list_length (gAppList);
+        //int appListSize = g_list_length (gAppList);
         if( g_registerapps_cb ) {
-            printf("RTDIAL: DialCastObject:: calling register_applications callback \n");
+            GDIAL_LOGINFO("RTDIAL: DialCastObject:: calling register_applications callback ");
             g_registerapps_cb(gAppList);
         }
         /*Free the applist*/
@@ -142,20 +146,23 @@ public:
             g_list_free (gAppList);
             gAppList = NULL;
         }
+
+        GDIAL_LOGINFO("[%p] Freeing appConfigList",appConfigList);
         delete appConfigList;
+        GDIAL_LOGINFO("Exiting ...");
         return error;
     }
 
     const char* getProtocolVersion()
     {
-        printf("RTDIAL : DialCastObject::getProtocolVersion \n");
+        GDIAL_LOGINFO("RTDIAL : DialCastObject::getProtocolVersion ");
         return GDIAL_PROTOCOL_VERSION_STR;
     }
 
     rtCastError activationChanged(std::string status, std::string friendlyName)
     {
         rtCastError error(CAST_ERROR_NONE);
-        printf("RTDIAL: DialCastObject::activationChanged status: %s friendlyname: %s \n",
+        GDIAL_LOGINFO("RTDIAL: DialCastObject::activationChanged status: %s friendlyname: %s ",
                 status.c_str(),friendlyName.c_str());
         if( g_activation_cb )
         {
@@ -167,51 +174,126 @@ public:
             {
                 g_activation_cb(0,friendlyName.c_str());
             }
-            printf("RTDIAL: DialCastObject:: status: %s  g_activation_cb :%d \n",status.c_str(), g_activation_cb);
+            GDIAL_LOGINFO("RTDIAL: DialCastObject:: status: %s  g_activation_cb :%p",status.c_str(), g_activation_cb);
         }
+        GDIAL_LOGINFO("Exiting ...");
         return error;
+    }
+
+    void updateNetworkStandbyMode(gboolean nwstandbyMode)
+    {
+        gdial_plat_dev_nwstandby_mode_change(nwstandbyMode);
     }
     
     rtCastError launchApplication(const char* appName, const char* args){
         rtCastError error(CAST_ERROR_NONE);
-        printf("RTDIAL: DialCastObject::launchApplication App:%s  args:%s\n",appName,args);
-        m_observer->onApplicationLaunchRequest(appName,args);
+        GDIAL_LOGINFO("RTDIAL: DialCastObject::launchApplication App:%s  args:%s",appName,args);
+        if (nullptr!=m_observer)
+        {
+            std::string applicationName = "",
+                        parameter = "";
+            if (nullptr!=appName)
+                applicationName = appName;
+            if (nullptr!=args)
+                parameter = args;
+            m_observer->onApplicationLaunchRequest(applicationName,parameter);
+        }
+        GDIAL_LOGINFO("Exiting ...");
         return error;
     }
 
     rtCastError launchApplicationWithLaunchParams(const char *appName, const char *argPayload, const char *argQueryString, const char *argAdditionalDataUrl) {
         rtCastError error(CAST_ERROR_NONE);
-        printf("RTDIAL: DialCastObject::launchApplicationWithLaunchParams App:%s  payload:%s query_string:%s additional_data_url:%s \n",
-                appName, argPayload, argQueryString, argAdditionalDataUrl);
-        m_observer->onApplicationLaunchRequestWithLaunchParam(appName,argPayload,argQueryString,argAdditionalDataUrl);
+        GDIAL_LOGINFO("RTDIAL: DialCastObject::launchApplicationWithLaunchParams App:%s  payload:%s query_string:%s additional_data_url:%s ",
+                appName, argPayload, argQueryString,argAdditionalDataUrl );
+        if (nullptr!=m_observer)
+        {
+            std::string applicationName = "",
+                        payLoad = "",
+                        queryString = "",
+                        additionalDataUrl = "";
+            if (nullptr!=appName)
+                applicationName = appName;
+            if (nullptr!=argPayload)
+                payLoad = argPayload;
+            if (nullptr!=argQueryString)
+                queryString = argQueryString;
+            if (nullptr!=argAdditionalDataUrl)
+                additionalDataUrl = argAdditionalDataUrl;
+            m_observer->onApplicationLaunchRequestWithLaunchParam( applicationName,
+                                                                   payLoad,
+                                                                   queryString,
+                                                                   additionalDataUrl );
+        }
+        GDIAL_LOGINFO("Exiting ...");
         return error;
     }
 
     rtCastError hideApplication(const char* appName, const char* appID) {
         rtCastError error(CAST_ERROR_NONE);
-        printf("RTDIAL: DialCastObject::hideApplication App:%s  ID:%s\n",appName,appID);
-        m_observer->onApplicationHideRequest(appName,appID);
+        GDIAL_LOGINFO("RTDIAL: DialCastObject::hideApplication App:%s  ID:%s",appName,appID);
+        if (nullptr!=m_observer)
+        {
+            std::string applicationName = "",
+                        applicationId = "";
+            if (nullptr!=appName)
+                applicationName = appName;
+            if (nullptr!=appID)
+                applicationId = appID;
+            m_observer->onApplicationHideRequest(applicationName,applicationId);
+        }
+        GDIAL_LOGINFO("Exiting ...");
         return error;
     }
 
     rtCastError resumeApplication(const char* appName, const char* appID) {
         rtCastError error(CAST_ERROR_NONE);
-        printf("RTDIAL: DialCastObject::resumeApplication App:%s  ID:%s\n",appName,appID);
-        m_observer->onApplicationResumeRequest(appName,appID);
+        GDIAL_LOGINFO("RTDIAL: DialCastObject::resumeApplication App:%s  ID:%s",appName,appID);
+        if (nullptr!=m_observer)
+        {
+            std::string applicationName = "",
+                        applicationId = "";
+            if (nullptr!=appName)
+                applicationName = appName;
+            if (nullptr!=appID)
+                applicationId = appID;
+            m_observer->onApplicationResumeRequest(applicationName,applicationId);
+        }
+        GDIAL_LOGINFO("Exiting ...");
         return error;
     }
 
     rtCastError stopApplication(const char* appName, const char* appID) {
         rtCastError error(CAST_ERROR_NONE);
-        printf("RTDIAL: DialCastObject::stopApplication App:%s  ID:%s\n",appName,appID);
-        m_observer->onApplicationStopRequest(appName,appID);
+        GDIAL_LOGINFO("RTDIAL: DialCastObject::stopApplication App:%s  ID:%s",appName,appID);
+        if (nullptr!=m_observer)
+        {
+            std::string applicationName = "",
+                        applicationId = "";
+            if (nullptr!=appName)
+                applicationName = appName;
+            if (nullptr!=appID)
+                applicationId = appID;
+            m_observer->onApplicationStopRequest(applicationName,applicationId);
+        }
+        GDIAL_LOGINFO("Exiting ...");
         return error;
     }
 
     rtCastError getApplicationState(const char* appName, const char* appID) {
         rtCastError error(CAST_ERROR_NONE);
-        printf("RTDIAL: DialCastObject::getApplicationState App:%s  ID:%s\n",appName,appID);
-        m_observer->onApplicationStateRequest(appName,appID);
+        GDIAL_LOGINFO("RTDIAL: DialCastObject::getApplicationState App:%s  ID:%s",appName,appID);
+        if (nullptr!=m_observer)
+        {
+            std::string applicationName = "",
+                        applicationId = "";
+            if (nullptr!=appName)
+                applicationName = appName;
+            if (nullptr!=appID)
+                applicationId = appID;
+            m_observer->onApplicationStateRequest(applicationName,applicationId);
+        }
+        GDIAL_LOGINFO("Exiting ...");
         return error;
     }
 
@@ -228,7 +310,7 @@ DialCastObject* DialObj;
 #if 0
 static gboolean pumpRemoteObjectQueue(gpointer data)
 {
-//    printf("### %s  :  %s  :  %d   ### \n",__FILE__,__func__,__LINE__);
+//    GDIAL_LOGINFO("### %s  :  %s  :  %d   ### ",__FILE__,__func__,__LINE__);
     CastError err;
     GSource *source = (GSource *)data;
     do {
@@ -236,7 +318,7 @@ static gboolean pumpRemoteObjectQueue(gpointer data)
         //err = rtRemoteProcessSingleItem();
     } while (err == CAST_ERROR_NONE);
     if (err != CAST_ERROR_NONE && err != RT_ERROR_QUEUE_EMPTY) {
-//        printf("RTDIAL: rtRemoteProcessSingleItem() returned %s", rtStrError(err));
+//        GDIAL_LOGINFO("RTDIAL: rtRemoteProcessSingleItem() returned %s", rtStrError(err));
         return G_SOURCE_CONTINUE;
     }
     return G_SOURCE_CONTINUE;
@@ -244,7 +326,7 @@ static gboolean pumpRemoteObjectQueue(gpointer data)
 
 static GSource *attachRtRemoteSource()
 {
-//    printf("### %s  :  %s  :  %d   ###\n",__FILE__,__func__,__LINE__);
+//    GDIAL_LOGINFO("### %s  :  %s  :  %d   ###",__FILE__,__func__,__LINE__);
     static GSourceFuncs g_sourceFuncs =
         {
             nullptr, // prepare
@@ -274,7 +356,7 @@ static GSource *attachRtRemoteSource()
 
     if (e != CAST_ERROR_NONE)
     {
-        printf("RTDIAL: Failed to register queue handler: %d", e);
+        GDIAL_LOGINFO("RTDIAL: Failed to register queue handler: %d", e);
         g_source_destroy(source);
         return nullptr;
     }
@@ -301,10 +383,10 @@ void rtdail_register_registerapps_cb(rtdial_registerapps_cb cb)
 bool rtdial_init(GMainContext *context) {
     if(INIT_COMPLETED)
        return true;
-    CastError err;
+    CastError err = CAST_ERROR_NONE;
     const char* objName;
 
-    gdial_plat_dev_initialize();
+    //gdial_plat_dev_initialize();
     //env = rtEnvironmentGetGlobal();
     //err = rtRemoteInit(env);
 
@@ -312,10 +394,10 @@ bool rtdial_init(GMainContext *context) {
     //AppCache = new rtAppStatusCache(env);
     AppCache = new rtAppStatusCache();
 
-    printf("RTDIAL: %s\n",__func__);
+    GDIAL_LOGINFO("RTDIAL: %s",__func__);
 
     if (err != CAST_ERROR_NONE){
-        printf("RTDIAL: rtRemoteinit Failed\n");
+        GDIAL_LOGINFO("RTDIAL: rtRemoteinit Failed");
         return false;
     }
 
@@ -323,7 +405,7 @@ bool rtdial_init(GMainContext *context) {
     //remoteSource = attachRtRemoteSource();
 
     //if (!remoteSource)
-    //   printf("RTDIAL: Failed to attach rt remote source");
+    //   GDIAL_LOGINFO("RTDIAL: Failed to attach rt remote source");
 
     objName =  getenv("PX_WAYLAND_CLIENT_REMOTE_OBJECT_NAME");
     if(!objName) objName = "com.comcast.xdialcast";
@@ -335,11 +417,11 @@ bool rtdial_init(GMainContext *context) {
 }
 
 void rtdial_term() {
-    printf("RTDIAL: %s \n",__FUNCTION__);
+    GDIAL_LOGINFO("RTDIAL: %s ",__FUNCTION__);
 
-    gdial_plat_dev_deinitialize();
+    //gdial_plat_dev_deinitialize();
     g_main_context_unref(main_context_);
-    g_source_unref(remoteSource);
+    //g_source_unref(remoteSource);
 
     //DialObj->bye();
     delete (AppCache);
@@ -347,7 +429,7 @@ void rtdial_term() {
     CastError e = rtRemoteShutdown();
     if (e != CAST_ERROR_NONE)
     {
-      printf("RTDIAL: rtRemoteShutdown failed: %s \n", rtStrError(e));
+      GDIAL_LOGINFO("RTDIAL: rtRemoteShutdown failed: %s ", rtStrError(e));
     }
 #endif
     //delete(DialObj);
@@ -392,28 +474,28 @@ map<string,string> parse_query(const char* query_string) {
 }
 
 int gdial_os_application_start(const char *app_name, const char *payload, const char *query_string, const char *additional_data_url, int *instance_id) {
-    printf("RTDIAL gdial_os_application_start : Application launch request: appName: %s  query: [%s], payload: [%s], additionalDataUrl [%s]\n",
-        app_name, query_string, payload, additional_data_url);
+    GDIAL_LOGINFO("RTDIAL gdial_os_application_start : Application launch request: appName: %s  query: [%s], payload: [%s], additionalDataUrl [%s] instance[%p]",
+        app_name, query_string, payload, additional_data_url,instance_id);
 
     if (strcmp(app_name,"system") == 0) {
         auto parsed_query{parse_query(query_string)};
         if (parsed_query["action"] == "sleep") {
             const char *system_key = getenv("SYSTEM_SLEEP_REQUEST_KEY");
             if (system_key && parsed_query["key"] != system_key) {
-                printf("RTDIAL: system app request to change device to sleep mode, key comparison failed: user provided '%s'\n", parsed_query["key"].c_str());
+                GDIAL_LOGINFO("RTDIAL: system app request to change device to sleep mode, key comparison failed: user provided '%s'", parsed_query["key"].c_str());
                 return GDIAL_APP_ERROR_INTERNAL;
             }
-            printf("RTDIAL: system app request to change device to sleep mode\n");
+            GDIAL_LOGINFO("RTDIAL: system app request to change device to sleep mode");
             gdial_plat_dev_set_power_state_off();
             return GDIAL_APP_ERROR_NONE;
         }
         else if (parsed_query["action"] == "togglepower") {
             const char *system_key = getenv("SYSTEM_SLEEP_REQUEST_KEY");
             if (system_key && parsed_query["key"] != system_key) {
-                printf("RTDIAL: system app request to toggle the power state, key comparison failed: user provided '%s'\n", parsed_query["key"].c_str());
+                GDIAL_LOGINFO("RTDIAL: system app request to toggle the power state, key comparison failed: user provided '%s'", parsed_query["key"].c_str());
                 return GDIAL_APP_ERROR_INTERNAL;
             }
-            printf("RTDIAL: system app request to toggle the power state \n");
+            GDIAL_LOGINFO("RTDIAL: system app request to toggle the power state ");
             gdial_plat_dev_toggle_power_state();
             return GDIAL_APP_ERROR_NONE;
         }
@@ -421,7 +503,7 @@ int gdial_os_application_start(const char *app_name, const char *payload, const 
     gdial_plat_dev_set_power_state_on();
     rtCastError ret = DialObj->launchApplicationWithLaunchParams(app_name, payload, query_string, additional_data_url);
     if (RTCAST_ERROR_CAST(ret) != CAST_ERROR_NONE) {
-        printf("RTDIAL: DialObj.launchApplication failed!!! Error=%x\n",RTCAST_ERROR_CAST(ret));
+        GDIAL_LOGINFO("RTDIAL: DialObj.launchApplication failed!!! Error=%x",RTCAST_ERROR_CAST(ret));
         return GDIAL_APP_ERROR_INTERNAL;
     }
     return GDIAL_APP_ERROR_NONE;
@@ -454,20 +536,20 @@ std::string GetCurrentState() {
          } else {
            string sToken = (char*)buffer;
            string query = "token=" + sToken;
-           printf("Security token = %s \n",query.c_str());
+           GDIAL_LOGINFO("Security token = %s ",query.c_str());
            controllerRemoteObject = new JSONRPC::LinkType<Core::JSON::IElement>(std::string(), false, query);
          }
      }
      std::string nfxstatus = "status@" + nfx_callsign;
      if(controllerRemoteObject->Get(1000, _T(nfxstatus), pluginResponse) == Core::ERROR_NONE)
      {
-         printf("Obtained netflix status = %s\n",nfxstatus.c_str());
+         GDIAL_LOGINFO("Obtained netflix status = %s",nfxstatus.c_str());
          Core::JSON::ArrayType<PluginHost::MetaData::Service>::Iterator index(pluginResponse.Elements());
          while (index.Next() == true) {
                 netflixState = index.Current().JSONState.Data();
          } //end of while loop
      } //end of if case for querrying
-     printf("Netflix State = %s\n",netflixState.c_str());
+     GDIAL_LOGINFO("Netflix State = %s",netflixState.c_str());
      return netflixState;
 }
 void stop_netflix()
@@ -483,9 +565,9 @@ void stop_netflix()
 }
 
 int gdial_os_application_stop(const char *app_name, int instance_id) {
-    printf("RTDIAL gdial_os_application_stop: appName = %s appID = %s\n",app_name,std::to_string(instance_id).c_str());
+    GDIAL_LOGINFO("RTDIAL gdial_os_application_stop: appName = %s appID = %s",app_name,std::to_string(instance_id).c_str());
     if((strcmp(app_name,"system") == 0)){
-        printf("RTDIAL delete not supported for system app return GDIAL_APP_ERROR_BAD_REQUEST\n");
+        GDIAL_LOGINFO("RTDIAL delete not supported for system app return GDIAL_APP_ERROR_BAD_REQUEST");
         return GDIAL_APP_ERROR_BAD_REQUEST;
     }
     std::string State = AppCache->SearchAppStatusInCache(app_name);
@@ -496,14 +578,14 @@ int gdial_os_application_stop(const char *app_name, int instance_id) {
     char* enable_stop = getenv("ENABLE_NETFLIX_STOP");
     if ( enable_stop != NULL ) {
        if ( strcmp(app_name,"Netflix") == 0 && strcmp(enable_stop,"true") == 0) {
-           printf("NTS TESTING: force shutdown Netflix thunder plugin\n");
+           GDIAL_LOGINFO("NTS TESTING: force shutdown Netflix thunder plugin");
            stop_netflix();
            sleep(1);
        }
     }
     rtCastError ret = DialObj->stopApplication(app_name,std::to_string(instance_id).c_str()); 
     if (RTCAST_ERROR_CAST(ret) != CAST_ERROR_NONE) {
-        printf("RTDIAL: DialObj.stopApplication failed!!! Error=%x\n",RTCAST_ERROR_CAST(ret));
+        GDIAL_LOGINFO("RTDIAL: DialObj.stopApplication failed!!! Error=%x",RTCAST_ERROR_CAST(ret));
         return GDIAL_APP_ERROR_INTERNAL;
     }
     return GDIAL_APP_ERROR_NONE;
@@ -511,11 +593,11 @@ int gdial_os_application_stop(const char *app_name, int instance_id) {
 
 int gdial_os_application_hide(const char *app_name, int instance_id) {
     if((strcmp(app_name,"system") == 0)){
-        printf("RTDIAL system app already in hidden state\n");
+        GDIAL_LOGINFO("RTDIAL system app already in hidden state");
         return GDIAL_APP_ERROR_NONE;
     }
     #if 0
-    printf("RTDIAL gdial_os_application_hide-->stop: appName = %s appID = %s\n",app_name,std::to_string(instance_id).c_str());
+    GDIAL_LOGINFO("RTDIAL gdial_os_application_hide-->stop: appName = %s appID = %s",app_name,std::to_string(instance_id).c_str());
     std::string State = AppCache->SearchAppStatusInCache(app_name);
     if (0 && State != "running") {
         return GDIAL_APP_ERROR_BAD_REQUEST;
@@ -524,20 +606,20 @@ int gdial_os_application_hide(const char *app_name, int instance_id) {
     if(strncmp("YouTube", app_name, 7) != 0) {
        rtCastError ret = DialObj->stopApplication(app_name,std::to_string(instance_id).c_str());
        if (RTCAST_ERROR_CAST(ret) != CAST_ERROR_NONE) {
-           printf("RTDIAL: DialObj.stopApplication failed!!! Error=%x\n",RTCAST_ERROR_CAST(ret));
+           GDIAL_LOGINFO("RTDIAL: DialObj.stopApplication failed!!! Error=%x",RTCAST_ERROR_CAST(ret));
            return GDIAL_APP_ERROR_INTERNAL;
        }
        return GDIAL_APP_ERROR_NONE;
     }
     return GDIAL_APP_ERROR_NONE;
     #else
-    printf("RTDIAL gdial_os_application_hide: appName = %s appID = %s\n",app_name,std::to_string(instance_id).c_str());
+    GDIAL_LOGINFO("RTDIAL gdial_os_application_hide: appName = %s appID = %s",app_name,std::to_string(instance_id).c_str());
     std::string State = AppCache->SearchAppStatusInCache(app_name);
     if (State != "running")
         return GDIAL_APP_ERROR_BAD_REQUEST;
     rtCastError ret = DialObj->hideApplication(app_name,std::to_string(instance_id).c_str());
     if (RTCAST_ERROR_CAST(ret) != CAST_ERROR_NONE) {
-        printf("RTDIAL: DialObj.hideApplication failed!!! Error=%x\n",RTCAST_ERROR_CAST(ret));
+        GDIAL_LOGINFO("RTDIAL: DialObj.hideApplication failed!!! Error=%x",RTCAST_ERROR_CAST(ret));
         return GDIAL_APP_ERROR_INTERNAL;
     }
     return GDIAL_APP_ERROR_NONE;
@@ -545,10 +627,10 @@ int gdial_os_application_hide(const char *app_name, int instance_id) {
 }
 
 int gdial_os_application_resume(const char *app_name, int instance_id) {
-    printf("RTDIAL gdial_os_application_resume: appName = %s appID = %s\n",app_name,std::to_string(instance_id).c_str());
+    GDIAL_LOGINFO("RTDIAL gdial_os_application_resume: appName = %s appID = %s",app_name,std::to_string(instance_id).c_str());
 
     if((strcmp(app_name,"system") == 0)){
-        printf("RTDIAL system app can not be resume\n");
+        GDIAL_LOGINFO("RTDIAL system app can not be resume");
         return GDIAL_APP_ERROR_NONE;
     }
     std::string State = AppCache->SearchAppStatusInCache(app_name);
@@ -556,28 +638,28 @@ int gdial_os_application_resume(const char *app_name, int instance_id) {
         return GDIAL_APP_ERROR_BAD_REQUEST;
     rtCastError ret = DialObj->resumeApplication(app_name,std::to_string(instance_id).c_str());
     if (RTCAST_ERROR_CAST(ret) != CAST_ERROR_NONE) {
-        printf("RTDIAL: DialObj.resumeApplication failed!!! Error=%x\n",RTCAST_ERROR_CAST(ret));
+        GDIAL_LOGINFO("RTDIAL: DialObj.resumeApplication failed!!! Error=%x",RTCAST_ERROR_CAST(ret));
         return GDIAL_APP_ERROR_INTERNAL;
     }
     return GDIAL_APP_ERROR_NONE;
 }
 
 int gdial_os_application_state(const char *app_name, int instance_id, GDialAppState *state) {
-    printf("RTDIAL gdial_os_application_state: App = %s \n",app_name);
+    GDIAL_LOGINFO("RTDIAL gdial_os_application_state: App = %s Id = %d",app_name,instance_id);
     if((strcmp(app_name,"system") == 0)){
         *state = GDIAL_APP_STATE_HIDE;
-        printf("RTDIAL getApplicationState: AppState = suspended \n");
+        GDIAL_LOGINFO("RTDIAL getApplicationState: AppState = suspended ");
         return GDIAL_APP_ERROR_NONE;
     }
     std::string State = AppCache->SearchAppStatusInCache(app_name);
-    printf("RTDIAL getApplicationState: AppState = %s \n",State.c_str());
+    GDIAL_LOGINFO("RTDIAL getApplicationState: AppState = %s ",State.c_str());
     /*
      *  return cache, but also trigger a refresh
      */
     if((strcmp(app_name,"system") != 0) &&( true || State == "NOT_FOUND")) {
         rtCastError ret = DialObj->getApplicationState(app_name,NULL);
         if (RTCAST_ERROR_CAST(ret) != CAST_ERROR_NONE) {
-            printf("RTDIAL: DialObj.getApplicationState failed!!! Error: %x\n",RTCAST_ERROR_CAST(ret));
+            GDIAL_LOGINFO("RTDIAL: DialObj.getApplicationState failed!!! Error: %x",RTCAST_ERROR_CAST(ret));
             return GDIAL_APP_ERROR_INTERNAL;
         }
     }
@@ -596,60 +678,62 @@ int gdial_os_application_state(const char *app_name, int instance_id, GDialAppSt
     if ( enable_stop != NULL ) {
        if (strcmp(app_name,"Netflix") == 0 && strcmp(enable_stop,"true") == 0) {
          std::string app_state = GetCurrentState();
-         printf("RTDIAL: Presence of Netflix thunder plugin state = %s to confirm state\r\n", app_state.c_str());
+         GDIAL_LOGINFO("RTDIAL: Presence of Netflix thunder plugin state = %s to confirm state", app_state.c_str());
          if (app_state == "deactivated") {
            *state = GDIAL_APP_STATE_STOPPED;
-           printf("RTDIAL: app [%s] state converted to [%d]\r\n", app_name, *state);
+           GDIAL_LOGINFO("RTDIAL: app [%s] state converted to [%d]", app_name, *state);
          }
-         else if (app_state == "suspended" || app_state == "hidden")
+         else if (app_state == "suspended")
          {
             *state = GDIAL_APP_STATE_HIDE;
-            printf("RTDIAL: app [%s] state converted to [%d]\r\n", app_name, *state);
+            GDIAL_LOGINFO("RTDIAL: app [%s] state converted to [%d]", app_name, *state);
          }
 	 else {
-	    *state = GDIAL_APP_STATE_RUNNING;	 
+	        *state = GDIAL_APP_STATE_RUNNING;	 
          }		 
        }
     }
-
+    GDIAL_LOGINFO("Exiting ...");
     return GDIAL_APP_ERROR_NONE;
 }
 
 int gdial_os_application_state_changed(const char *applicationName, const char *applicationId, const char *state, const char *error)
 {
-    printf("RTDIAL gdial_os_application_state_changed : appName: %s  appId: [%s], state: [%s], error [%s]\n",
+    GDIAL_LOGINFO("RTDIAL gdial_os_application_state_changed : appName: %s  appId: [%s], state: [%s], error [%s]",
         applicationName, applicationId, state, error);
 
     rtCastError ret = DialObj->applicationStateChanged(applicationName,applicationId,state,error);
 
     if (RTCAST_ERROR_CAST(ret) != CAST_ERROR_NONE) {
-        printf("RTDIAL: DialObj.applicationStateChanged failed!!! Error=%x\n",RTCAST_ERROR_CAST(ret));
+        GDIAL_LOGINFO("RTDIAL: DialObj.applicationStateChanged failed!!! Error=%x",RTCAST_ERROR_CAST(ret));
         return GDIAL_APP_ERROR_INTERNAL;
     }
+    GDIAL_LOGINFO("Exiting ...");
     return GDIAL_APP_ERROR_NONE;
 }
 
 int gdial_os_application_activation_changed(const char *activation, const char *friendlyname)
 {
-    printf("RTDIAL gdial_os_application_activation_changed : activation: %s  friendlyname: [%s]\n",activation, friendlyname);
+    GDIAL_LOGINFO("RTDIAL gdial_os_application_activation_changed : activation: %s  friendlyname: [%s]",activation, friendlyname);
 
     rtCastError ret = DialObj->activationChanged(activation,friendlyname);
 
     if (RTCAST_ERROR_CAST(ret) != CAST_ERROR_NONE) {
-        printf("RTDIAL: DialObj.friendlyNameChanged failed!!! Error=%x\n",RTCAST_ERROR_CAST(ret));
+        GDIAL_LOGINFO("RTDIAL: DialObj.friendlyNameChanged failed!!! Error=%x",RTCAST_ERROR_CAST(ret));
         return GDIAL_APP_ERROR_INTERNAL;
     }
+    GDIAL_LOGINFO("Exiting ...");
     return GDIAL_APP_ERROR_NONE;
 }
 
 int gdial_os_application_friendlyname_changed(const char *friendlyname)
 {
-    printf("RTDIAL gdial_os_application_friendlyname_changed : friendlyname: [%s]\n",friendlyname);
+    GDIAL_LOGINFO("RTDIAL gdial_os_application_friendlyname_changed : friendlyname: [%s]",friendlyname);
 
     rtCastError ret = DialObj->friendlyNameChanged(friendlyname);
 
     if (RTCAST_ERROR_CAST(ret) != CAST_ERROR_NONE) {
-        printf("RTDIAL: DialObj.friendlyNameChanged failed!!! Error=%x\n",RTCAST_ERROR_CAST(ret));
+        GDIAL_LOGINFO("RTDIAL: DialObj.friendlyNameChanged failed!!! Error=%x",RTCAST_ERROR_CAST(ret));
         return GDIAL_APP_ERROR_INTERNAL;
     }
     return GDIAL_APP_ERROR_NONE;
@@ -657,27 +741,34 @@ int gdial_os_application_friendlyname_changed(const char *friendlyname)
 
 const char* gdial_os_application_get_protocol_version(void)
 {
-    printf("RTDIAL gdial_os_application_activation_changed\n");
+    GDIAL_LOGINFO("RTDIAL gdial_os_application_activation_changed");
 
     return (DialObj->getProtocolVersion());
 }
 
 int gdial_os_application_register_applications(void* appList)
 {
-    printf("RTDIAL gdial_os_application_register_applications :\n");
+    GDIAL_LOGINFO("RTDIAL gdial_os_application_register_applications :");
 
     rtCastError ret = DialObj->registerApplications(appList);
 
     if (RTCAST_ERROR_CAST(ret) != CAST_ERROR_NONE) {
-        printf("RTDIAL: DialObj.registerApplications failed!!! Error=%x\n",RTCAST_ERROR_CAST(ret));
+        GDIAL_LOGINFO("RTDIAL: DialObj.registerApplications failed!!! Error=%x",RTCAST_ERROR_CAST(ret));
         return GDIAL_APP_ERROR_INTERNAL;
     }
     return GDIAL_APP_ERROR_NONE;
 }
 
+void gdial_os_application_update_network_standby_mode(gboolean nwstandbymode)
+{
+    GDIAL_LOGINFO("nwstandbymode:%u",nwstandbymode);
+
+    DialObj->updateNetworkStandbyMode(nwstandbymode);
+}
+
 int gdial_os_application_service_notification(gboolean isNotifyRequired, void* notifier)
 {
-    printf("RTDIAL gdial_os_application_register_applications : %u\n",isNotifyRequired);
+    GDIAL_LOGINFO("Entering isNotifyRequired : %u",isNotifyRequired);
     if (isNotifyRequired)
     {
         DialObj->setService(static_cast<GDialNotifier*>(notifier));
@@ -686,4 +777,7 @@ int gdial_os_application_service_notification(gboolean isNotifyRequired, void* n
     {
         DialObj->setService(nullptr);
     }
+    GDIAL_LOGINFO("Exiting ...");;
+    //sleep(3);
+    return GDIAL_APP_ERROR_NONE;
 }
