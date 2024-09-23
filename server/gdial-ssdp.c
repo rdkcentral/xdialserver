@@ -107,6 +107,7 @@ static void ssdp_http_server_callback(SoupServer *server, SoupMessage *msg, cons
   gchar *application_url_str = g_strdup_printf("http://%s:%d/%s/", iface_ipv4_address, GDIAL_REST_HTTP_PORT,app_random_uuid);
   soup_message_headers_replace (msg->response_headers, "Application-URL", application_url_str);
   g_free(application_url_str);
+  application_url_str = NULL;
   soup_message_set_response(msg, "text/xml; charset=utf-8", SOUP_MEMORY_STATIC, dd_xml_response_str_, dd_xml_response_str_len);
   soup_message_set_status(msg, SOUP_STATUS_OK);
   GDIAL_CHECK("Content-Type:text/xml");
@@ -121,6 +122,7 @@ void gdial_ssdp_networkstandbymode_handler(const bool nwstandby)
         gchar *dial_ssdp_WAKEUP = g_strdup_printf(DIAL_SSDP_WAKEUP_FMT,gdial_plat_util_get_iface_mac_addr(gdial_options_->iface_name),MAX_POWERON_TIME);
         gssdp_client_append_header(ssdp_client_, "WAKEUP", dial_ssdp_WAKEUP);
         g_free(dial_ssdp_WAKEUP);
+        dial_ssdp_WAKEUP = NULL;
      }
      else{
         GDIAL_LOGINFO("gdial_ssdp_networkstandbymode_handler remove WAKEUP header  ");
@@ -137,6 +139,8 @@ int gdial_ssdp_new(SoupServer *ssdp_http_server, GDialOptions *options, const gc
   g_return_val_if_fail(options->iface_name != NULL, -1);
 
   gdial_options_ = options;
+  GDIAL_LOGINFO("gdial_options_->friendly_name[%p]",gdial_options_->friendly_name);
+
   if (gdial_options_->friendly_name == NULL) gdial_options_->friendly_name = g_strdup(GDIAL_SSDP_FRIENDLY_DEFAULT);
   if (gdial_options_->manufacturer== NULL) gdial_options_->manufacturer = g_strdup(GDIAL_SSDP_MANUFACTURER_DEFAULT);
   if (gdial_options_->model_name== NULL) gdial_options_->model_name = g_strdup(GDIAL_SSDP_MODELNAME_DEFAULT);
@@ -177,6 +181,7 @@ int gdial_ssdp_new(SoupServer *ssdp_http_server, GDialOptions *options, const gc
     gchar *dial_ssdp_WAKEUP = g_strdup_printf(DIAL_SSDP_WAKEUP_FMT,gdial_plat_util_get_iface_mac_addr(gdial_options_->iface_name),MAX_POWERON_TIME);
     gssdp_client_append_header(ssdp_client, "WAKEUP", dial_ssdp_WAKEUP);
     g_free(dial_ssdp_WAKEUP);
+    dial_ssdp_WAKEUP = NULL;
   }
   else {
     GDIAL_LOGINFO("WOL Wake feature is disabled");
@@ -192,7 +197,9 @@ int gdial_ssdp_new(SoupServer *ssdp_http_server, GDialOptions *options, const gc
     gssdp_resource_group_add_resource_simple (ssdp_resource_group, dial_ssdp_ST_target, dial_ssdp_USN, dial_ssdp_LOCATION);
   gssdp_resource_group_set_available (ssdp_resource_group, FALSE);
   g_free(dial_ssdp_USN);
+  dial_ssdp_USN = NULL;
   g_free(dial_ssdp_LOCATION);
+  dial_ssdp_LOCATION = NULL;
 
   ssdp_resource_group_ = ssdp_resource_group;
 
@@ -207,23 +214,66 @@ int gdial_ssdp_new(SoupServer *ssdp_http_server, GDialOptions *options, const gc
 }
 
 int gdial_ssdp_destroy() {
-  soup_server_remove_handler(ssdp_http_server_, "/dd.xml");
-  gssdp_resource_group_remove_resource(ssdp_resource_group_, ssdp_resource_id_);
-
-  if (dd_xml_response_str_) {
-    g_free(dd_xml_response_str_);
+  GDIAL_LOGTRACE("Entering ...");
+  if (ssdp_http_server_)
+  {
+    soup_server_remove_handler(ssdp_http_server_, "/dd.xml");
   }
-  if (gdial_options_->friendly_name != NULL) g_free(gdial_options_->friendly_name);
-  if (gdial_options_->uuid != NULL) g_free(gdial_options_->uuid);
-  if (gdial_options_->iface_name != NULL) g_free(gdial_options_->iface_name);
-  if (app_random_uuid) g_free(app_random_uuid);
 
-  gssdp_client_clear_headers(ssdp_client_);
+  if (ssdp_resource_group_)
+  {
+    gssdp_resource_group_remove_resource(ssdp_resource_group_, ssdp_resource_id_);
+    ssdp_resource_id_ = 0;
+  }
 
-  g_object_unref(ssdp_http_server_);
-  g_object_unref(ssdp_resource_group_);
-  g_object_unref(ssdp_client_);
-
+  if (dd_xml_response_str_)
+  {
+    g_free(dd_xml_response_str_);
+    dd_xml_response_str_ = NULL;
+  }
+  if (gdial_options_)
+  {
+    if (gdial_options_->friendly_name != NULL)
+    {
+        g_free(gdial_options_->friendly_name);
+        gdial_options_->friendly_name = NULL;
+    }
+    if (gdial_options_->uuid != NULL)
+    {
+        g_free(gdial_options_->uuid);
+        gdial_options_->uuid = NULL;
+    }
+    if (gdial_options_->iface_name != NULL)
+    {
+        g_free(gdial_options_->iface_name);
+        gdial_options_->iface_name = NULL;
+    }
+    gdial_options_ = NULL;
+  }
+  if (app_random_uuid != NULL) {
+    g_free(app_random_uuid);
+    app_random_uuid = NULL;
+  }
+  if (ssdp_client_)
+  {
+    gssdp_client_clear_headers(ssdp_client_);
+  }
+  if (ssdp_http_server_)
+  {
+    g_object_unref(ssdp_http_server_);
+    ssdp_http_server_ = NULL;
+  }
+  if (ssdp_resource_group_)
+  {
+    g_object_unref(ssdp_resource_group_);
+    ssdp_resource_group_ = NULL;
+  }
+  if (ssdp_client_)
+  {
+    g_object_unref(ssdp_client_);
+    ssdp_client_ = NULL;
+  }
+  GDIAL_LOGTRACE("Exiting ...");
   return 0;
 }
 

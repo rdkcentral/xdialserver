@@ -17,10 +17,10 @@
  * limitations under the License.
 */
 
-#ifndef _RT_CACHE_H_
-#define _RT_CACHE_H_
+#ifndef _GDIAL_APPCACHE_H_
+#define _GDIAL_APPCACHE_H_
 
-#include "rtRemoteObjectCache.hpp"
+#include "gdialobjCacheHelper.hpp"
 #include <sstream>
 #include <iostream>
 #include <chrono>
@@ -31,11 +31,18 @@
 
 using namespace std;
 
-class rtAppStatusCache
+class GDialAppStatusCache
 {
 public:
-    rtAppStatusCache() {ObjectCache = new rtRemoteObjectCache();};
-    ~rtAppStatusCache() {delete(ObjectCache); };
+    GDialAppStatusCache() {
+        ObjectCache = new GDialObjectCacheHelper();
+        GDIAL_LOGINFO("ObjectCache[%p]",ObjectCache);
+    };
+    ~GDialAppStatusCache() {
+        GDIAL_LOGINFO("ObjectCache[%p]",ObjectCache);
+        delete ObjectCache;
+        ObjectCache = nullptr;
+    };
     std::string getAppCacheId(const char* app_name);
     void setAppCacheId(std::string app_name,std::string id);
     AppCacheErrorCodes UpdateAppStatusCache(AppInfo* appEntry);
@@ -48,7 +55,7 @@ public:
     }
 
 private:
-    rtRemoteObjectCache* ObjectCache;
+    GDialObjectCacheHelper* ObjectCache;
     GDialNotifier* m_observer;
     static std::string Netflix_AppCacheId;
     static std::string Youtube_AppCacheId;

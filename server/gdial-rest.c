@@ -76,7 +76,7 @@ static gboolean gdial_soup_message_security_check(SoupMessage *msg) {
 }
 
 static void gdial_soup_message_set_http_error(SoupMessage *msg, guint state_code) {
-  GDIAL_LOGERROR("%s::uri=%s::state_code=%d", __FUNCTION__, soup_uri_get_path(soup_message_get_uri(msg)), state_code);
+  GDIAL_LOGERROR("uri[%s] state_code[%d]", soup_uri_get_path(soup_message_get_uri(msg)), state_code);
   soup_message_headers_replace(msg->response_headers, "Connection", "close");
   soup_message_set_status(msg, state_code);
   return;
@@ -931,7 +931,10 @@ static void gdial_rest_http_server_apps_callback(SoupServer *server,
 static void gdial_rest_server_dispose(GObject *object) {
   GDialRestServerPrivate *priv = gdial_rest_server_get_instance_private(GDIAL_REST_SERVER(object));
   soup_server_remove_handler(priv->soup_instance, GDIAL_REST_HTTP_APPS_URI);
-  if(GDIAL_REST_HTTP_APPS_URI) g_free(GDIAL_REST_HTTP_APPS_URI);
+  if(GDIAL_REST_HTTP_APPS_URI) {
+    g_free(GDIAL_REST_HTTP_APPS_URI);
+    GDIAL_REST_HTTP_APPS_URI = NULL;
+  }
   g_object_unref(priv->soup_instance);
   g_object_unref(priv->local_soup_instance);
   while (priv->registered_apps) {

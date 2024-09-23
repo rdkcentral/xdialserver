@@ -46,8 +46,6 @@ include_directories(
   ${PROJECT_SOURCE_DIR}/include
   ${PROJECT_SOURCE_DIR}/plat
   ${CMAKE_CURRENT_SOURCE_DIR}
-  $ENV{PKG_CONFIG_SYSROOT_DIR}/usr/include/rdk/rtcast
-  $ENV{PKG_CONFIG_SYSROOT_DIR}/usr/include/pxcore
   $ENV{PKG_CONFIG_SYSROOT_DIR}/usr/include/WPEFramework
   $ENV{PKG_CONFIG_SYSROOT_DIR}/usr/include/WPEFramework/core/
   $ENV{PKG_CONFIG_SYSROOT_DIR}/usr/include/WPEFramework/plugins/
@@ -61,8 +59,8 @@ set (GDIAL_PLAT_LIB_SOURCE_FILES
   ${PROJECT_SOURCE_DIR}/plat/gdial-plat-dev.c
   ${PROJECT_SOURCE_DIR}/plat/gdial-plat-util.c
   ${PROJECT_SOURCE_DIR}/plat/gdial_app_registry.c
-  ${PROJECT_SOURCE_DIR}/plat/rtdial.cpp
-  ${PROJECT_SOURCE_DIR}/plat/rtcache.cpp
+  ${PROJECT_SOURCE_DIR}/plat/gdial.cpp
+  ${PROJECT_SOURCE_DIR}/plat/gdialappcache.cpp
   ${PROJECT_SOURCE_DIR}/plat/Module.cpp
 )
 

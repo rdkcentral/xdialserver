@@ -93,7 +93,7 @@ public:
     virtual void onApplicationHideRequest(string appName, string appID) override;
     virtual void onApplicationResumeRequest(string appName, string appID) override;
     virtual void onApplicationStateRequest(string appName, string appID) override;
-    virtual void onDisconnect() override;
+    virtual void onStopped() override;
     virtual void updatePowerState(string powerState) override;
 
 private:
@@ -103,11 +103,11 @@ private:
     GDialNotifier *m_observer;
     pthread_t m_gdialserver_main_thread{0};
 
-    static void *GDialMain(void *ctx);
+    static void *mainThread(void *ctx);
     GMainLoop *m_main_loop{nullptr};
     GMainContext *m_main_loop_context{nullptr};
 
-    static void *GDialRequestHandler(void *ctx);
+    static void *requestHandlerThread(void *ctx);
     pthread_t m_gdialserver_request_handler_thread{0};
     bool m_RequestHandlerThreadExit{0};
     bool m_RequestHandlerThreadRun{0};
@@ -115,7 +115,7 @@ private:
     std::queue<RequestHandlerPayload> m_RequestHandlerQueue;
     std::condition_variable m_RequestHandlerCV;
 
-    static void *GDialResponseHandler(void *ctx);
+    static void *responseHandlerThread(void *ctx);
     pthread_t m_gdialserver_response_handler_thread{0};
     bool m_ResponseHandlerThreadExit{0};
     bool m_ResponseHandlerThreadRun{0};
