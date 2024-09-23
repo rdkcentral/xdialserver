@@ -17,21 +17,21 @@
  * limitations under the License.
 */
 
-#include "rtcache.hpp"
+#include "gdialappcache.hpp"
 
-std::string rtAppStatusCache::Netflix_AppCacheId = "DialNetflix";
-std::string rtAppStatusCache::Youtube_AppCacheId = "DialYoutube";
+std::string GDialAppStatusCache::Netflix_AppCacheId = "DialNetflix";
+std::string GDialAppStatusCache::Youtube_AppCacheId = "DialYoutube";
 
-std::string rtAppStatusCache :: getAppCacheId(const char* app_name)
+std::string GDialAppStatusCache :: getAppCacheId(const char* app_name)
 {
     if (nullptr == app_name)
     {
         return std::string("");
     }
     if(!strcmp(app_name,"Netflix"))
-        return rtAppStatusCache::Netflix_AppCacheId;
+        return GDialAppStatusCache::Netflix_AppCacheId;
     else if(!strcmp(app_name,"YouTube"))
-        return rtAppStatusCache::Youtube_AppCacheId;
+        return GDialAppStatusCache::Youtube_AppCacheId;
     else
     {
         GDIAL_LOGINFO("default case : App Name is id");
@@ -39,18 +39,18 @@ std::string rtAppStatusCache :: getAppCacheId(const char* app_name)
     }
 }
 
-void rtAppStatusCache :: setAppCacheId(std::string app_name,std::string id)
+void GDialAppStatusCache :: setAppCacheId(std::string app_name,std::string id)
 {
     GDIAL_LOGTRACE("Entering ...");
     if(!strcmp(app_name.c_str(),"Netflix"))
     {
-        rtAppStatusCache::Netflix_AppCacheId = id;
-        GDIAL_LOGINFO("App cache Id of Netflix updated to %s",rtAppStatusCache::Netflix_AppCacheId.c_str());
+        GDialAppStatusCache::Netflix_AppCacheId = id;
+        GDIAL_LOGINFO("App cache Id of Netflix updated to %s",GDialAppStatusCache::Netflix_AppCacheId.c_str());
     }
     else if(!strcmp(app_name.c_str(),"YouTube"))
     {
-        rtAppStatusCache::Youtube_AppCacheId = id;
-        GDIAL_LOGINFO("App cache Id of Youtube updated to %s",rtAppStatusCache::Youtube_AppCacheId.c_str());
+        GDialAppStatusCache::Youtube_AppCacheId = id;
+        GDIAL_LOGINFO("App cache Id of Youtube updated to %s",GDialAppStatusCache::Youtube_AppCacheId.c_str());
     }
     else
     {
@@ -59,12 +59,12 @@ void rtAppStatusCache :: setAppCacheId(std::string app_name,std::string id)
     GDIAL_LOGTRACE("Exiting ...");
 }
 
-AppCacheErrorCodes rtAppStatusCache::UpdateAppStatusCache(AppInfo* appEntry)
+AppCacheErrorCodes GDialAppStatusCache::UpdateAppStatusCache(AppInfo* appEntry)
 {
     GDIAL_LOGTRACE("Entering ...");
     AppCacheErrorCodes err;
-    GDIAL_LOGINFO("RTCACHE : App Name = %s App ID = %s App State = %s Error = %s"
-                    ,appEntry->appName.c_str(),
+    GDIAL_LOGINFO("APPCache: AppName[%s] AppID[%s] AppState[%s] Error[%s]",
+                    appEntry->appName.c_str(),
                     appEntry->appId.c_str(),
                     appEntry->appState.c_str(),
                     appEntry->appError.c_str());
@@ -80,7 +80,7 @@ AppCacheErrorCodes rtAppStatusCache::UpdateAppStatusCache(AppInfo* appEntry)
     return err;
 }
 
-std::string rtAppStatusCache::SearchAppStatusInCache(const char* app_name)
+std::string GDialAppStatusCache::SearchAppStatusInCache(const char* app_name)
 {
     GDIAL_LOGTRACE("Entering ...");
     std::string state = "NOT_FOUND";
@@ -91,8 +91,7 @@ std::string rtAppStatusCache::SearchAppStatusInCache(const char* app_name)
         AppInfo* appEntry = ObjectCache->findObject(id);
 
         state = appEntry->appState;
-        GDIAL_LOGINFO("RTCACHE : %s App Name = %s App ID = %s Error = %s ",
-            __FUNCTION__,
+        GDIAL_LOGINFO("APPCache: App Name[%s] AppID[%s] Error[%s]",
             appEntry->appName.c_str(),
             appEntry->appId.c_str(),
             appEntry->appError.c_str());
@@ -102,18 +101,15 @@ std::string rtAppStatusCache::SearchAppStatusInCache(const char* app_name)
     return state;
 }
 
-bool rtAppStatusCache::doIdExist(std::string id)
+bool GDialAppStatusCache::doIdExist(std::string id)
 {
-    bool returnValue = true;
-    GDIAL_LOGTRACE("Entering ...");
-    if(ObjectCache->touch(id)!= AppCacheErrorCodes::OK)
+    bool returnValue = false;
+    GDIAL_LOGTRACE("Entering [%p] ...",ObjectCache);
+    if(ObjectCache->touch(id) == AppCacheError_OK)
     {
-       GDIAL_LOGINFO("False");
-       returnValue = false;
+       returnValue = true;
     }
-    else{
-        GDIAL_LOGINFO("True");
-    }
+    GDIAL_LOGINFO("IdExist [%s]",returnValue ? "true" : "false");
     GDIAL_LOGTRACE("Exiting ...");
     return returnValue;
 }

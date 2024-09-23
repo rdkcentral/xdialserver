@@ -181,7 +181,7 @@ class gdialServiceTest: public GDialNotifier
             GDIAL_LOGINFO("App:%s  appID:%s",appName.c_str(),appID.c_str());
         }
 
-        virtual void onDisconnect() override
+        virtual void onStopped() override
         {
             GDIAL_LOGINFO("~~~~~~~~~~~");
         }
@@ -224,7 +224,16 @@ int main(int argc, char *argv[])
             break;
         }
 
-        if (input == "enable") {
+        if (input == "restart") {
+            GDIAL_LOGINFO("Restarting");
+            if (nullptr != testObject)
+            {
+                delete testObject;
+                testObject = nullptr;
+            }
+            testObject = new gdialServiceTest(gdial_args);
+        }
+        else if (input == "enable") {
             GDIAL_LOGINFO("Activation enabled");
             testObject->ActivationChanged(true);
         }

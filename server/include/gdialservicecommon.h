@@ -78,7 +78,7 @@ public:
     virtual void onApplicationHideRequest(string appName, string appID)=0;
     virtual void onApplicationResumeRequest(string appName, string appID)=0;
     virtual void onApplicationStateRequest(string appName, string appID)=0;
-    virtual void onDisconnect(void)=0;
+    virtual void onStopped(void)=0;
     virtual void updatePowerState(string powerState)=0;
 };
 #endif /* _GDIAL_SERVICE_COMMON_H_ */
