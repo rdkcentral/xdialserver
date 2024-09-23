@@ -24,7 +24,7 @@
 #include "gdial-config.h"
 #include "gdial-plat-app.h"
 #include "gdial-os-app.h"
-#include "rtdial.hpp"
+#include "gdial.hpp"
 #include "gdialservicelogging.h"
 
 static void gdial_app_state_cb_default(gint instance_id, GDialAppState state, gpointer user_data);
@@ -99,7 +99,9 @@ static void GDialPlatAppAsyncContext_destroy(gpointer data) {
   g_warn_if_fail(app_async_context->async_gsource == 0);
   GDIAL_LOGINFO("GDialPlatAppAsyncContext_destroy(%s)", app_async_context->type_str);
   g_free(app_async_context->name);
+  app_async_context->name = NULL;
   g_free(app_async_context->type_str);
+  app_async_context->type_str = NULL;
   app_async_context->user_data = NULL;
   if (app_async_context->type == GDIAL_PLAT_APP_ASYNC_CONTEXT_TYPE_START) {
     GDialPlatAppStartContext *app_start_context = (GDialPlatAppStartContext *)app_async_context;
@@ -134,29 +136,30 @@ static gboolean GSourceFunc_application_stop_async_cb(gpointer user_data) {
 void gdail_plat_register_activation_cb(gdial_plat_activation_cb cb)
 {
   g_activation_cb = cb;
-  rtdail_register_activation_cb((rtdial_activation_cb)cb);
+  gdial_register_activation_cb((gdial_activation_cb)cb);
 }
 
 void gdail_plat_register_friendlyname_cb(gdial_plat_friendlyname_cb cb)
 {
   g_friendlyname_cb = cb;
-  rtdail_register_friendlyname_cb(cb);
+  gdial_register_friendlyname_cb(cb);
 }
 
 void gdail_plat_register_registerapps_cb(gdial_plat_registerapps_cb cb)
 {
   g_registerapps_cb = cb;
-  rtdail_register_registerapps_cb(cb);
+  gdial_register_registerapps_cb(cb);
 }
 
 gint gdial_plat_init(GMainContext *main_context) {
   g_return_val_if_fail(main_context != NULL, GDIAL_APP_ERROR_INTERNAL);
   g_return_val_if_fail((g_main_context_ == NULL || g_main_context_ == main_context), GDIAL_APP_ERROR_INTERNAL);
+
   g_main_context_ = g_main_context_ref(main_context);
 
-  if(!rtdial_init(g_main_context_)) {
-      GDIAL_LOGERROR("rtdial_init failed !!!!!");
-      return GDIAL_APP_ERROR_INTERNAL;
+  if(!gdial_init(main_context)) {
+    GDIAL_LOGERROR("gdial_init failed !!!!!");
+    return GDIAL_APP_ERROR_INTERNAL;
   }
 
   if (gdial_plat_app_async_contexts == NULL) {
@@ -276,10 +279,18 @@ void gdial_plat_application_remove_async_source(void *async_source) {
 }
 
 void gdial_plat_term() {
-  rtdial_term();
-  g_main_context_unref(g_main_context_);
-  g_warn_if_fail(g_hash_table_size(gdial_plat_app_async_contexts) == 0);
-  g_hash_table_unref(gdial_plat_app_async_contexts);
+  gdial_term();
+  if (g_main_context_)
+  {
+    g_main_context_unref(g_main_context_);
+    g_main_context_ = NULL;
+  }
+  if (gdial_plat_app_async_contexts)
+  {
+    g_warn_if_fail(g_hash_table_size(gdial_plat_app_async_contexts) == 0);
+    g_hash_table_unref(gdial_plat_app_async_contexts);
+    gdial_plat_app_async_contexts = NULL;
+  }
   return;
 }
 

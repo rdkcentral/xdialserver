@@ -172,7 +172,6 @@ static void gdial_app_class_init (GDialAppClass *klass) {
             G_TYPE_NONE, 1, /* return type, arg num */
             G_TYPE_POINTER); /* arg types */
 
-  gdial_plat_init(g_main_context_default());
   gdial_plat_application_set_state_cb(gdial_plat_app_state_cb, NULL);
 }
 
@@ -343,6 +342,7 @@ void gdial_app_set_additional_dial_data(GDialApp *app, GHashTable *additional_di
     gdial_app_write_additional_dial_data(app->name, query_str, length);
   }
   g_free(query_str);
+  query_str = NULL;
 }
 
 GHashTable *gdial_app_get_additional_dial_data(GDialApp *app) {
@@ -370,9 +370,12 @@ void gdial_app_refresh_additional_dial_data(GDialApp *app) {
       GDIAL_LOGINFO("gdial_app_refresh_additional_dial_data [%s]", data);
     }
   }
-  if(data){
+
+  if (data) {
     g_free(data);
+    data = NULL;
   }
+
   GDIAL_LOGTRACE("Exiting ...");
 }
 
@@ -430,6 +433,7 @@ GDIAL_STATIC gboolean gdial_app_write_additional_dial_data(const gchar *app_name
   }
   g_object_unref(gfile);
   g_free(filename);
+  filename = NULL;
 
   return result;
 }
@@ -475,6 +479,7 @@ GDIAL_STATIC gboolean gdial_app_read_additional_dial_data(const gchar *app_name,
 
   g_object_unref(gfile);
   g_free(filename);
+  filename = NULL;
 
   GDIAL_LOGTRACE("Exiting ...");
 
@@ -496,6 +501,7 @@ GDIAL_STATIC gboolean gdial_app_remove_additional_dial_data_file(const gchar *ap
   }
   g_object_unref(gfile);
   g_free(filename);
+  filename = NULL;
 
   return result;
 }

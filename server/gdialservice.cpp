@@ -206,13 +206,13 @@ static void gdial_quit_thread(int signum)
   //if(m_gdialServiceImpl->m_main_loop)g_main_loop_quit(m_gdialServiceImpl->m_main_loop);
 }
 
-static SoupServer * m_servers[3] = {};
+static SoupServer * m_servers[3] = {NULL,NULL,NULL};
 
 int gdialServiceImpl::start_GDialServer(int argc, char *argv[])
 {
     GError *error = NULL;
     int returnValue = EXIT_FAILURE;
-    GDIAL_LOGINFO("Entering ...");
+    GDIAL_LOGTRACE("Entering ...");
     GOptionContext *option_context = g_option_context_new(NULL);
     g_option_context_add_main_entries(option_context, option_entries_, NULL);
 
@@ -220,7 +220,7 @@ int gdialServiceImpl::start_GDialServer(int argc, char *argv[])
     {
         GDIAL_LOGERROR ("%s", error->message);
         g_error_free(error);
-        GDIAL_LOGINFO("Exiting ...");
+        GDIAL_LOGTRACE("Exiting ...");
         return returnValue;
     }
 
@@ -239,7 +239,7 @@ int gdialServiceImpl::start_GDialServer(int argc, char *argv[])
             GDIAL_LOGWARNING("Warning: interface %s does not have IP", options_.iface_name);
             if(i >= MAX_RETRY )
             {
-                GDIAL_LOGINFO("Exiting ...");
+                GDIAL_LOGTRACE("Exiting ...");
                 return returnValue;
             }
             sleep(2);
@@ -250,7 +250,8 @@ int gdialServiceImpl::start_GDialServer(int argc, char *argv[])
         }
     }
 
-    m_main_loop_context = g_main_context_default();
+    //m_main_loop_context = g_main_context_default();
+    m_main_loop_context = g_main_context_new();
     g_main_context_push_thread_default(m_main_loop_context);
     m_main_loop = g_main_loop_new(m_main_loop_context, FALSE);
     gdial_plat_init(m_main_loop_context);
@@ -274,7 +275,7 @@ int gdialServiceImpl::start_GDialServer(int argc, char *argv[])
     {
         GDIAL_LOGERROR("%s", error->message);
         g_error_free(error);
-        GDIAL_LOGINFO("Exiting ...");
+        GDIAL_LOGTRACE("Exiting ...");
         return returnValue;
     }
     else
@@ -286,7 +287,7 @@ int gdialServiceImpl::start_GDialServer(int argc, char *argv[])
         {
             GDIAL_LOGERROR("%s", error->message);
             g_error_free(error);
-            GDIAL_LOGINFO("Exiting ...");
+            GDIAL_LOGTRACE("Exiting ...");
             return returnValue;
         }
         else
@@ -296,7 +297,7 @@ int gdialServiceImpl::start_GDialServer(int argc, char *argv[])
             {
                 GDIAL_LOGERROR("%s", error->message);
                 g_error_free(error);
-                GDIAL_LOGINFO("Exiting ...");
+                GDIAL_LOGTRACE("Exiting ...");
                 return returnValue;
             }
         }
@@ -437,8 +438,8 @@ int gdialServiceImpl::start_GDialServer(int argc, char *argv[])
         {
             GDIAL_LOGINFO("system is not enabled from cmdline");
         }
-
         g_free(app_list_low);
+        app_list_low = NULL;
     }
 
     g_signal_connect(dial_rest_server, "invalid-uri", G_CALLBACK(signal_handler_rest_server_invalid_uri), NULL);
@@ -468,9 +469,9 @@ int gdialServiceImpl::start_GDialServer(int argc, char *argv[])
     }
 
     g_main_context_pop_thread_default(m_main_loop_context);
-    pthread_create(&m_gdialserver_main_thread, nullptr, gdialServiceImpl::GDialMain, this);
-    pthread_create(&m_gdialserver_request_handler_thread, nullptr, gdialServiceImpl::GDialRequestHandler, this);
-    pthread_create(&m_gdialserver_response_handler_thread, nullptr, gdialServiceImpl::GDialResponseHandler, this);
+    pthread_create(&m_gdialserver_main_thread, nullptr, gdialServiceImpl::mainThread, this);
+    pthread_create(&m_gdialserver_request_handler_thread, nullptr, gdialServiceImpl::requestHandlerThread, this);
+    pthread_create(&m_gdialserver_response_handler_thread, nullptr, gdialServiceImpl::responseHandlerThread, this);
 
     if (( 0 == m_gdialserver_main_thread ) || ( 0 == m_gdialserver_request_handler_thread ) || ( 0 == m_gdialserver_response_handler_thread ))
     {
@@ -484,13 +485,13 @@ int gdialServiceImpl::start_GDialServer(int argc, char *argv[])
         gdial_plat_application_service_notification(true,this);
         GDIAL_LOGINFO("gdial_plat_application_service_notification done ...");
     }
-    GDIAL_LOGINFO("Exiting ...");
+    GDIAL_LOGTRACE("Exiting ...");
     return returnValue;
 }
 
 bool gdialServiceImpl::stop_GDialServer()
 {
-    GDIAL_LOGINFO("Exiting DIAL Server thread ");
+    GDIAL_LOGTRACE("Entering ...");
     server_activation_handler(0, "");
     //Sleeping 50 ms to allow existing request to finish processing.
     usleep(50000);
@@ -534,43 +535,54 @@ bool gdialServiceImpl::stop_GDialServer()
 
     for (int i = 0; i < sizeof(m_servers)/sizeof(m_servers[0]); i++)
     {
-        soup_server_disconnect(m_servers[i]);
-        g_object_unref(m_servers[i]);
+        if (m_servers[i])
+        {
+            soup_server_disconnect(m_servers[i]);
+            g_object_unref(m_servers[i]);
+            m_servers[i] = NULL;
+        }
     }
 
     gdial_shield_term();
     gdial_ssdp_destroy();
-    g_object_unref(dial_rest_server);
-    gdial_plat_application_service_notification(false,nullptr);
+    if (dial_rest_server)
+    {
+        g_object_unref(dial_rest_server);
+        dial_rest_server = NULL;
+    }
+    gdial_plat_application_service_notification(false,NULL);
     gdial_plat_term();
 
     if (m_main_loop)
     {
         g_main_loop_unref(m_main_loop);
-        m_main_loop = nullptr;
+        m_main_loop = NULL;
     }
+
     if (m_main_loop_context)
     {
         g_main_context_unref(m_main_loop_context);
-        m_main_loop_context = nullptr;
+        m_main_loop_context = NULL;
     }
+    GDIAL_LOGTRACE("Exiting ...");
     return true;
 }
 
-void *gdialServiceImpl::GDialMain(void *ctx)
+void *gdialServiceImpl::mainThread(void *ctx)
 {
-    GDIAL_LOGINFO("Entering ...");
+    GDIAL_LOGTRACE("Entering ...");
     gdialServiceImpl *_instance = (gdialServiceImpl *)ctx;
     g_main_context_push_thread_default(_instance->m_main_loop_context);
     g_main_loop_run(_instance->m_main_loop);
     _instance->m_gdialserver_main_thread = 0;
-    GDIAL_LOGINFO("Exiting ...");
+    g_main_context_pop_thread_default(_instance->m_main_loop_context);
+    GDIAL_LOGTRACE("Exiting ...");
     pthread_exit(nullptr);
 }
 
-void *gdialServiceImpl::GDialRequestHandler(void *ctx)
+void *gdialServiceImpl::requestHandlerThread(void *ctx)
 {
-    GDIAL_LOGINFO("Entering ...");
+    GDIAL_LOGTRACE("Entering ...");
     gdialServiceImpl *_instance = (gdialServiceImpl *)ctx;
     RequestHandlerPayload reqHdlrPayload;
     while(!_instance->m_RequestHandlerThreadExit)
@@ -654,11 +666,11 @@ void *gdialServiceImpl::GDialRequestHandler(void *ctx)
         }
     }
     _instance->m_gdialserver_request_handler_thread = 0;
-    GDIAL_LOGINFO("Exiting ...");
+    GDIAL_LOGTRACE("Exiting ...");
     pthread_exit(nullptr);
 }
 
-void *gdialServiceImpl::GDialResponseHandler(void *ctx)
+void *gdialServiceImpl::responseHandlerThread(void *ctx)
 {
     gdialServiceImpl *_instance = (gdialServiceImpl *)ctx;
     ResponseHandlerPayload response_data;
@@ -760,7 +772,7 @@ void *gdialServiceImpl::GDialResponseHandler(void *ctx)
         }
     }
     _instance->m_gdialserver_response_handler_thread = 0;
-    _instance->m_observer->onDisconnect();
+    _instance->m_observer->onStopped();
     pthread_exit(nullptr);
 }
 
@@ -785,7 +797,7 @@ void gdialServiceImpl::destroyInstance()
 
 gdialService* gdialService::getInstance(GDialNotifier* observer, const std::vector<std::string>& gdial_args,const std::string& actualprocessName )
 {
-    GDIAL_LOGINFO("Entering ...");
+    GDIAL_LOGTRACE("Entering ...");
 
     gdial_plat_util_logger_init();
 
@@ -860,8 +872,12 @@ void gdialService::destroyInstance()
 GDIAL_SERVICE_ERROR_CODES gdialService::ApplicationStateChanged(string applicationName, string appState, string applicationId, string error)
 {
     gdialServiceImpl* gdialImplInstance = gdialServiceImpl::getInstance();
-    GDIAL_LOGINFO("Entering appName[%s] appId[%s] state[%s] error[%s]...",
-                    applicationName.c_str(),applicationId.c_str(),appState.c_str(),error.c_str());
+    GDIAL_LOGTRACE("Entering ...");
+    GDIAL_LOGINFO("appName[%s] appId[%s] state[%s] error[%s]",
+                    applicationName.c_str(),
+                    applicationId.c_str(),
+                    appState.c_str(),
+                    error.c_str());
     if ((nullptr != m_gdialService ) && (nullptr != gdialImplInstance))
     {
         RequestHandlerPayload payload;
@@ -873,14 +889,15 @@ GDIAL_SERVICE_ERROR_CODES gdialService::ApplicationStateChanged(string applicati
         payload.error = error;
         gdialImplInstance->sendRequest(payload);
     }
-    GDIAL_LOGINFO("Exiting ...");
+    GDIAL_LOGTRACE("Exiting ...");
     return GDIAL_SERVICE_ERROR_NONE;
 }
 
 GDIAL_SERVICE_ERROR_CODES gdialService::ActivationChanged(string activation, string friendlyname)
 {
     gdialServiceImpl* gdialImplInstance = gdialServiceImpl::getInstance();
-    GDIAL_LOGINFO("Entering activation[%s] friendlyname[%s] ...",activation.c_str(),friendlyname.c_str());
+    GDIAL_LOGTRACE("Entering ...");
+    GDIAL_LOGINFO("activation[%s] friendlyname[%s]",activation.c_str(),friendlyname.c_str());
     if ((nullptr != m_gdialService ) && (nullptr != gdialImplInstance))
     {
         RequestHandlerPayload payload;
@@ -891,14 +908,15 @@ GDIAL_SERVICE_ERROR_CODES gdialService::ActivationChanged(string activation, str
         GDIAL_LOGINFO("ACTIVATION_CHANGED request sent");
         gdialImplInstance->sendRequest(payload);
     }
-    GDIAL_LOGINFO("Exiting ...");
+    GDIAL_LOGTRACE("Exiting ...");
     return GDIAL_SERVICE_ERROR_NONE;
 }
 
 GDIAL_SERVICE_ERROR_CODES gdialService::FriendlyNameChanged(string friendlyname)
 {
     gdialServiceImpl* gdialImplInstance = gdialServiceImpl::getInstance();
-    GDIAL_LOGINFO("Entering friendlyname[%s] ...",friendlyname.c_str());
+    GDIAL_LOGTRACE("Entering ...");
+    GDIAL_LOGINFO("friendlyname[%s]",friendlyname.c_str());
     if ((nullptr != m_gdialService ) && (nullptr != gdialImplInstance))
     {
         RequestHandlerPayload payload;
@@ -907,27 +925,28 @@ GDIAL_SERVICE_ERROR_CODES gdialService::FriendlyNameChanged(string friendlyname)
         payload.appNameOrfriendlyname = friendlyname;
         gdialImplInstance->sendRequest(payload);
     }
-    GDIAL_LOGINFO("Exiting ...");
+    GDIAL_LOGTRACE("Exiting ...");
     return GDIAL_SERVICE_ERROR_NONE;
 }
 
 std::string gdialService::getProtocolVersion()
 {
     gdialServiceImpl* gdialImplInstance = gdialServiceImpl::getInstance();
-    GDIAL_LOGINFO("Entering ...");
+    GDIAL_LOGTRACE("Entering ...");
     std::string protocolVersion;
     if ((nullptr != m_gdialService ) && (nullptr != gdialImplInstance))
     {
         protocolVersion = gdial_plat_application_get_protocol_version();
     }
-    GDIAL_LOGINFO("Exiting ...");
+    GDIAL_LOGTRACE("Exiting ...");
     return protocolVersion;
 }
 
 GDIAL_SERVICE_ERROR_CODES gdialService::RegisterApplications(RegisterAppEntryList* appConfigList)
 {
     gdialServiceImpl* gdialImplInstance = gdialServiceImpl::getInstance();
-    GDIAL_LOGINFO("Entering appConfigList[%p] ...",appConfigList);
+    GDIAL_LOGTRACE("Entering ...");
+    GDIAL_LOGINFO("appConfigList[%p]",appConfigList);
     if ((nullptr != m_gdialService ) && (nullptr != gdialImplInstance))
     {
         RequestHandlerPayload payload;
@@ -935,14 +954,15 @@ GDIAL_SERVICE_ERROR_CODES gdialService::RegisterApplications(RegisterAppEntryLis
         payload.data_param = appConfigList;
         gdialImplInstance->sendRequest(payload);
     }
-    GDIAL_LOGINFO("Exiting ...");
+    GDIAL_LOGTRACE("Exiting ...");
     return GDIAL_SERVICE_ERROR_NONE;
 }
 
 void gdialService::setNetworkStandbyMode(bool nwStandbymode)
 {
     gdialServiceImpl* gdialImplInstance = gdialServiceImpl::getInstance();
-    GDIAL_LOGINFO("Entering nwStandbymode[%u] ...",nwStandbymode);
+    GDIAL_LOGTRACE("Entering ...");
+    GDIAL_LOGINFO("nwStandbymode[%u]",nwStandbymode);
     if ((nullptr != m_gdialService ) && (nullptr != gdialImplInstance))
     {
         RequestHandlerPayload payload;
@@ -950,33 +970,33 @@ void gdialService::setNetworkStandbyMode(bool nwStandbymode)
         payload.user_param1 = (bool)nwStandbymode;
         gdialImplInstance->sendRequest(payload);
     }
-    GDIAL_LOGINFO("Exiting ...");
-    return GDIAL_SERVICE_ERROR_NONE;
+    GDIAL_LOGTRACE("Exiting ...");
 }
 
 void gdialServiceImpl::sendRequest( const RequestHandlerPayload& payload )
 {
-    GDIAL_LOGINFO("Entering ...");
+    GDIAL_LOGTRACE("Entering ...");
     std::unique_lock<std::mutex> lk(m_RequestHandlerEventMutex);
     m_RequestHandlerQueue.push(payload);
     m_RequestHandlerThreadRun = true;
     m_RequestHandlerCV.notify_one();
-    GDIAL_LOGINFO("Exiting ...");
+    GDIAL_LOGTRACE("Exiting ...");
 }
 
 void gdialServiceImpl::notifyResponse( const ResponseHandlerPayload& payload )
 {
-    GDIAL_LOGINFO("Entering ...");
+    GDIAL_LOGTRACE("Entering ...");
     std::unique_lock<std::mutex> lk(m_ResponseHandlerEventMutex);
     m_ResponseHandlerQueue.push(payload);
     m_ResponseHandlerThreadRun = true;
     m_ResponseHandlerCV.notify_one();
-    GDIAL_LOGINFO("Exiting ...");
+    GDIAL_LOGTRACE("Exiting ...");
 }
 
 void gdialServiceImpl::onApplicationLaunchRequestWithLaunchParam(string appName,string strPayLoad, string strQuery, string strAddDataUrl)
 {
     ResponseHandlerPayload payload;
+    GDIAL_LOGTRACE("Entering ...");
     payload.event = APP_LAUNCH_REQUEST_WITH_PARAMS;
 
     payload.appName = appName;
@@ -984,68 +1004,81 @@ void gdialServiceImpl::onApplicationLaunchRequestWithLaunchParam(string appName,
     payload.appIdOrQuery = strQuery;
     payload.AddDataUrl = strAddDataUrl;
     notifyResponse(payload);
+    GDIAL_LOGTRACE("Exiting ...");
 }
 
 void gdialServiceImpl::onApplicationLaunchRequest(string appName, string parameter)
 {
     ResponseHandlerPayload payload;
+    GDIAL_LOGTRACE("Entering ...");
     payload.event = APP_LAUNCH_REQUEST;
 
     payload.appName = appName;
     payload.parameterOrPayload = parameter;
     notifyResponse(payload);
+    GDIAL_LOGTRACE("Exiting ...");
 }
 
 void gdialServiceImpl::onApplicationStopRequest(string appName, string appID)
 {
     ResponseHandlerPayload payload;
+    GDIAL_LOGTRACE("Entering ...");
     payload.event = APP_STOP_REQUEST;
 
     payload.appName = appName;
     payload.appIdOrQuery = appID;
     notifyResponse(payload);
+    GDIAL_LOGTRACE("Exiting ...");
 }
 
 void gdialServiceImpl::onApplicationHideRequest(string appName, string appID)
 {
     ResponseHandlerPayload payload;
+    GDIAL_LOGTRACE("Entering ...");
     payload.event = APP_HIDE_REQUEST;
 
     payload.appName = appName;
     payload.appIdOrQuery = appID;
     notifyResponse(payload);
+    GDIAL_LOGTRACE("Exiting ...");
 }
 
 void gdialServiceImpl::onApplicationResumeRequest(string appName, string appID)
 {
     ResponseHandlerPayload payload;
+    GDIAL_LOGTRACE("Entering ...");
     payload.event = APP_RESUME_REQUEST;
 
     payload.appName = appName;
     payload.appIdOrQuery = appID;
     notifyResponse(payload);
+    GDIAL_LOGTRACE("Exiting ...");
 }
 
 void gdialServiceImpl::onApplicationStateRequest(string appName, string appID)
 {
     ResponseHandlerPayload payload;
+    GDIAL_LOGTRACE("Entering ...");
     payload.event = APP_STATE_REQUEST;
 
     payload.appName = appName;
     payload.appIdOrQuery = appID;
     notifyResponse(payload);
+    GDIAL_LOGTRACE("Exiting ...");
 }
 
-void gdialServiceImpl::onDisconnect()
+void gdialServiceImpl::onStopped()
 {
     //
 }
 
 void gdialServiceImpl::updatePowerState(string powerState)
 {
+    GDIAL_LOGTRACE("Entering ...");
     GDIAL_LOGINFO("powerState : %s",powerState.c_str());
     if (m_observer)
     {
         m_observer->updatePowerState(powerState);
     }
+    GDIAL_LOGTRACE("Exiting ...");
 }

@@ -28,6 +28,7 @@ void gdial_app_regstry_dispose (GDialAppRegistry *app_registry) {
   g_return_if_fail(app_registry != NULL);
   GDIAL_LOGINFO("freeing app name:%s", app_registry->name);
   g_free(app_registry->name);
+  app_registry->name = NULL;
   g_list_free_full(app_registry->allowed_origins, g_free);
   g_list_free_full(app_registry->app_prefixes, g_free);
   if (app_registry->properties) {

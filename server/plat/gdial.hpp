@@ -17,8 +17,8 @@
  * limitations under the License.
 */
 
-#ifndef _RT_DIAL_H_
-#define _RT_DIAL_H_
+#ifndef _GDIAL_H_
+#define _GDIAL_H_
 
 #include <stdbool.h>
 
@@ -26,14 +26,28 @@
 extern "C" {
 #endif
 
-bool rtdial_init(GMainContext *context);
-void rtdial_term();
-typedef void (*rtdial_activation_cb)(bool, const gchar *);
-typedef void (*rtdial_friendlyname_cb)(const gchar *);
-typedef void (*rtdial_registerapps_cb)(gpointer);
-void rtdail_register_activation_cb(rtdial_activation_cb cb);
-void rtdail_register_friendlyname_cb(rtdial_friendlyname_cb cb);
-void rtdail_register_registerapps_cb(rtdial_registerapps_cb cb);
+/*
+ ** Error strings
+ **
+ */
+typedef enum _GDialErrorCode
+{
+	GDIAL_CAST_ERROR_NONE,
+	GDIAL_CAST_ERROR_FORBIDDEN,
+	GDIAL_CAST_ERROR_UNAVAILABLE,
+	GDIAL_CAST_ERROR_INVALID,
+	GDIAL_CAST_ERROR_INTERNAL
+}
+GDialErrorCode;
+
+bool gdial_init(GMainContext *context);
+void gdial_term();
+typedef void (*gdial_activation_cb)(bool, const gchar *);
+typedef void (*gdial_friendlyname_cb)(const gchar *);
+typedef void (*gdial_registerapps_cb)(gpointer);
+void gdial_register_activation_cb(gdial_activation_cb cb);
+void gdial_register_friendlyname_cb(gdial_friendlyname_cb cb);
+void gdial_register_registerapps_cb(gdial_registerapps_cb cb);
 
 #ifdef __cplusplus
 }
