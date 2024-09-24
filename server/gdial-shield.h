@@ -23,8 +23,10 @@
 #include <libsoup/soup.h>
 #include "gdial-config.h"
 
+extern "C" {
 void gdial_shield_init(void);
 void gdial_shield_server(SoupServer *server);
 void gdial_shield_term(void);
+}
 
 #endif

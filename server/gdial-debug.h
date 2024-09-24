@@ -21,6 +21,8 @@
 #define GDIAL_DEBUG_H_
 
 #include <glib.h>
+#include "gdialservicelogging.h"
+
 G_BEGIN_DECLS
 
 #define GDIAL_PERF_ENABLE 1
@@ -36,7 +38,7 @@ if ((avg) > 0) {\
   time_hist_total+=time_hist[(counter-1)%(avg)];\
   time_hist_total-=time_hist[counter%(avg)];\
   double average = (time_hist_total) / (counter > (avg) ? (avg) : counter);\
-  g_printerr("time__ used average %0.3fms for %ld requests (total=%0.3fms)\r\n", average/1000, counter, time_hist_total/1000);\
+  GDIAL_LOGERROR("time__ used average %0.3fms for %ld requests (total=%0.3fms)\r\n", average/1000, counter, time_hist_total/1000);\
 }
 #else
 #define GDIAL_PERF_TIME_BEGIN()
@@ -49,7 +51,7 @@ if ((avg) > 0) {\
   time_t t;\
   t = time(NULL);\
   strftime(timestamp_, sizeof(timestamp_), "%FT%T", localtime(&t));\
-  g_print("[%s] "format, timestamp_, __VA_ARGS__);\
+  GDIAL_LOGINFO("[%s] "format, timestamp_, __VA_ARGS__);\
 }
 
 #define g_warn_msg_if_fail(expr, format, ...)\
@@ -59,7 +61,7 @@ do {\
     GString *msg_buf = g_string_new("");\
     g_string_printf(msg_buf, "\r\nFailed Condition: [%s] - Error Message: "format, #expr, __VA_ARGS__);\
     gchar *msg = g_string_free(msg_buf, FALSE);\
-    g_warn_message (G_LOG_DOMAIN, __FILE__, __LINE__, G_STRFUNC, msg);\
+    GDIAL_LOGWARNING("%s", msg); /*g_warn_message (G_LOG_DOMAIN, __FILE__, __LINE__, G_STRFUNC, msg);*/ \
     g_free(msg);\
   }\
 } while (0)
