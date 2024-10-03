@@ -81,12 +81,25 @@ static void gdial_soup_message_set_http_error(SoupMessage *msg, guint state_code
   return;
 }
 
-#define gdial_rest_server_http_print_and_return_if_fail(expr, msg, state, fmt, merr) \
+#define gdial_rest_server_http_print_and_return_if_fail(expr, msg_param, state, fmt, merr) \
+{\
+  if (!(expr)) {\
+    g_warn_msg_if_fail(expr, fmt, merr);\
+    gdial_soup_message_set_http_error(msg_param, state);\
+    usleep(GDIAL_RESPONSE_DELAY);\
+    return;\
+  }\
+}
+
+#define gdial_rest_server_http_check_if_fail(expr, msg, state, fail_flag, fmt, merr) \
 {\
   if (!(expr)) {\
     g_warn_msg_if_fail(expr, fmt, merr);\
     gdial_soup_message_set_http_error(msg, state);\
-    return;\
+    usleep(GDIAL_RESPONSE_DELAY);\
+    fail_flag = TRUE;\
+  } else {\
+    fail_flag = FALSE;\
   }\
 }
 
@@ -662,15 +675,28 @@ static void gdial_local_rest_http_server_callback(SoupServer *server,
   int i = 0;
   int j = 0;
   for (i = 0; elements[i] != NULL; i++) {
-    /* do not allow any element to be empty, stop on first one */
+    gsize ret;
     if ((strlen(elements[i])) == 0) {
       g_printerr("Warn: empty elements in URI path\r\n");
       continue;
     }
     if (j == 0) g_strlcpy(base, elements[i], sizeof(base));
-    else if (j == 1) g_strlcpy(app_name, elements[i], sizeof(app_name));
-    else if (j == 2) g_strlcpy(instance, elements[i], sizeof(instance));
-    g_strlcpy(last_elem, elements[i], sizeof(last_elem));
+    else if (j == 1) {
+        ret = g_strlcpy(app_name, elements[i], sizeof(app_name));
+        if (ret >= sizeof(app_name)) {
+          g_printerr("Warn: app_name too long\r\n");
+        }
+    }
+    else if (j == 2) {
+        ret = g_strlcpy(instance, elements[i], sizeof(instance));
+        if (ret >= sizeof(instance)) {
+          g_printerr("Warn: instance too long\r\n");
+        }
+    }
+    ret = g_strlcpy(last_elem, elements[i], sizeof(last_elem));
+    if (ret >= sizeof(last_elem)) {
+      g_printerr("Warn: last_elem too long\r\n");
+    }
     j++;
   }
   g_strfreev(elements);
@@ -750,17 +776,30 @@ static void gdial_rest_http_server_apps_callback(SoupServer *server,
   int i = 0;
   int j = 0;
   for (i = 0; elements[i] != NULL; i++) {
+    gsize ret;
     /* do not allow any element to be empty, stop on first one */
-    if ((strlen(elements[i])) == 0) {
-      g_printerr("Warn: empty elements in URI path\r\n");
-      //invalid_uri = invalid_uri || TRUE;
-      //break;
-      continue;
+    if (j == 0) {
+        ret = g_strlcpy(base, elements[i], sizeof(base));
+        if (ret >= sizeof(base)) {
+          g_printerr("Warn: base too long\r\n");
+        }
     }
-    if (j == 0) g_strlcpy(base, elements[i], sizeof(base));
-    else if (j == 1) g_strlcpy(app_name, elements[i], sizeof(app_name));
-    else if (j == 2) g_strlcpy(instance, elements[i], sizeof(instance));
-    g_strlcpy(last_elem, elements[i], sizeof(last_elem));
+    else if (j == 1) {
+        ret = g_strlcpy(app_name, elements[i], sizeof(app_name));
+        if (ret >= sizeof(app_name)) {
+          g_printerr("Warn: app_name too long\r\n");
+        }
+    }
+    else if (j == 2) {
+        ret = g_strlcpy(instance, elements[i], sizeof(instance));
+        if (ret >= sizeof(instance)) {
+          g_printerr("Warn: instance too long\r\n");
+        }
+    }
+    ret = g_strlcpy(last_elem, elements[i], sizeof(last_elem));
+    if (ret >= sizeof(last_elem)) {
+      g_printerr("Warn: last_elem too long\r\n");
+    }
     j++;
   }
 
@@ -772,12 +811,17 @@ static void gdial_rest_http_server_apps_callback(SoupServer *server,
   const gchar *copied_str[] = {base, app_name, instance, last_elem};
   i = 0; j = 0;
   while (i < element_num && i < sizeof(copied_str)/sizeof(copied_str[0])) {
+    bool flag = false;
     if (strlen(elements[j]) == 0) {
       j++;
       continue;
     }
     invalid_uri = invalid_uri || g_strcmp0(copied_str[i], elements[j]);
-    gdial_rest_server_http_return_if_fail(!invalid_uri, msg, SOUP_STATUS_NOT_IMPLEMENTED);
+    gdial_rest_server_http_check_if_fail(!invalid_uri, msg, SOUP_STATUS_NOT_IMPLEMENTED, flag);
+    if(flag){
+        g_strfreev(elements);
+        return;
+    }
     j++;i++;
   }
 
@@ -1231,6 +1275,9 @@ GDIAL_STATIC_INLINE void *GET_APP_response_builder_set_additionalData(void *buil
 GDIAL_STATIC_INLINE gchar *GET_APP_response_builder_build(void *builder, gsize *length) {
   GDialServerResponseBuilderGetApp * rbuilder = (GDialServerResponseBuilderGetApp *)builder;
   GString *rbuf = g_string_new_len('\0', 128);
+  if(rbuf == NULL){
+    return NULL;
+  }
   gsize options_length = 0;
   gchar *options_str = gdial_util_str_str_hashtable_to_xml_string(rbuilder->options, &options_length);
 
