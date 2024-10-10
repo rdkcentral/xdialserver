@@ -86,7 +86,6 @@ static void gdial_soup_message_set_http_error(SoupMessage *msg, guint state_code
   if (!(expr)) {\
     g_warn_msg_if_fail(expr, fmt, merr);\
     gdial_soup_message_set_http_error(msg_param, state);\
-    usleep(GDIAL_RESPONSE_DELAY);\
     return;\
   }\
 }
