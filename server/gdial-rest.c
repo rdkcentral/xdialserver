@@ -91,12 +91,11 @@ static void gdial_soup_message_set_http_error(SoupMessage *msg, guint state_code
   }\
 }
 
-#define gdial_rest_server_http_check_if_fail(expr, msg, state, fail_flag, fmt, merr) \
+#define gdial_rest_server_http_check_if_fail(expr, msg, state, fail_flag) \
 {\
   if (!(expr)) {\
-    g_warn_msg_if_fail(expr, fmt, merr);\
+    g_warn_if_fail(expr);\
     gdial_soup_message_set_http_error(msg, state);\
-    usleep(GDIAL_RESPONSE_DELAY);\
     fail_flag = TRUE;\
   } else {\
     fail_flag = FALSE;\
