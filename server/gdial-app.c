@@ -365,6 +365,9 @@ void gdial_app_refresh_additional_dial_data(GDialApp *app) {
       g_free(data);
     }
   }
+  if(data){
+    g_free(data);
+  }
 }
 
 void gdial_app_clear_additional_dial_data(GDialApp *app) {
