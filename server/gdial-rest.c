@@ -673,6 +673,7 @@ static void gdial_local_rest_http_server_callback(SoupServer *server,
   int i = 0;
   int j = 0;
   for (i = 0; elements[i] != NULL; i++) {
+    /* do not allow any element to be empty, stop on first one */
     gsize ret;
     if ((strlen(elements[i])) == 0) {
       g_printerr("Warn: empty elements in URI path\r\n");
