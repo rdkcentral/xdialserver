@@ -33,6 +33,14 @@ int gdial_os_application_resume(const char *app_name, int instance_id);
 int gdial_os_application_stop(const char *app_name, int instance_id);
 int gdial_os_application_state(const char *app_name, int instance_id, GDialAppState *state);
 
+int gdial_os_application_state_changed(const char *applicationName, const char *applicationId, const char *state, const char *error);
+int gdial_os_application_activation_changed(const char *activation, const char *friendlyname);
+int gdial_os_application_friendlyname_changed(const char *friendlyname);
+const char* gdial_os_application_get_protocol_version();
+int gdial_os_application_register_applications(void*);
+void gdial_os_application_update_network_standby_mode(gboolean nwstandbyMode);
+int gdial_os_application_service_notification(gboolean isNotifyRequired, void* notifier);
+
 #ifdef __cplusplus
 }
 #endif

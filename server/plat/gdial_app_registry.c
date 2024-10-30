@@ -20,14 +20,15 @@
  */
 
 #include <gdial_app_registry.h>
-
+#include "gdialservicelogging.h"
 
 #define GDIAL_STR_ENDS_WITH(s1, s2) ((s1 != NULL) && (s2 != NULL) && ((strlen(s2) == 0) || (g_str_has_suffix(s1, s2))))
 
 void gdial_app_regstry_dispose (GDialAppRegistry *app_registry) {
   g_return_if_fail(app_registry != NULL);
-  printf ("freeing app name:%s\n", app_registry->name);
+  GDIAL_LOGINFO("freeing app name:%s", app_registry->name);
   g_free(app_registry->name);
+  app_registry->name = NULL;
   g_list_free_full(app_registry->allowed_origins, g_free);
   g_list_free_full(app_registry->app_prefixes, g_free);
   if (app_registry->properties) {
@@ -82,7 +83,7 @@ GDialAppRegistry* gdial_app_registry_new (const gchar *app_name, const GList *ap
     app_registry->properties = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_free);
     g_hash_table_iter_init(&prop_iter, properties);
     while (g_hash_table_iter_next(&prop_iter, &key, &value)) {
-      g_print("inside register app properties key:%s value:%s\n",(gchar*)key, (gchar*)value);
+      GDIAL_LOGINFO("inside register app properties key:%s value:%s",(gchar*)key, (gchar*)value);
       g_hash_table_insert(app_registry->properties,g_strdup(key),g_strdup(value));
     }
   }

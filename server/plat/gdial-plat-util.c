@@ -21,6 +21,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <stdarg.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
@@ -29,6 +30,7 @@
 #include <sys/ioctl.h>
 
 #include "gdial-plat-util.h"
+#include "gdialservicelogging.h"
 
 const char * gdial_plat_util_get_iface_ipv4_addr(const char *ifname) {
   const char *result = NULL;
@@ -71,4 +73,59 @@ const char * gdial_plat_util_get_iface_mac_addr(const char *ifname) {
   }
 
   return result;
+}
+
+static inline void sync_stdout()
+{
+    if (getenv("SYNC_STDOUT"))
+        setvbuf(stdout, NULL, _IOLBF, 0);
+}
+
+static int gDefaultLogLevel = INFO_LEVEL;
+
+void gdial_plat_util_logger_init(void)
+{
+    const char *level = getenv("GDIAL_LIBRARY_DEFAULT_LOG_LEVEL");
+
+    sync_stdout();
+
+    if (level)
+    {
+        gDefaultLogLevel = (atoi(level));
+    }
+}
+
+void gdial_plat_util_set_loglevel(gdial_plat_util_LogLevel level)
+{
+    gDefaultLogLevel = level;
+}
+
+void gdial_plat_util_log(gdial_plat_util_LogLevel level,
+                        const char *func,
+                        const char *file,
+                        int line,
+                        int threadID,
+                        const char *format, ...)
+{
+    const char *levelMap[] = {"FATAL", "ERROR", "WARN", "INFO", "VERBOSE", "TRACE"};
+    const short kFormatMessageSize = 4096;
+    char formatted[kFormatMessageSize];
+
+    if (((FATAL_LEVEL != level)&&(ERROR_LEVEL != level))&&
+        (gDefaultLogLevel < level)){
+        return;
+    }
+
+    va_list argptr;
+    va_start(argptr, format);
+    vsnprintf(formatted, kFormatMessageSize, format, argptr);
+    va_end(argptr);
+    fprintf(stderr, "[GDIAL][%d] %s [%s:%d] %s: %s \n",
+                (int)syscall(SYS_gettid),
+                levelMap[level],
+                basename(file),
+                line,
+                func,
+                formatted);
+    fflush(stderr);
 }

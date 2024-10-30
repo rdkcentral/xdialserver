@@ -73,7 +73,7 @@ set (GDIAL_EXEC_SOURCE_FILES
   ${CMAKE_CURRENT_SOURCE_DIR}/gdial-rest.c
   ${CMAKE_CURRENT_SOURCE_DIR}/gdial-ssdp.c
   ${CMAKE_CURRENT_SOURCE_DIR}/gdial-shield.c
-  ${CMAKE_CURRENT_SOURCE_DIR}/main.c
+  ${CMAKE_CURRENT_SOURCE_DIR}/gdialservice.cpp
 )
 
 link_directories (
@@ -82,7 +82,12 @@ link_directories (
   ${SOUP_LIBRARY_DIRS}
 )
 
-add_executable (gdial-server ${GDIAL_EXEC_SOURCE_FILES})
+add_library(gdial-server SHARED ${GDIAL_EXEC_SOURCE_FILES})
+
+set_target_properties(${MODULE_NAME} PROPERTIES 
+        CXX_STANDARD 11
+        CXX_STANDARD_REQUIRED YES)
+set_source_files_properties(gdialservice.cpp PROPERTIES COMPILE_FLAGS "-fpermissive")
 
 target_link_libraries (gdial-server
   ${GLIB_LIBRARIES}
@@ -93,3 +98,7 @@ target_link_libraries (gdial-server
   gdial-plat
   uuid
 )
+
+add_executable (gdial-server-ut gdialserver_ut.cpp)
+
+target_link_libraries (gdial-server-ut gdial-plat gdial-server)
