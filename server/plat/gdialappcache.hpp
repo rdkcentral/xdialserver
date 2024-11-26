@@ -17,33 +17,46 @@
  * limitations under the License.
 */
 
-#ifndef _RT_CACHE_H_
-#define _RT_CACHE_H_
+#ifndef _GDIAL_APPCACHE_H_
+#define _GDIAL_APPCACHE_H_
 
-#include "rtRemoteObjectCache.hpp"
-#include "rtObject.h"
-#include "rtRemote.h"
+#include "gdialobjCacheHelper.hpp"
 #include <sstream>
 #include <iostream>
 #include <chrono>
 #include <stdbool.h>
 #include <string>
+#include "gdialservicecommon.h"
+#include "gdialservicelogging.h"
 
 using namespace std;
 
-class rtAppStatusCache : public rtObject
+class GDialAppStatusCache
 {
 public:
-    rtAppStatusCache(rtRemoteEnvironment* env) {ObjectCache = new rtRemoteObjectCache(env);};
-    ~rtAppStatusCache() {delete(ObjectCache); };
-    std::string getAppCacheId(const char *app_name);
-    void setAppCacheId(const char *app_name,std::string id);
-    rtError UpdateAppStatusCache(rtValue app_status);
-    std::string SearchAppStatusInCache(const char *app_name);
+    GDialAppStatusCache() {
+        ObjectCache = new GDialObjectCacheHelper();
+        GDIAL_LOGINFO("ObjectCache[%p]",ObjectCache);
+    };
+    ~GDialAppStatusCache() {
+        GDIAL_LOGINFO("ObjectCache[%p]",ObjectCache);
+        delete ObjectCache;
+        ObjectCache = nullptr;
+    };
+    std::string getAppCacheId(const char* app_name);
+    void setAppCacheId(std::string app_name,std::string id);
+    AppCacheErrorCodes UpdateAppStatusCache(AppInfo* appEntry);
+    std::string SearchAppStatusInCache(const char* app_name);
     bool doIdExist(std::string id);
 
+    void setService(GDialNotifier* service)
+    {
+        m_observer = service;
+    }
+
 private:
-    rtRemoteObjectCache* ObjectCache;
+    GDialObjectCacheHelper* ObjectCache;
+    GDialNotifier* m_observer;
     static std::string Netflix_AppCacheId;
     static std::string Youtube_AppCacheId;
 };
