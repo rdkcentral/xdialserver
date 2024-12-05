@@ -1,5 +1,5 @@
 /*
- * If not stated otherwise in this file or this component's Licenses.txt file the
+ * If not stated otherwise in this file or this component's LICENSE file the
  * following copyright and licenses apply:
  *
  * Copyright 2019 RDK Management
@@ -49,9 +49,9 @@ static const char *dial_ssdp_ST_target = "urn:dial-multiscreen-org:service:dial:
  * server cmdline options
  */
 #define GDIAL_SSDP_DEVICE_UUID_DEFAULT "12345678-abcd-abcd-1234-123456789abc"
-#define GDIAL_SSDP_FRIENDLY_DEFAULT  "FriendXi6"
+#define GDIAL_SSDP_FRIENDLY_DEFAULT  "DialClient"
 #define GDIAL_SSDP_MANUFACTURER_DEFAULT "OEM"
-#define GDIAL_SSDP_MODELNAME_DEFAULT "Xi6"
+#define GDIAL_SSDP_MODELNAME_DEFAULT "Device"
 
 static const char *iface_ipv4_address = NULL;
 /*
