@@ -1,5 +1,5 @@
 /*
- * If not stated otherwise in this file or this component's Licenses.txt file the
+ * If not stated otherwise in this file or this component's LICENSE file the
  * following copyright and licenses apply:
  *
  * Copyright 2019 RDK Management
@@ -26,7 +26,7 @@
 #include "gdial-util.h"
 #include "gdial-plat-app.h"
 #include "gdial-app.h"
-
+#include "gdialservicelogging.h"
 
 typedef struct _GDialAppPrivate {
   gpointer state_cb_data;
@@ -81,7 +81,7 @@ static void gdial_app_dispose(GObject *gobject) {
   }
 
   application_instances_ = g_list_remove(application_instances_, gobject);
-  g_print("After dispose has %d app instances created\r\n", g_list_length(application_instances_));
+  GDIAL_LOGINFO("After dispose has %d app instances created", g_list_length(application_instances_));
 
   G_OBJECT_CLASS (gdial_app_parent_class)->dispose (gobject);
 }
@@ -91,6 +91,7 @@ static void gdial_plat_app_state_cb(gint instance_id, GDialAppState state, void 
   GDialApp *app = gdial_app_find_instance_by_instance_id(instance_id);
   g_return_if_fail (app != NULL);
   GDialAppPrivate *priv = gdial_app_get_instance_private(app);
+  GDIAL_LOGINFO("instance_id[%d] state[%x] data[%p]", instance_id, state, user_data);
   g_signal_emit(app, gdial_app_signals[SIGNAL_STATE_CHANGED], 0, app, priv->state_cb_data);
 }
 
@@ -171,7 +172,6 @@ static void gdial_app_class_init (GDialAppClass *klass) {
             G_TYPE_NONE, 1, /* return type, arg num */
             G_TYPE_POINTER); /* arg types */
 
-  gdial_plat_init(g_main_context_default());
   gdial_plat_application_set_state_cb(gdial_plat_app_state_cb, NULL);
 }
 
@@ -201,9 +201,11 @@ static int compare_versions(const char *version1, const char *version2) {
 }
 
 GDialApp *gdial_app_new(const gchar *app_name) {
-  GDialApp *app = (GDialApp*)g_object_new(GDIAL_TYPE_APP, GDIAL_APP_NAME, app_name, NULL);
-  g_print("After create has %d app %s instances created\r\n", g_list_length(application_instances_), app_name);
+  GDIAL_LOGTRACE("Entering ...");
+  GDialApp *app = (GDialApp*)g_object_new(GDIAL_TYPE_APP, GDIAL_APP_NAME, app_name, NULL);  
+  GDIAL_LOGINFO("After create has %d app %s instances created", g_list_length(application_instances_), app_name);
   gdial_app_refresh_additional_dial_data(app);
+  GDIAL_LOGTRACE("Exiting ...");
   return app;
 };
 
@@ -295,6 +297,7 @@ const gchar *gdial_app_state_to_string(GDialAppState state) {
 
 void gdial_app_force_shutdown(GDialApp *app) {
   g_warn_if_reached();
+  GDIAL_LOGINFO("App[%p]",app);
 }
 
 gchar *gdial_app_get_launch_payload(GDialApp *app) {
@@ -339,6 +342,7 @@ void gdial_app_set_additional_dial_data(GDialApp *app, GHashTable *additional_di
     gdial_app_write_additional_dial_data(app->name, query_str, length);
   }
   g_free(query_str);
+  query_str = NULL;
 }
 
 GHashTable *gdial_app_get_additional_dial_data(GDialApp *app) {
@@ -349,6 +353,8 @@ GHashTable *gdial_app_get_additional_dial_data(GDialApp *app) {
 
 void gdial_app_refresh_additional_dial_data(GDialApp *app) {
   g_return_if_fail(app && app->name && strlen(app->name));
+
+  GDIAL_LOGTRACE("Entering ...");
 
   GDialAppPrivate *priv = gdial_app_get_instance_private(app);
   if(priv->additional_dial_data) {
@@ -361,10 +367,16 @@ void gdial_app_refresh_additional_dial_data(GDialApp *app) {
     if (data) {
       /* we are ready to convert to hashtable*/
       gdial_util_str_str_hashtable_from_string(data, length, priv->additional_dial_data);
-      g_print("gdial_app_refresh_additional_dial_data [%s]\r\n", data);
-      g_free(data);
+      GDIAL_LOGINFO("gdial_app_refresh_additional_dial_data [%s]", data);
     }
   }
+
+  if (data) {
+    g_free(data);
+    data = NULL;
+  }
+
+  GDIAL_LOGTRACE("Exiting ...");
 }
 
 void gdial_app_clear_additional_dial_data(GDialApp *app) {
@@ -403,7 +415,7 @@ GDIAL_STATIC gboolean gdial_app_write_additional_dial_data(const gchar *app_name
   if (!g_file_query_exists(gfile, NULL) || g_file_delete(gfile, NULL, &err) ) {
     GFileIOStream *gfile_ios = g_file_create_readwrite(gfile, G_FILE_CREATE_PRIVATE, NULL, &err);
     if (gfile_ios) {
-      if (g_output_stream_write(g_io_stream_get_output_stream(G_IO_STREAM(gfile_ios)), data, length, NULL, &err) == length) {
+      if (g_output_stream_write(g_io_stream_get_output_stream(G_IO_STREAM(gfile_ios)), data, length, NULL, &err) == (gssize)length) {
         result = TRUE;
       }
       else {
@@ -421,6 +433,7 @@ GDIAL_STATIC gboolean gdial_app_write_additional_dial_data(const gchar *app_name
   }
   g_object_unref(gfile);
   g_free(filename);
+  filename = NULL;
 
   return result;
 }
@@ -430,6 +443,8 @@ GDIAL_STATIC gboolean gdial_app_read_additional_dial_data(const gchar *app_name,
   GError *err = NULL;
 
   *data = NULL; *length = 0;
+
+  GDIAL_LOGTRACE("Entering ...");
 
   gchar *filename = g_build_filename(GDIAL_APP_DIAL_DATA_DIR, app_name, NULL);
   g_return_val_if_fail(filename && strlen(filename), FALSE);
@@ -450,7 +465,7 @@ GDIAL_STATIC gboolean gdial_app_read_additional_dial_data(const gchar *app_name,
       g_object_unref(gfile_ios);
       }
       else {
-        g_printerr("file %s file is not readable\n", filename);
+        GDIAL_LOGERROR("file %s file is not readable", filename);
       }
       g_object_unref(gfile_info);
     }
@@ -459,11 +474,14 @@ GDIAL_STATIC gboolean gdial_app_read_additional_dial_data(const gchar *app_name,
     }
   }
   else {
-    g_printerr("file %s does not exist\n", filename);
+    GDIAL_LOGERROR("file %s does not exist", filename);
   }
 
   g_object_unref(gfile);
   g_free(filename);
+  filename = NULL;
+
+  GDIAL_LOGTRACE("Exiting ...");
 
   return result;
 }
@@ -483,6 +501,7 @@ GDIAL_STATIC gboolean gdial_app_remove_additional_dial_data_file(const gchar *ap
   }
   g_object_unref(gfile);
   g_free(filename);
+  filename = NULL;
 
   return result;
 }
@@ -491,7 +510,7 @@ gchar * gdial_app_state_response_new(GDialApp *app, const gchar *dial_ver, const
 {
   GDialAppState state = app->state;
   if(compare_versions(client_dial_version, "2.1") < 0) {
-      g_print("gdial_app_state_response_new client: %s less than 2.1\n", (client_dial_version != NULL) ? client_dial_version : "-- none --");
+      GDIAL_LOGINFO("gdial_app_state_response_new client: %s less than 2.1", (client_dial_version != NULL) ? client_dial_version : "-- none --");
       state = (state == GDIAL_APP_STATE_HIDE) ? GDIAL_APP_STATE_STOPPED : state;
   }
 

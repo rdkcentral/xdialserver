@@ -1,5 +1,5 @@
 ##########################################################################
-# If not stated otherwise in this file or this component's Licenses.txt
+# If not stated otherwise in this file or this component's LICENSE
 # file the following copyright and licenses apply:
 #
 # Copyright 2019 RDK Management
@@ -46,8 +46,6 @@ include_directories(
   ${PROJECT_SOURCE_DIR}/include
   ${PROJECT_SOURCE_DIR}/plat
   ${CMAKE_CURRENT_SOURCE_DIR}
-  $ENV{PKG_CONFIG_SYSROOT_DIR}/usr/include/rdk/rtcast
-  $ENV{PKG_CONFIG_SYSROOT_DIR}/usr/include/pxcore
   $ENV{PKG_CONFIG_SYSROOT_DIR}/usr/include/WPEFramework
   $ENV{PKG_CONFIG_SYSROOT_DIR}/usr/include/WPEFramework/core/
   $ENV{PKG_CONFIG_SYSROOT_DIR}/usr/include/WPEFramework/plugins/
@@ -61,9 +59,8 @@ set (GDIAL_PLAT_LIB_SOURCE_FILES
   ${PROJECT_SOURCE_DIR}/plat/gdial-plat-dev.c
   ${PROJECT_SOURCE_DIR}/plat/gdial-plat-util.c
   ${PROJECT_SOURCE_DIR}/plat/gdial_app_registry.c
-  ${PROJECT_SOURCE_DIR}/plat/rtdial.cpp
-  ${PROJECT_SOURCE_DIR}/plat/rtcache.cpp
-  ${PROJECT_SOURCE_DIR}/plat/rtabstractservice.cpp
+  ${PROJECT_SOURCE_DIR}/plat/gdial.cpp
+  ${PROJECT_SOURCE_DIR}/plat/gdialappcache.cpp
   ${PROJECT_SOURCE_DIR}/plat/Module.cpp
 )
 
@@ -72,4 +69,4 @@ if(PLATFORM)
 endif()
 
 add_library(gdial-plat SHARED ${GDIAL_PLAT_LIB_SOURCE_FILES})
-target_link_Libraries(gdial-plat PRIVATE ${GLIB_LIBRARIES} ${GOBJECT_LIBRARIES} -lpthread -lrtRemote -lrtCore -lWPEFrameworkCore -lWPEFrameworkTracing -lWPEFrameworkDefinitions -lWPEFrameworkProtocols -lWPEFrameworkPlugins -lWPEFrameworkSecurityUtil -lIARMBus)
+target_link_Libraries(gdial-plat PRIVATE ${GLIB_LIBRARIES} ${GOBJECT_LIBRARIES} -lpthread -lWPEFrameworkCore -lWPEFrameworkDefinitions -lWPEFrameworkCOM -lWPEFrameworkPlugins -lWPEFrameworkSecurityUtil -lIARMBus)

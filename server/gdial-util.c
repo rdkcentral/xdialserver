@@ -1,5 +1,5 @@
 /*
- * If not stated otherwise in this file or this component's Licenses.txt file the
+ * If not stated otherwise in this file or this component's LICENSE file the
  * following copyright and licenses apply:
  *
  * Copyright 2019 RDK Management
@@ -22,6 +22,7 @@
 #include <libsoup/soup.h>
 #include "gdial-config.h"
 #include "gdial-util.h"
+#include "gdialservicelogging.h"
 
 gchar *gdial_util_str_str_hashtable_to_string(const GHashTable *ht, const gchar *delimiter, gboolean newline, gsize *length) {
 
@@ -58,7 +59,8 @@ gboolean gdial_util_str_str_hashtable_from_string(const gchar *ht_str, gsize len
   g_return_val_if_fail(ht_str != NULL && ht != NULL, FALSE);
   char key[GDIAL_APP_DIAL_DATA_MAX_KV_LEN+1] = {0};
   char value[GDIAL_APP_DIAL_DATA_MAX_KV_LEN+1] = {0};
-  int used = 0, ret = 0;
+  gsize used = 0;
+  int ret = 0;
 
   while( used < length && (ret = sscanf(&ht_str[used], "%"GDIAL_APP_DIAL_DATA_MAX_KV_LEN_STR"s %"GDIAL_APP_DIAL_DATA_MAX_KV_LEN_STR"s""\r\n", key, value)) > 0) {
     g_hash_table_insert(ht, g_strdup(key), g_strdup(value));
@@ -127,7 +129,7 @@ gboolean gdial_util_str_str_hashtable_equal(const GHashTable *ht1, const GHashTa
     if ((value1 == value2) || (value1 && value2 && g_strcmp0(value2, value1) == 0)) {
     }
     else {
-      g_printerr("breaking equal at key %s\r\n", (char *)key);
+      GDIAL_LOGERROR("breaking equal at key %s", (char *)key);
       return FALSE;
     }
   }
