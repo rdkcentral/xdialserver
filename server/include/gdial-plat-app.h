@@ -1,5 +1,5 @@
 /*
- * If not stated otherwise in this file or this component's Licenses.txt file the
+ * If not stated otherwise in this file or this component's LICENSE file the
  * following copyright and licenses apply:
  *
  * Copyright 2019 RDK Management
@@ -41,6 +41,14 @@ GDialAppError gdial_plat_application_hide(const gchar *app_name, gint instance_i
 GDialAppError gdial_plat_application_resume(const gchar *app_name, gint instance_id);
 GDialAppError gdial_plat_application_stop(const gchar *app_name, gint instance_id);
 GDialAppError gdial_plat_application_state(const gchar *app_name, gint instance_id, GDialAppState *state);
+
+GDialAppError gdial_plat_application_state_changed(const char *applicationName, const char *applicationId, const char *state, const char *error);
+GDialAppError gdial_plat_application_activation_changed(const char *activation, const char *friendlyname);
+GDialAppError gdial_plat_application_friendlyname_changed(const char *friendlyname);
+const char* gdial_plat_application_get_protocol_version();
+GDialAppError gdial_plat_application_register_applications(void*);
+void gdial_plat_application_update_network_standby_mode(gboolean nwstandbyMode);
+GDialAppError gdial_plat_application_service_notification(gboolean isNotifyRequired, void* notifier);
 
 void * gdial_plat_application_start_async(const gchar *app_name, const gchar *payload, const gchar *query, const gchar *additional_data_url, void *user_data);
 void * gdial_plat_application_state_async(const gchar *app_name, gint instance_id, void *user_data);
