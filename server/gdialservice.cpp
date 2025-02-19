@@ -214,7 +214,7 @@ int gdialServiceImpl::start_GDialServer(int argc, char *argv[])
     GError *error = NULL;
     int returnValue = EXIT_FAILURE;
     GDIAL_LOGTRACE("Entering ...");
-    GOptionContext *m_option_context = g_option_context_new(NULL);
+    m_option_context = g_option_context_new(NULL);
     if (!m_option_context)
     {
         GDIAL_LOGERROR("Failed to create option context");
