@@ -207,16 +207,24 @@ static void gdial_quit_thread(int signum)
 }
 
 static SoupServer * m_servers[3] = {NULL,NULL,NULL};
+static GOptionContext *m_option_context = NULL;
 
 int gdialServiceImpl::start_GDialServer(int argc, char *argv[])
 {
     GError *error = NULL;
     int returnValue = EXIT_FAILURE;
     GDIAL_LOGTRACE("Entering ...");
-    GOptionContext *option_context = g_option_context_new(NULL);
-    g_option_context_add_main_entries(option_context, option_entries_, NULL);
+    m_option_context = g_option_context_new(NULL);
+    if (!m_option_context)
+    {
+        GDIAL_LOGERROR("Failed to create option context");
+        GDIAL_LOGTRACE("Exiting ...");
+        return returnValue;
+    }
 
-    if (!g_option_context_parse (option_context, &argc, &argv, &error))
+    g_option_context_add_main_entries(m_option_context, option_entries_, NULL);
+
+    if (!g_option_context_parse (m_option_context, &argc, &argv, &error))
     {
         GDIAL_LOGERROR ("%s", error->message);
         g_error_free(error);
@@ -240,6 +248,8 @@ int gdialServiceImpl::start_GDialServer(int argc, char *argv[])
             if(i >= MAX_RETRY )
             {
                 GDIAL_LOGTRACE("Exiting ...");
+                g_option_context_free(m_option_context);
+                m_option_context = nullptr;
                 return returnValue;
             }
             sleep(2);
@@ -276,6 +286,8 @@ int gdialServiceImpl::start_GDialServer(int argc, char *argv[])
         GDIAL_LOGERROR("%s", error->message);
         g_error_free(error);
         GDIAL_LOGTRACE("Exiting ...");
+        g_option_context_free(m_option_context);
+        m_option_context = nullptr;
         return returnValue;
     }
     else
@@ -288,6 +300,8 @@ int gdialServiceImpl::start_GDialServer(int argc, char *argv[])
             GDIAL_LOGERROR("%s", error->message);
             g_error_free(error);
             GDIAL_LOGTRACE("Exiting ...");
+            g_option_context_free(m_option_context);
+            m_option_context = nullptr;
             return returnValue;
         }
         else
@@ -298,6 +312,8 @@ int gdialServiceImpl::start_GDialServer(int argc, char *argv[])
                 GDIAL_LOGERROR("%s", error->message);
                 g_error_free(error);
                 GDIAL_LOGTRACE("Exiting ...");
+                g_option_context_free(m_option_context);
+                m_option_context = nullptr;
                 return returnValue;
             }
         }
@@ -564,6 +580,11 @@ bool gdialServiceImpl::stop_GDialServer()
         g_main_context_unref(m_main_loop_context);
         m_main_loop_context = NULL;
     }
+    if (m_option_context)
+    {
+        g_option_context_free(m_option_context);
+        m_option_context = nullptr;
+    }
     GDIAL_LOGTRACE("Exiting ...");
     return true;
 }
@@ -810,34 +831,71 @@ gdialService* gdialService::getInstance(GDialNotifier* observer, const std::vect
 
     if (nullptr != gdialImplInstance)
     {
-        char name[256] = {0};
+        char    name[256] = {0};
         std::string process_name = actualprocessName;
         int input_argc = gdial_args.size(),
             overall_argc = input_argc + 1;// store process name
-        char** argv = new char*[overall_argc];
+        char    **argv = nullptr,
+                **backup_argv = nullptr;
+        bool    isAllocated = true;
 
-        if (process_name.empty())
+        argv = new char*[overall_argc];
+        backup_argv = new char*[overall_argc];
+
+        if (( nullptr == argv ) || ( nullptr == backup_argv ))
         {
-            prctl(PR_GET_NAME, name, 0, 0, 0);
-            process_name = std::string(name);
+            GDIAL_LOGERROR("Failed to allocate memory");
+            isAllocated = false;
+        }
+        else
+        {
+            memset(argv,0,(overall_argc*(sizeof(char*))));
+            memset(backup_argv,0,(overall_argc*(sizeof(char*))));
 
             if (process_name.empty())
             {
-                process_name = "Unknown";
+                prctl(PR_GET_NAME, name, 0, 0, 0);
+                process_name = std::string(name);
+
+                if (process_name.empty())
+                {
+                    process_name = "Unknown";
+                }
+            }
+
+            argv[0] = new char[process_name.size() + 1];
+            if (nullptr == argv[0])
+            {
+                GDIAL_LOGERROR("Failed to allocate memory");
+                isAllocated = false;
+            }
+            else
+            {
+                strncpy(argv[0],process_name.c_str(),process_name.size());
+                argv[0][process_name.size()] = '\0';
+                backup_argv[0] = argv[0];
+
+                GDIAL_LOGINFO("Process Name:[%s]",process_name.c_str());
+
+                for (int i = 0; i < input_argc; ++i)
+                {
+                    argv[i+1] = new char[gdial_args[i].size() + 1];
+                    backup_argv[i+1] = argv[i+1];
+                    if (nullptr == argv[i+1])
+                    {
+                        isAllocated = false;
+                        GDIAL_LOGERROR("Failed to allocate memory at %d",i+1);
+                        break;
+                    }
+                    strncpy(argv[i+1], gdial_args[i].c_str(),(gdial_args[i].size()));
+                    argv[i+1][gdial_args[i].size()] = '\0';
+                    GDIAL_LOGINFO("Args:%d [%s]",i,argv[i+1]);
+                }
+                GDIAL_LOGINFO("start_GDialServer with argc[%d]",overall_argc);
             }
         }
 
-        argv[0] = new char[process_name.size() + 1];
-        GDIAL_LOGINFO("Process Name:[%s]",process_name.c_str());
-
-        for (int i = 0; i < input_argc; ++i)
-        {
-            argv[i+1] = new char[gdial_args[i].size() + 1];
-            strncpy(argv[i+1], gdial_args[i].c_str(),(gdial_args[i].size() + 1));
-            GDIAL_LOGINFO("Args:%d [%s]",i,gdial_args[i].c_str());
-        }
-        GDIAL_LOGINFO("start_GDialServer with argc[%d]",overall_argc);
-        if ( 0 != gdialImplInstance->start_GDialServer(overall_argc,argv))
+        if (( false == isAllocated ) || ( 0 != gdialImplInstance->start_GDialServer(overall_argc,argv)))
         {
             GDIAL_LOGERROR("Failed to start GDial server");
             gdialServiceImpl::destroyInstance();
@@ -846,15 +904,27 @@ gdialService* gdialService::getInstance(GDialNotifier* observer, const std::vect
         }
         else
         {
+            GDIAL_LOGINFO("start_GDialServer done ...");
             gdialImplInstance->setService(observer);
         }
 
-        // Free allocated memory after the thread starts
-        for (int i = 0; i < overall_argc; ++i)
+        if (nullptr != backup_argv)
         {
-            delete[] argv[i];
+            // Free allocated memory after the thread starts
+            for (int i = 0; i < overall_argc; ++i)
+            {
+                if (nullptr != backup_argv[i])
+                {
+                    delete[] backup_argv[i];
+                }
+            }
+            delete[] backup_argv;
         }
-        delete[] argv;
+
+        if (nullptr != argv)
+        {
+            delete[] argv;
+        }
     }
     return m_gdialService;
 }
