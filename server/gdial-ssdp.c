@@ -21,6 +21,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <glib.h>
+#include <pthread.h>
 #include <libsoup/soup.h>
 #include <libgssdp/gssdp.h>
 
@@ -73,6 +74,7 @@ static const char ssdp_device_xml_template[] = ""
 static gchar *dd_xml_response_str_ = NULL;
 static gchar *app_friendly_name = NULL;
 static gchar *app_random_uuid = NULL;
+static pthread_mutex_t ssdpServerEventSync = PTHREAD_MUTEX_INITIALIZER;
 
 static void ssdp_http_server_callback(SoupServer *server, SoupMessage *msg, const char *path, GHashTable *query, SoupClientContext  *client, gpointer user_data) {
   /*
@@ -84,6 +86,8 @@ static void ssdp_http_server_callback(SoupServer *server, SoupMessage *msg, cons
     GDIAL_DEBUG("warning: SSDP HTTP Method is not GET\r\n");
     return;
   }
+
+  pthread_mutex_lock(&ssdpServerEventSync);
   /*
    * there is no variant here, so we can cache the response.
    */
@@ -93,23 +97,54 @@ static void ssdp_http_server_callback(SoupServer *server, SoupMessage *msg, cons
     const gchar *manufacturer= gdial_plat_dev_get_manufacturer();
     const gchar *model = gdial_plat_dev_get_model();
 
-    if (manufacturer == NULL) {manufacturer = gdial_options_->manufacturer;}
-    if (model == NULL) {model = gdial_options_->model_name;}
-    if(gdial_options_->feature_friendlyname && strlen(app_friendly_name))
-        dd_xml_response_str_ = g_strdup_printf(ssdp_device_xml_template, app_friendly_name, manufacturer, model, gdial_options_->uuid);
-    else
-        dd_xml_response_str_ = g_strdup_printf(ssdp_device_xml_template, gdial_options_->friendly_name, manufacturer, model, gdial_options_->uuid);
+    if (manufacturer == NULL) {
+        manufacturer = gdial_options_->manufacturer;
+    }
 
-    dd_xml_response_str_len = strlen(dd_xml_response_str_);
+    if (model == NULL) {
+        model = gdial_options_->model_name;
+    }
+
+    if(gdial_options_->feature_friendlyname && app_friendly_name && strlen(app_friendly_name))
+    {
+        dd_xml_response_str_ = g_strdup_printf(ssdp_device_xml_template, app_friendly_name, manufacturer, model, gdial_options_->uuid);
+    }
+    else
+    {
+        dd_xml_response_str_ = g_strdup_printf(ssdp_device_xml_template, gdial_options_->friendly_name, manufacturer, model, gdial_options_->uuid);
+    }
+
+    if ( dd_xml_response_str_ ) {
+        dd_xml_response_str_len = strlen(dd_xml_response_str_);
+    }
+    else {
+        g_printerr("Failed to allocate memory for dd.xml response \r\n");
+        soup_message_set_status(msg, SOUP_STATUS_INTERNAL_SERVER_ERROR);
+    }
   }
 
-  gchar *application_url_str = g_strdup_printf("http://%s:%d/%s/", iface_ipv4_address, GDIAL_REST_HTTP_PORT,app_random_uuid);
-  soup_message_headers_replace (msg->response_headers, "Application-URL", application_url_str);
-  g_free(application_url_str);
-  soup_message_set_response(msg, "text/xml; charset=utf-8", SOUP_MEMORY_STATIC, dd_xml_response_str_, dd_xml_response_str_len);
-  soup_message_set_status(msg, SOUP_STATUS_OK);
-  GDIAL_CHECK("Content-Type:text/xml");
-  GDIAL_CHECK("Application-URL: exist");
+  if ( dd_xml_response_str_ ) {
+    gchar *application_url_str = g_strdup_printf("http://%s:%d/%s/", iface_ipv4_address, GDIAL_REST_HTTP_PORT,app_random_uuid);
+
+    if ( application_url_str )
+    {
+        soup_message_headers_replace (msg->response_headers, "Application-URL", application_url_str);
+        g_free(application_url_str);
+        application_url_str = NULL;
+
+        soup_message_set_response(msg, "text/xml; charset=utf-8", SOUP_MEMORY_STATIC, dd_xml_response_str_, dd_xml_response_str_len);
+        soup_message_set_status(msg, SOUP_STATUS_OK);
+
+        GDIAL_CHECK("Content-Type:text/xml");
+        GDIAL_CHECK("Application-URL: exist");
+    }
+    else
+    {
+        g_printerr("Failed to allocate memory for response_headers \r\n");
+        soup_message_set_status(msg, SOUP_STATUS_INTERNAL_SERVER_ERROR);
+    }
+  }
+  pthread_mutex_unlock(&ssdpServerEventSync);
 }
 
 void gdial_ssdp_networkstandbymode_handler(const bool nwstandby)
@@ -134,6 +169,12 @@ int gdial_ssdp_new(SoupServer *ssdp_http_server, GDialOptions *options, const gc
   g_return_val_if_fail(ssdp_http_server != NULL, -1);
   g_return_val_if_fail(options != NULL, -1);
   g_return_val_if_fail(options->iface_name != NULL, -1);
+
+  if (0 != pthread_mutex_init(&ssdpServerEventSync, NULL))
+  {
+    g_printerr("Failed to initializing mutex \r\n");
+    return EXIT_FAILURE;
+  }
 
   gdial_options_ = options;
   if (gdial_options_->friendly_name == NULL) gdial_options_->friendly_name = g_strdup(GDIAL_SSDP_FRIENDLY_DEFAULT);
@@ -212,17 +253,33 @@ int gdial_ssdp_destroy() {
   if (dd_xml_response_str_) {
     g_free(dd_xml_response_str_);
   }
+
   if (gdial_options_->friendly_name != NULL) g_free(gdial_options_->friendly_name);
   if (gdial_options_->uuid != NULL) g_free(gdial_options_->uuid);
   if (gdial_options_->iface_name != NULL) g_free(gdial_options_->iface_name);
   if (app_random_uuid) g_free(app_random_uuid);
 
-  gssdp_client_clear_headers(ssdp_client_);
 
-  g_object_unref(ssdp_http_server_);
-  g_object_unref(ssdp_resource_group_);
-  g_object_unref(ssdp_client_);
-
+  if (ssdp_client_)
+  {
+    gssdp_client_clear_headers(ssdp_client_);
+  }
+  if (ssdp_http_server_)
+  {
+    g_object_unref(ssdp_http_server_);
+    ssdp_http_server_ = NULL;
+  }
+  if (ssdp_resource_group_)
+  {
+    g_object_unref(ssdp_resource_group_);
+    ssdp_resource_group_ = NULL;
+  }
+  if (ssdp_client_)
+  {
+    g_object_unref(ssdp_client_);
+    ssdp_client_ = NULL;
+  }
+  pthread_mutex_destroy(&ssdpServerEventSync);
   return 0;
 }
 
@@ -236,15 +293,20 @@ int gdial_ssdp_set_available(bool activation_status, const gchar *friendlyname)
 
 int gdial_ssdp_set_friendlyname(const gchar *friendlyname)
 {
-  if(gdial_options_ && gdial_options_->feature_friendlyname && friendlyname)
-  {
-     if (app_friendly_name != NULL) g_free(app_friendly_name);
-     app_friendly_name = g_strdup(friendlyname);
-     g_print("gdial_ssdp_set_friendlyname app_friendly_name :%s \n ",app_friendly_name);
-     if (dd_xml_response_str_!= NULL){
-      g_free(dd_xml_response_str_);
-      dd_xml_response_str_ = NULL;
-     }
-  }
-  return 0;
+    pthread_mutex_lock(&ssdpServerEventSync);
+    if(gdial_options_ && gdial_options_->feature_friendlyname && friendlyname)
+    {
+        if (app_friendly_name != NULL) {
+            g_free(app_friendly_name);
+        }
+        app_friendly_name = g_strdup(friendlyname);
+
+        g_print("gdial_ssdp_set_friendlyname app_friendly_name :%s  \n",app_friendly_name);
+        if (dd_xml_response_str_!= NULL){
+            g_free(dd_xml_response_str_);
+            dd_xml_response_str_ = NULL;
+        }
+    }
+    pthread_mutex_unlock(&ssdpServerEventSync);
+    return 0;
 }
