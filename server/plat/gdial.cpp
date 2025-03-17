@@ -78,6 +78,11 @@ public:
                 reterror = GDIAL_CAST_ERROR_NONE;
             }
         }
+        if (nullptr != AppObj)
+        {
+            delete AppObj;
+            AppObj = nullptr;
+        }
         GDIAL_LOGTRACE("Exiting ...");
         return reterror;
     }
