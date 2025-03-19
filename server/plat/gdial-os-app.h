@@ -39,6 +39,8 @@ int gdial_os_application_friendlyname_changed(const char *friendlyname);
 const char* gdial_os_application_get_protocol_version();
 int gdial_os_application_register_applications(void*);
 void gdial_os_application_update_network_standby_mode(gboolean nwstandbyMode);
+int gdial_os_application_update_manufacturer_name(const char *manufacturer);
+int gdial_os_application_update_model_name(const char *model);
 int gdial_os_application_service_notification(gboolean isNotifyRequired, void* notifier);
 
 #ifdef __cplusplus

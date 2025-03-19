@@ -50,7 +50,7 @@ gboolean gdial_rest_server_unregister_all_apps(GDialRestServer *self);
 typedef struct _GDialAppRegistry GDialAppRegistry;
 
 GDIAL_STATIC gboolean gdial_rest_server_is_allowed_origin(GDialRestServer *self, const gchar *header_origin, const gchar *app_name);
-GDIAL_STATIC gchar *gdial_rest_server_new_additional_data_url(guint listening_port, const gchar *app_name, gboolean encode);
+GDIAL_STATIC gchar *gdial_rest_server_new_additional_data_url(guint listening_port, const gchar *app_name, gboolean encode, const gchar* app_uri);
 GDIAL_STATIC GDialAppRegistry *gdial_rest_server_find_app_registry(GDialRestServer *self, const gchar *app_name);
 
 G_END_DECLS
