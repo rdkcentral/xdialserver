@@ -155,9 +155,12 @@ static void gdial_soup_message_set_http_error(SoupMessage *msg, guint state_code
   g_string_free(value_buf, FALSE); \
 }
 
-static GList *gdial_rest_server_registered_apps_clear(GList *registered_apps, GList *found) {
+static GList *gdial_rest_server_registered_apps_clear(GDialRestServer *self, GList *registered_apps, GList *found) {
+  GDialRestServerPrivate *priv = gdial_rest_server_get_instance_private(self);
   GDialAppRegistry *app_registry = (GDialAppRegistry *)found->data;
   registered_apps = g_list_remove_link(registered_apps, found);
+  GDIAL_LOGINFO("Removing handler for app[%s]", app_registry->name);
+  soup_server_remove_handler(priv->local_soup_instance, app_registry->app_uri);
   gdial_app_regstry_dispose (app_registry);
   g_list_free(found);
   return registered_apps;
@@ -281,7 +284,7 @@ GDIAL_STATIC gboolean gdial_rest_server_is_allowed_origin(GDialRestServer *self,
   return is_allowed;
 }
 
-GDIAL_STATIC gchar *gdial_rest_server_new_additional_data_url(guint listening_port, const gchar *app_name, gboolean encode) {
+GDIAL_STATIC gchar *gdial_rest_server_new_additional_data_url(guint listening_port, const gchar *app_name, gboolean encode , const gchar* app_uri) {
   /*
    * The specifciation of additionalDataUrl in form of /apps/<app_name>/dial_data
    * thus the instance data must be included in the query or payload, not the path.
@@ -291,7 +294,7 @@ GDIAL_STATIC gchar *gdial_rest_server_new_additional_data_url(guint listening_po
    * for MIME type application/x-www-form-urlencoded.]]
    */
   GString *url_buf = g_string_new("");
-  g_string_printf(url_buf, "http://%s:%d%s/%s%s", "localhost", listening_port, GDIAL_REST_HTTP_APPS_URI, app_name, GDIAL_REST_HTTP_DIAL_DATA_URI);
+  g_string_printf(url_buf, "http://%s:%d%s%s", "localhost", listening_port, app_uri, GDIAL_REST_HTTP_DIAL_DATA_URI);
   gchar *unencoded = g_string_free(url_buf, FALSE);
   if (encode) {
     gchar *encoded = soup_uri_encode(unencoded, NULL);
@@ -433,7 +436,7 @@ static void gdial_rest_server_handle_POST(GDialRestServer *gdial_rest_server, So
   if (new_app_instance) {
     gchar *additional_data_url = NULL;
     if (app_registry->use_additional_data) {
-      additional_data_url = gdial_rest_server_new_additional_data_url(listening_port, app_registry->name, FALSE);
+      additional_data_url = gdial_rest_server_new_additional_data_url(listening_port, app_registry->name, FALSE, app_registry->app_uri );
     }
     gchar *additional_data_url_safe = soup_uri_encode(additional_data_url, NULL);
     GDIAL_LOGINFO("additionalDataUrl = %s, %s", additional_data_url, additional_data_url_safe);
@@ -981,7 +984,7 @@ static void gdial_rest_server_dispose(GObject *object) {
   g_object_unref(priv->soup_instance);
   g_object_unref(priv->local_soup_instance);
   while (priv->registered_apps) {
-    priv->registered_apps = gdial_rest_server_registered_apps_clear(priv->registered_apps, priv->registered_apps);
+    priv->registered_apps = gdial_rest_server_registered_apps_clear(object, priv->registered_apps, priv->registered_apps);
   }
   G_OBJECT_CLASS (gdial_rest_server_parent_class)->dispose (object);
 }
@@ -1102,10 +1105,7 @@ GDialRestServer *gdial_rest_server_new(SoupServer *rest_http_server,SoupServer *
    */
   soup_server_add_handler(rest_http_server, "/apps/system", gdial_rest_http_server_system_callback, object, NULL);
 #endif
-  GDIAL_LOGINFO("gdial_local_rest_http_server_callback add handler");
   GDIAL_REST_HTTP_APPS_URI = g_strdup_printf("/%s", random_id);
-
-  soup_server_add_handler(local_rest_http_server, GDIAL_REST_HTTP_APPS_URI, gdial_local_rest_http_server_callback, object, NULL);
   return object;
 }
 
@@ -1147,6 +1147,12 @@ gboolean gdial_rest_server_register_app(GDialRestServer *self, const gchar *app_
   }
   g_return_val_if_fail(priv->registered_apps != NULL, FALSE);
   g_return_val_if_fail(gdial_rest_server_is_app_registered(self, app_name), FALSE);
+
+  if( 0 != strcmp(app_name,"system"))
+  {
+    GDIAL_LOGINFO("gdial_local_rest_http_server_callback add handler for app_name:[%s]",app_name);
+    soup_server_add_handler(priv->local_soup_instance, app_registry->app_uri, gdial_local_rest_http_server_callback, self, NULL);
+  }
   GDIAL_LOGTRACE("Exiting ...");
   return TRUE;
 }
@@ -1204,7 +1210,7 @@ gboolean gdial_rest_server_unregister_all_apps(GDialRestServer *self) {
   priv->registered_apps = registered_apps_head;
   /*Remove all registered apps before*/
   while (priv->registered_apps) {
-    priv->registered_apps = gdial_rest_server_registered_apps_clear(priv->registered_apps, priv->registered_apps);
+    priv->registered_apps = gdial_rest_server_registered_apps_clear(self, priv->registered_apps, priv->registered_apps);
   }
   GDIAL_LOGTRACE("Exiting ...");
   return TRUE;
@@ -1219,7 +1225,7 @@ gboolean gdial_rest_server_unregister_app(GDialRestServer *self, const gchar *ap
   GDialRestServerPrivate *priv = gdial_rest_server_get_instance_private(self);
   GList *found = g_list_find_custom(priv->registered_apps, app_name, GCompareFunc_match_registry_app_name);
   if (found == NULL) return FALSE;
-  priv->registered_apps = gdial_rest_server_registered_apps_clear(priv->registered_apps, found);
+  priv->registered_apps = gdial_rest_server_registered_apps_clear(self, priv->registered_apps, found);
   return TRUE;
 }
 

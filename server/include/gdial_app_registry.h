@@ -32,7 +32,10 @@
 
 G_BEGIN_DECLS
 
+#define APP_MAX_UUID_SIZE 64
+
 typedef struct _GDialAppRegistry {
+  gchar app_uri[APP_MAX_UUID_SIZE+1]; // for storing uri
   gchar *name;
   gboolean use_additional_data;
   gboolean is_singleton;
