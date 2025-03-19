@@ -37,6 +37,8 @@ typedef enum _AppRequestEvents
     FRIENDLYNAME_CHANGED,
     REGISTER_APPLICATIONS,
     UPDATE_NW_STANDBY,
+    UPDATE_MANUFACTURER_NAME,
+    UPDATE_MODEL_NAME,
     INVALID_REQUEST
 }
 AppRequestEvents;
@@ -59,6 +61,8 @@ typedef struct _RequestHandlerPayload
     std::string appIdOractivation;
     std::string state;
     std::string error;
+    std::string manufacturer;
+    std::string model;
     void* data_param;
     bool user_param1;
     AppRequestEvents event;
