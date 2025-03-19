@@ -25,14 +25,6 @@
 static gdial_plat_dev_nwstandbymode_cb g_nwstandbymode_cb = NULL;
 static gdial_plat_dev_powerstate_cb g_powerstate_cb = NULL;
 
-const char * gdial_plat_dev_get_manufacturer() {
-  return g_getenv("GDIAL_DEV_MANUFACTURER");
-}
-
-const char * gdial_plat_dev_get_model() {
-  return g_getenv("GDIAL_DEV_MODEL");
-}
-
 void gdial_plat_dev_nwstandby_mode_change(gboolean NetworkStandbyMode)
 {
     if(g_nwstandbymode_cb) g_nwstandbymode_cb(NetworkStandbyMode);

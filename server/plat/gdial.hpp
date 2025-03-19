@@ -45,9 +45,14 @@ void gdial_term();
 typedef void (*gdial_activation_cb)(bool, const gchar *);
 typedef void (*gdial_friendlyname_cb)(const gchar *);
 typedef void (*gdial_registerapps_cb)(gpointer);
+typedef void (*gdial_manufacturername_cb)(const gchar *);
+typedef void (*gdial_modelname_cb)(const gchar *);
+
 void gdial_register_activation_cb(gdial_activation_cb cb);
 void gdial_register_friendlyname_cb(gdial_friendlyname_cb cb);
 void gdial_register_registerapps_cb(gdial_registerapps_cb cb);
+void gdial_register_manufacturername_cb(gdial_manufacturername_cb cb);
+void gdial_register_modelname_cb(gdial_manufacturername_cb cb);
 
 #ifdef __cplusplus
 }
