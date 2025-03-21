@@ -159,7 +159,7 @@ static GList *gdial_rest_server_registered_apps_clear(GDialRestServer *self, GLi
   GDialRestServerPrivate *priv = gdial_rest_server_get_instance_private(self);
   GDialAppRegistry *app_registry = (GDialAppRegistry *)found->data;
   registered_apps = g_list_remove_link(registered_apps, found);
-  GDIAL_LOGINFO("Removing handler for app[%s]", app_registry->name);
+  GDIAL_LOGINFO("gdial_local_rest_http_server_callback handler Removed for App[%s]instance[%x]", app_registry->name,priv->local_soup_instance);
   soup_server_remove_handler(priv->local_soup_instance, app_registry->app_uri);
   gdial_app_regstry_dispose (app_registry);
   g_list_free(found);
@@ -211,6 +211,14 @@ static gint GCompareFunc_match_registry_app_name(gconstpointer a, gconstpointer 
   return is_matched ? 0 : 1;
 }
 
+static gint GCompareFunc_match_registry_app_uuid(gconstpointer a, gconstpointer b) {
+    GDialAppRegistry *app_registry = (GDialAppRegistry *)a;
+    int is_matched = 0;
+    /* match by exact uuid */
+    is_matched = (g_strcmp0(&app_registry->app_uri[1], b) == 0);
+    return is_matched ? 0 : 1;
+}
+
 GDIAL_STATIC GDialAppRegistry *gdial_rest_server_find_app_registry(GDialRestServer *self, const gchar *app_name) {
   g_return_val_if_fail(self != NULL && app_name != NULL, FALSE);
   GDialRestServerPrivate *priv = gdial_rest_server_get_instance_private(self);
@@ -220,6 +228,16 @@ GDIAL_STATIC GDialAppRegistry *gdial_rest_server_find_app_registry(GDialRestServ
   }
   return NULL;
 }
+
+GDIAL_STATIC GDialAppRegistry *gdial_rest_server_find_app_registry_by_uuid(GDialRestServer *self, const gchar *app_uuid) {
+    g_return_val_if_fail(self != NULL && app_uuid != NULL, FALSE);
+    GDialRestServerPrivate *priv = gdial_rest_server_get_instance_private(self);
+    GList *found = g_list_find_custom(priv->registered_apps, app_uuid, GCompareFunc_match_registry_app_uuid);
+    if (found) {
+      return (GDialAppRegistry *)found->data;
+    }
+    return NULL;
+  }
 
 GDIAL_STATIC gboolean gdial_rest_server_is_allowed_youtube_origin(GDialRestServer *self, const gchar *header_origin, const gchar *app_name) {
   if (self == NULL) return FALSE;
@@ -676,13 +694,12 @@ static void gdial_local_rest_http_server_callback(SoupServer *server,
             SoupMessage *msg, const gchar *path, GHashTable *query,
             SoupClientContext  *client, gpointer user_data) {
   gchar *remote_address_str = g_inet_address_to_string(g_inet_socket_address_get_address(G_INET_SOCKET_ADDRESS(soup_client_context_get_remote_address(client))));
-  g_print_with_timestamp("gdial_local_rest_http_server_callback() %s path=%s recv from [%s], in thread %lx", msg->method, path, remote_address_str, pthread_self());
+  GDIAL_LOGINFO("method[%s] path[%s] recv from [%s], in thread %lx", msg->method, path, remote_address_str, pthread_self());
   g_free(remote_address_str);
   GDialRestServer *gdial_rest_server = (GDIAL_REST_SERVER(user_data));
-  gchar **elements = g_strsplit(&path[1], "/", 4);
+  gchar **elements = g_strsplit(&path[1], "/", 3);
   gdial_rest_server_http_return_if_fail(elements != NULL, msg, SOUP_STATUS_NOT_IMPLEMENTED);
   gchar base[GDIAL_REST_HTTP_PATH_COMPONENT_MAX_LEN] = {0};
-  gchar app_name[GDIAL_REST_HTTP_PATH_COMPONENT_MAX_LEN] = {0};
   gchar instance[GDIAL_REST_HTTP_PATH_COMPONENT_MAX_LEN] = {0};
   gchar last_elem[GDIAL_REST_HTTP_PATH_COMPONENT_MAX_LEN] = {0};
   int i = 0;
@@ -694,37 +711,35 @@ static void gdial_local_rest_http_server_callback(SoupServer *server,
       GDIAL_LOGWARNING("Warn: empty elements in URI path");
       continue;
     }
-    if (j == 0) g_strlcpy(base, elements[i], sizeof(base));
-    else if (j == 1) {
-        ret = g_strlcpy(app_name, elements[i], sizeof(app_name));
-        if (ret >= sizeof(app_name)) {
-          g_printerr("Warn: app_name too long\r\n");
-        }
+    if (j == 0) {
+        g_strlcpy(base, elements[i], sizeof(base));
     }
-    else if (j == 2) {
+    else if (j == 1) {
         ret = g_strlcpy(instance, elements[i], sizeof(instance));
         if (ret >= sizeof(instance)) {
-          g_printerr("Warn: instance too long\r\n");
+            GDIAL_LOGERROR("Warn: instance too long");
         }
     }
     ret = g_strlcpy(last_elem, elements[i], sizeof(last_elem));
     if (ret >= sizeof(last_elem)) {
-      g_printerr("Warn: last_elem too long\r\n");
+        GDIAL_LOGERROR("Warn: last_elem too long");
     }
+    GDIAL_LOGINFO("last_elem[%s]", last_elem);
     j++;
   }
   g_strfreev(elements);
   const int element_num = j;
   GDIAL_LOGINFO("there are %d non-empty elems", element_num);
-  if(element_num == 3 && g_strcmp0(instance,"dial_data") == 0)
+  if(element_num == 2 && g_strcmp0(instance,"dial_data") == 0)
   {
-    GDialAppRegistry *app_registry = gdial_rest_server_find_app_registry(gdial_rest_server, app_name);
+    GDialAppRegistry *app_registry = gdial_rest_server_find_app_registry_by_uuid(gdial_rest_server, base);
+
     gdial_rest_server_http_return_if_fail(app_registry, msg, SOUP_STATUS_NOT_FOUND);
     if (msg->method == SOUP_METHOD_POST) {
-       gdial_rest_server_handle_POST_dial_data(gdial_rest_server, msg, query, app_name);
+       gdial_rest_server_handle_POST_dial_data(gdial_rest_server, msg, query, app_registry->name);
     }
     else if (msg->method == SOUP_METHOD_GET) {
-     gdial_rest_server_handle_GET_app(gdial_rest_server, msg, query, app_name, GDIAL_APP_INSTANCE_NULL);
+     gdial_rest_server_handle_GET_app(gdial_rest_server, msg, query, app_registry->name, GDIAL_APP_INSTANCE_NULL);
     }
     else {
       gdial_rest_server_http_return_if_fail(msg->method == SOUP_METHOD_POST, msg, SOUP_STATUS_NOT_IMPLEMENTED);
@@ -1150,7 +1165,7 @@ gboolean gdial_rest_server_register_app(GDialRestServer *self, const gchar *app_
 
   if( 0 != strcmp(app_name,"system"))
   {
-    GDIAL_LOGINFO("gdial_local_rest_http_server_callback add handler for app_name:[%s]",app_name);
+    GDIAL_LOGINFO("gdial_local_rest_http_server_callback handler added for App[%s]uri[%s]instance[%x]",app_name,app_registry->app_uri,priv->local_soup_instance);
     soup_server_add_handler(priv->local_soup_instance, app_registry->app_uri, gdial_local_rest_http_server_callback, self, NULL);
   }
   GDIAL_LOGTRACE("Exiting ...");
@@ -1180,6 +1195,11 @@ gboolean gdial_rest_server_register_app_registry(GDialRestServer *self, GDialApp
 
   g_return_val_if_fail(priv->registered_apps != NULL, FALSE);
   g_return_val_if_fail(gdial_rest_server_is_app_registered(self, app_registry->name), FALSE);
+  if( 0 != strcmp(app_registry->name,"system"))
+  {
+    GDIAL_LOGINFO("gdial_local_rest_http_server_callback handler added for App[%s]uri[%s]instance[%x]",app_registry->name,app_registry->app_uri,priv->local_soup_instance);
+    soup_server_add_handler(priv->local_soup_instance, app_registry->app_uri, gdial_local_rest_http_server_callback, self, NULL);
+  }
   return TRUE;
 }
 
