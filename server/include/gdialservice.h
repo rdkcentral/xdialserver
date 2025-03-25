@@ -41,6 +41,8 @@ public:
     string getProtocolVersion(void);
     GDIAL_SERVICE_ERROR_CODES RegisterApplications(RegisterAppEntryList* appConfigList);
     void setNetworkStandbyMode(bool nwStandbymode);
+    GDIAL_SERVICE_ERROR_CODES setManufacturerName(string manufacturer);
+    GDIAL_SERVICE_ERROR_CODES setModelName(string model);
 
 private:
     GDialNotifier* m_observer{nullptr};

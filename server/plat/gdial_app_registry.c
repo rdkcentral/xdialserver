@@ -19,8 +19,11 @@
  * limitations under the License.
  */
 
+#include <uuid/uuid.h>
 #include <gdial_app_registry.h>
 #include "gdialservicelogging.h"
+
+#define UUID_FILE_TEMPLATE "/tmp/.dial_%s_uuid.txt"
 
 #define GDIAL_STR_ENDS_WITH(s1, s2) ((s1 != NULL) && (s2 != NULL) && ((strlen(s2) == 0) || (g_str_has_suffix(s1, s2))))
 
@@ -92,5 +95,34 @@ GDialAppRegistry* gdial_app_registry_new (const gchar *app_name, const GList *ap
     app_registry->allowed_origins = g_list_prepend(app_registry->allowed_origins, g_strdup(allowed_origins->data));
     allowed_origins = allowed_origins->next;
   }
+
+  char app_uuid_file_path[64] = {0};
+  char uuid_data[APP_MAX_UUID_SIZE] = {0};
+  snprintf( app_uuid_file_path, sizeof(app_uuid_file_path), UUID_FILE_TEMPLATE , app_name);
+
+  FILE *fuuid = fopen(app_uuid_file_path, "r");
+  if (fuuid == NULL)
+  {
+    uuid_t random_uuid;
+    uuid_generate_random(random_uuid);
+    uuid_unparse(random_uuid, uuid_data);
+    GDIAL_LOGINFO("generated uuid:[%s]", uuid_data);
+
+    fuuid = fopen(app_uuid_file_path, "w");
+    if (fuuid != NULL)
+    {
+        fprintf(fuuid, "%s", uuid_data);
+        fclose(fuuid);
+    }
+  }
+  else
+  {
+    fgets(uuid_data, sizeof(uuid_data), fuuid);
+    fclose(fuuid);
+  }
+
+  snprintf( app_registry->app_uri, sizeof(app_registry->app_uri), "/%s" , uuid_data);
+  GDIAL_LOGINFO("App:[%s] uuid:[%s] per Bootup", app_name, uuid_data);
+
   return app_registry;
 }
