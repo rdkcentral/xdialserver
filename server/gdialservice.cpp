@@ -171,6 +171,16 @@ static void server_friendlyname_handler(const gchar * friendlyname)
     gdial_ssdp_set_friendlyname(friendlyname);
 }
 
+static void server_manufacturername_handler(const gchar * manufacturername)
+{
+    gdial_ssdp_set_manufacturername(manufacturername);
+}
+
+static void server_modelname_handler(const gchar * modelname)
+{
+    gdial_ssdp_set_modelname(modelname);
+}
+
 static void server_powerstate_handler(const gchar * powerState)
 {
     gdialServiceImpl::getInstance()->updatePowerState(std::string(powerState));
@@ -268,6 +278,10 @@ int gdialServiceImpl::start_GDialServer(int argc, char *argv[])
 
     gdail_plat_register_activation_cb(server_activation_handler);
     gdail_plat_register_friendlyname_cb(server_friendlyname_handler);
+
+    gdail_plat_register_manufacturername_cb(server_manufacturername_handler);
+    gdail_plat_register_modelname_cb(server_modelname_handler);
+
     gdail_plat_register_registerapps_cb (server_register_application);
     gdail_plat_dev_register_powerstate_cb(server_powerstate_handler);
 
@@ -678,6 +692,18 @@ void *gdialServiceImpl::requestHandlerThread(void *ctx)
                     gdial_plat_application_update_network_standby_mode((gboolean)reqHdlrPayload.user_param1);
                 }
                 break;
+                case UPDATE_MANUFACTURER_NAME:
+                {
+                    GDIAL_LOGINFO("UPDATE_MANUFACTURER_NAME : data:%s",reqHdlrPayload.manufacturer.c_str());
+                    gdial_plat_application_update_manufacturer_name(reqHdlrPayload.manufacturer.c_str());
+                }
+                break;
+                case UPDATE_MODEL_NAME:
+                {
+                    GDIAL_LOGINFO("UPDATE_MODEL_NAME : data:%s",reqHdlrPayload.model.c_str());
+                    gdial_plat_application_update_model_name(reqHdlrPayload.model.c_str());
+                }
+                break;
                 default:
                 {
 
@@ -1041,6 +1067,39 @@ void gdialService::setNetworkStandbyMode(bool nwStandbymode)
         gdialImplInstance->sendRequest(payload);
     }
     GDIAL_LOGTRACE("Exiting ...");
+}
+
+
+GDIAL_SERVICE_ERROR_CODES gdialService::setManufacturerName(string manufacturer)
+{
+    gdialServiceImpl* gdialImplInstance = gdialServiceImpl::getInstance();
+    GDIAL_LOGTRACE("Entering ...");
+    GDIAL_LOGINFO("Manufacturer[%s]",manufacturer.c_str());
+    if ((nullptr != m_gdialService ) && (nullptr != gdialImplInstance))
+    {
+        RequestHandlerPayload payload;
+        payload.event = UPDATE_MANUFACTURER_NAME;
+        payload.manufacturer = manufacturer;
+        gdialImplInstance->sendRequest(payload);
+    }
+    GDIAL_LOGTRACE("Exiting ...");
+    return GDIAL_SERVICE_ERROR_NONE;
+}
+
+GDIAL_SERVICE_ERROR_CODES gdialService::setModelName(string model)
+{
+    gdialServiceImpl* gdialImplInstance = gdialServiceImpl::getInstance();
+    GDIAL_LOGTRACE("Entering ...");
+    GDIAL_LOGINFO("Model[%s]",model.c_str());
+    if ((nullptr != m_gdialService ) && (nullptr != gdialImplInstance))
+    {
+        RequestHandlerPayload payload;
+        payload.event = UPDATE_MODEL_NAME;
+        payload.model = model;
+        gdialImplInstance->sendRequest(payload);
+    }
+    GDIAL_LOGTRACE("Exiting ...");
+    return GDIAL_SERVICE_ERROR_NONE;
 }
 
 void gdialServiceImpl::sendRequest( const RequestHandlerPayload& payload )

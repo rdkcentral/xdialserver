@@ -32,9 +32,13 @@ typedef void * gdial_async_handler_t;
 typedef void (*gdial_plat_activation_cb)(gboolean, const gchar *);
 typedef void (*gdial_plat_friendlyname_cb)(const gchar *);
 typedef void (*gdial_plat_registerapps_cb)(gpointer);
+typedef void (*gdial_plat_manufacturername_cb)(const gchar *);
+typedef void (*gdial_plat_modelname_cb)(const gchar *);
 void gdail_plat_register_activation_cb(gdial_plat_activation_cb cb);
 void gdail_plat_register_friendlyname_cb(gdial_plat_friendlyname_cb cb);
 void gdail_plat_register_registerapps_cb(gdial_plat_registerapps_cb cb);
+void gdail_plat_register_manufacturername_cb(gdial_plat_manufacturername_cb cb);
+void gdail_plat_register_modelname_cb(gdial_plat_modelname_cb cb);
 
 GDialAppError gdial_plat_application_start(const gchar *app_name, const gchar *payload, const gchar *query, const gchar *additional_data_url, gint *instance_id);
 GDialAppError gdial_plat_application_hide(const gchar *app_name, gint instance_id);
@@ -48,6 +52,8 @@ GDialAppError gdial_plat_application_friendlyname_changed(const char *friendlyna
 const char* gdial_plat_application_get_protocol_version();
 GDialAppError gdial_plat_application_register_applications(void*);
 void gdial_plat_application_update_network_standby_mode(gboolean nwstandbyMode);
+GDialAppError gdial_plat_application_update_manufacturer_name(const char *manufacturer);
+GDialAppError gdial_plat_application_update_model_name(const char *model);
 GDialAppError gdial_plat_application_service_notification(gboolean isNotifyRequired, void* notifier);
 
 void * gdial_plat_application_start_async(const gchar *app_name, const gchar *payload, const gchar *query, const gchar *additional_data_url, void *user_data);
