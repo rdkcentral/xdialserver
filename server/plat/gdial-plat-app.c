@@ -35,6 +35,8 @@ static gpointer gdial_app_state_cb_user_data_ = NULL;
 static gdial_plat_activation_cb g_activation_cb = NULL;
 static gdial_plat_friendlyname_cb g_friendlyname_cb = NULL;
 static gdial_plat_registerapps_cb g_registerapps_cb = NULL;
+static gdial_plat_manufacturername_cb g_manufacturername_cb = NULL;
+static gdial_plat_modelname_cb g_modelname_cb = NULL;
 
 #define GDIAL_PLAT_APP_ASYNC_CONTEXT_TYPE_COMMON 0
 #define GDIAL_PLAT_APP_ASYNC_CONTEXT_TYPE_START  1
@@ -149,6 +151,18 @@ void gdail_plat_register_registerapps_cb(gdial_plat_registerapps_cb cb)
 {
   g_registerapps_cb = cb;
   gdial_register_registerapps_cb(cb);
+}
+
+void gdail_plat_register_manufacturername_cb(gdial_plat_manufacturername_cb cb)
+{
+  g_manufacturername_cb = cb;
+  gdial_register_manufacturername_cb(cb);
+}
+
+void gdail_plat_register_modelname_cb(gdial_plat_modelname_cb cb)
+{
+  g_modelname_cb = cb;
+  gdial_register_modelname_cb(cb);
 }
 
 gint gdial_plat_init(GMainContext *main_context) {
@@ -334,6 +348,20 @@ GDialAppError gdial_plat_application_register_applications(void* appList)
 void gdial_plat_application_update_network_standby_mode(gboolean nwstandby)
 {
   gdial_os_application_update_network_standby_mode(nwstandby);
+}
+
+GDialAppError gdial_plat_application_update_manufacturer_name(const char *manufacturer)
+{
+  g_return_val_if_fail(manufacturer != NULL, GDIAL_APP_ERROR_BAD_REQUEST);
+
+  return gdial_os_application_update_manufacturer_name(manufacturer);
+}
+
+GDialAppError gdial_plat_application_update_model_name(const char *model)
+{
+  g_return_val_if_fail(model != NULL, GDIAL_APP_ERROR_BAD_REQUEST);
+
+  return gdial_os_application_update_model_name(model);
 }
 
 GDialAppError gdial_plat_application_service_notification(gboolean isNotifyRequired, void* notifier)
