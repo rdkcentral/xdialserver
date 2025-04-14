@@ -27,6 +27,12 @@ set (GDIAL_PLAT_DEPEND_LIBRARIES "${GLIB_LIBRARIES} ${GOBJECT_LIBRARIES}")
 
 set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} ${CMAKE_CXX_FLAGS} -std=c++11 -Wno-nonnull -DRT_PLATFORM_LINUX")
 
+option(DISABLE_SECURITY_TOKEN "Disable security token" OFF)
+
+if(DISABLE_SECURITY_TOKEN)
+  add_definitions(-DDISABLE_SECURITY_TOKEN)
+endif()
+
 #
 # Template that generates .pc file
 #
@@ -69,4 +75,8 @@ if(PLATFORM)
 endif()
 
 add_library(gdial-plat SHARED ${GDIAL_PLAT_LIB_SOURCE_FILES})
-target_link_Libraries(gdial-plat PRIVATE ${GLIB_LIBRARIES} ${GOBJECT_LIBRARIES} -lpthread -lWPEFrameworkCore -lWPEFrameworkDefinitions -lWPEFrameworkCOM -lWPEFrameworkPlugins -lWPEFrameworkSecurityUtil -lIARMBus -luuid)
+if(DISABLE_SECURITY_TOKEN)
+  target_link_Libraries(gdial-plat PRIVATE ${GLIB_LIBRARIES} ${GOBJECT_LIBRARIES} -lpthread -lWPEFrameworkCore -lWPEFrameworkDefinitions -lWPEFrameworkCOM -lWPEFrameworkPlugins -lIARMBus -luuid)
+else()
+  target_link_libraries(gdial-plat PRIVATE ${GLIB_LIBRARIES} ${GOBJECT_LIBRARIES} -lpthread -lWPEFrameworkCore -lWPEFrameworkDefinitions -lWPEFrameworkCOM -lWPEFrameworkPlugins -lWPEFrameworkSecurityUtil -lIARMBus -luuid)
+endif()
