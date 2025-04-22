@@ -32,7 +32,9 @@
 #include <json/JsonData_StateControl.h>
 #include <com/Ids.h>
 #include <curl/curl.h>
+#ifndef DISABLE_SECURITY_TOKEN
 #include <securityagent/SecurityTokenUtil.h>
+#endif
 #include "gdial-app.h"
 #include "gdial-plat-dev.h"
 #include "gdial-os-app.h"
@@ -572,21 +574,26 @@ std::string GetCurrentState() {
      std::string netflixState = "";
      Core::JSON::ArrayType<PluginHost::MetaData::Service> pluginResponse;
      Core::SystemInfo::SetEnvironment(_T("THUNDER_ACCESS"), (_T("127.0.0.1:9998")));
+     string sToken = "";
+     string query = "";
+#ifdef DISABLE_SECURITY_TOKEN
+    query = "token=" + sToken;
+#else
      unsigned char buffer[MAX_LENGTH] = {0};
 
      //Obtaining controller object
      if (NULL == controllerRemoteObject) {
          int ret = GetSecurityToken(MAX_LENGTH,buffer);
-         if(ret<0)
+         if(ret>0)
          {
-           controllerRemoteObject = new JSONRPC::LinkType<Core::JSON::IElement>(std::string());
-         } else {
-           string sToken = (char*)buffer;
-           string query = "token=" + sToken;
+           sToken = (char*)buffer;
+           query = "token=" + sToken;
            GDIAL_LOGINFO("Security token[%s] ",query.c_str());
-           controllerRemoteObject = new JSONRPC::LinkType<Core::JSON::IElement>(std::string(), false, query);
          }
      }
+#endif
+     controllerRemoteObject = new JSONRPC::LinkType<Core::JSON::IElement>(std::string(), false, query);
+
      std::string nfxstatus = "status@" + nfx_callsign;
      if(controllerRemoteObject->Get(1000, _T(nfxstatus), pluginResponse) == Core::ERROR_NONE)
      {
