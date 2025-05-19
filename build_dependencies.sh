@@ -31,8 +31,6 @@ git clone --branch  R4.4.3 https://github.com/rdkcentral/ThunderTools.git
 
 git clone --branch R4.4.1 https://github.com/rdkcentral/Thunder.git
 
-git clone --branch main https://github.com/rdkcentral/entservices-apis.git
-
 git clone https://$GITHUB_TOKEN@github.com/rdkcentral/entservices-testframework.git
 
 ############################
@@ -76,24 +74,6 @@ cmake -G Ninja -S Thunder -B build/Thunder \
     -DEXCEPTIONS_ENABLE=ON \
 
 cmake --build build/Thunder --target install
-
-
-############################
-# Build entservices-apis
-echo "======================================================================================"
-echo "buliding entservices-apis"
-cd entservices-apis
-rm -rf jsonrpc/DTV.json
-patch -p1 < $GITHUB_WORKSPACE/entservices-testframework/Tests/L1Tests/patches/RDKEMW-1007.patch
-cd ..
-
-cmake -G Ninja -S entservices-apis  -B build/entservices-apis \
-    -DEXCEPTIONS_ENABLE=ON \
-    -DCMAKE_INSTALL_PREFIX="$GITHUB_WORKSPACE/install/usr" \
-    -DCMAKE_MODULE_PATH="$GITHUB_WORKSPACE/install/tools/cmake" \
-
-cmake --build build/entservices-apis --target install
-
 
 
 ############################
