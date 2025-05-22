@@ -26,64 +26,6 @@ cd ..
 ###########################################
 # Clone the required repositories
 
-
-git clone --branch  R4.4.3 https://github.com/rdkcentral/ThunderTools.git
-
-git clone --branch R4.4.1 https://github.com/rdkcentral/Thunder.git
-
-git clone --branch main https://github.com/rdkcentral/entservices-apis.git
-
-############################
-# Build Thunder-Tools
-echo "======================================================================================"
-echo "buliding thunderTools"
-cd ThunderTools
-cd -
-
-
-cmake -G Ninja -S ThunderTools -B build/ThunderTools \
-    -DEXCEPTIONS_ENABLE=ON \
-    -DCMAKE_INSTALL_PREFIX="$GITHUB_WORKSPACE/install/usr" \
-    -DCMAKE_MODULE_PATH="$GITHUB_WORKSPACE/install/tools/cmake" \
-    -DGENERIC_CMAKE_MODULE_PATH="$GITHUB_WORKSPACE/install/tools/cmake" \
-
-cmake --build build/ThunderTools --target install
-
-
-############################
-# Build Thunder
-echo "======================================================================================"
-echo "buliding thunder"
-
-cmake -G Ninja -S Thunder -B build/Thunder \
-    -DMESSAGING=ON \
-    -DCMAKE_INSTALL_PREFIX="$GITHUB_WORKSPACE/install/usr" \
-    -DCMAKE_MODULE_PATH="$GITHUB_WORKSPACE/install/tools/cmake" \
-    -DGENERIC_CMAKE_MODULE_PATH="$GITHUB_WORKSPACE/install/tools/cmake" \
-    -DBUILD_TYPE=Debug \
-    -DBINDING=127.0.0.1 \
-    -DPORT=55555 \
-    -DEXCEPTIONS_ENABLE=ON \
-
-cmake --build build/Thunder --target install
-
-
-############################
-# Build entservices-apis
-echo "======================================================================================"
-echo "buliding entservices-apis"
-cd entservices-apis
-cd ..
-
-cmake -G Ninja -S entservices-apis  -B build/entservices-apis \
-    -DEXCEPTIONS_ENABLE=ON \
-    -DCMAKE_INSTALL_PREFIX="$GITHUB_WORKSPACE/install/usr" \
-    -DCMAKE_MODULE_PATH="$GITHUB_WORKSPACE/install/tools/cmake" \
-
-cmake --build build/entservices-apis --target install
-
-
-
 ############################
 # generating extrnal headers
 cd $GITHUB_WORKSPACE
