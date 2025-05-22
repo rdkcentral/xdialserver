@@ -29,8 +29,7 @@ cd ..
 ############################
 # generating extrnal headers
 cd $GITHUB_WORKSPACE
-ls -la
-cd xdialserver/tests
+cd tests
 echo " Empty mocks creation to avoid compilation errors"
 echo "======================================================================================"
 mkdir -p headers
