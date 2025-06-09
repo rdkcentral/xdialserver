@@ -55,21 +55,6 @@ ninja -C build
 ninja -C build install
 cd -
 
-git clone --branch gssdp-1.2.3 https://gitlab.gnome.org/GNOME/gssdp.git
-
-############################
-# Build gssdp-1.2
-echo "======================================================================================"
-echo "buliding gssdp-1.2"
-cd gssdp
-
-rm -rf build
-meson setup build
-
-ninja -C build
-ninja -C build install
-cd -
-
 ############################
 # Build Thunder-Tools
 echo "======================================================================================"
