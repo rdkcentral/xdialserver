@@ -26,22 +26,20 @@ cd ..
 ###########################################
 # Clone the required repositories
 
-rm -rf iarmbus
+rm -rf iarmbus ThunderTools Thunder entservices-apis entservices-testframework gssdp
+
+
 git clone https://github.com/rdkcentral/iarmbus.git
 export IARMBUS_PATH=$GITHUB_WORKSPACE/iarmbus
 
-rm -rf ThunderTools
 git clone --branch  R4.4.3 https://github.com/rdkcentral/ThunderTools.git
 
-rm -rf Thunder
 git clone --branch R4.4.1 https://github.com/rdkcentral/Thunder.git
 
-rm -rf entservices-apis
 git clone --branch main https://github.com/rdkcentral/entservices-apis.git
 
-#git clone https://$GITHUB_TOKEN@github.com/rdkcentral/entservices-testframework.git
+git clone https://$GITHUB_TOKEN@github.com/rdkcentral/entservices-testframework.git
 
-rm -rf gssdp
 git clone --branch gssdp-1.2.3 https://gitlab.gnome.org/GNOME/gssdp.git
 
 ############################
