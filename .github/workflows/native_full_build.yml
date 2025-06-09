@@ -1,0 +1,25 @@
+name: Build Component in Native Environment
+
+on:
+  push:
+    branches: [ main, 'sprint/**', 'release/**', topic/*, develop ]
+  pull_request:
+    branches: [ main, 'sprint/**', 'release/**', topic/*, develop ]
+
+jobs:
+  build-entservices-on-pr:
+    name: Build xdialserver component in github rdkcentral
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/rdkcentral/docker-rdk-ci:latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: native build
+        run: |
+          sh -x build_dependencies.sh
+          sh -x cov_build.sh
+        env:
+          GITHUB_TOKEN: ${{ secrets.RDKCM_RDKE }}
