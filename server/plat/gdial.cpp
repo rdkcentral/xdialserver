@@ -74,7 +74,6 @@ public:
         {
             GDIAL_LOGINFO("AppName[%s] AppID[%s] State[%s] Error[%s]",
                             AppObj->appName.c_str(),
-                            AppObj->appId.c_str(),
                             AppObj->appState.c_str(),
                             AppObj->appError.c_str());
             if ( AppCacheError_OK == AppCache->UpdateAppStatusCache(AppObj))
