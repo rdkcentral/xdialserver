@@ -487,8 +487,6 @@ JSONRPC::LinkType<Core::JSON::IElement> *controllerRemoteObject = NULL;
 #define MAX_LENGTH 1024
 
 #ifdef NETFLIX_CALLSIGN_0
-const std::string nfx_callsign = "Netflix-0";
-#else
 const std::string nfx_callsign = "Netflix";
 #endif
 
@@ -706,24 +704,21 @@ int gdial_os_application_state(const char *app_name, int instance_id, GDialAppSt
         *state = GDIAL_APP_STATE_STOPPED;
     }
 
-    char* enable_stop = getenv("ENABLE_NETFLIX_STOP");
-    if ( enable_stop != NULL ) {
-       if (strcmp(app_name,"Netflix") == 0 && strcmp(enable_stop,"true") == 0) {
-         std::string app_state = GetCurrentState();
-         GDIAL_LOGINFO("Presence of Netflix thunder plugin state = %s to confirm state", app_state.c_str());
-         if (app_state == "deactivated") {
-           *state = GDIAL_APP_STATE_STOPPED;
+    if (strcmp(app_name,"Netflix") == 0) {
+        std::string app_state = GetCurrentState();
+        GDIAL_LOGINFO("Presence of Netflix thunder plugin state = %s to confirm state", app_state.c_str());
+        if (app_state == "deactivated") {
+          *state = GDIAL_APP_STATE_STOPPED;
+          GDIAL_LOGINFO("app [%s] state converted to [%d]", app_name, *state);
+        }
+        else if (app_state == "suspended")
+        {
+           *state = GDIAL_APP_STATE_HIDE;
            GDIAL_LOGINFO("app [%s] state converted to [%d]", app_name, *state);
-         }
-         else if (app_state == "suspended")
-         {
-            *state = GDIAL_APP_STATE_HIDE;
-            GDIAL_LOGINFO("app [%s] state converted to [%d]", app_name, *state);
-         }
-	 else {
-	        *state = GDIAL_APP_STATE_RUNNING;	 
-         }		 
-       }
+        }
+        else {
+            *state = GDIAL_APP_STATE_RUNNING;
+        }
     }
     GDIAL_LOGTRACE("Exiting ...");
     return GDIAL_APP_ERROR_NONE;
