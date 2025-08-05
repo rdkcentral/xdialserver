@@ -490,10 +490,16 @@ int gdialServiceImpl::start_GDialServer(int argc, char *argv[])
         GSList *uris = soup_server_get_uris(m_servers[i]);
         for (GSList *uri =  uris; uri != NULL; uri = uri->next)
         {
-            char *uri_string = soup_uri_to_string(uri->data, FALSE);
+            SoupURI *origin_uri = (SoupURI *)uri->data;
+            if (!origin_uri)
+            {
+                GDIAL_LOGWARNING("Failed to get SoupURI from SoupServer at index [%d]", i);
+                continue;
+            }
+            char *uri_string = soup_uri_to_string(origin_uri, FALSE);
             GDIAL_LOGINFO("Listening on %s", uri_string);
             g_free(uri_string);
-            soup_uri_free(uri->data);
+            soup_uri_free(origin_uri);
         }
         g_slist_free(uris);
     }
