@@ -44,12 +44,12 @@ void GDialAppStatusCache :: setAppCacheId(std::string app_name,std::string id)
     GDIAL_LOGTRACE("Entering ...");
     if(!strcmp(app_name.c_str(),"Netflix"))
     {
-        GDialAppStatusCache::Netflix_AppCacheId = id;
+        GDialAppStatusCache::Netflix_AppCacheId = std::move(id);
         GDIAL_LOGINFO("App cache Id of Netflix updated to %s",GDialAppStatusCache::Netflix_AppCacheId.c_str());
     }
     else if(!strcmp(app_name.c_str(),"YouTube"))
     {
-        GDialAppStatusCache::Youtube_AppCacheId = id;
+        GDialAppStatusCache::Youtube_AppCacheId = std::move(id);
         GDIAL_LOGINFO("App cache Id of Youtube updated to %s",GDialAppStatusCache::Youtube_AppCacheId.c_str());
     }
     else
@@ -75,7 +75,7 @@ AppCacheErrorCodes GDialAppStatusCache::UpdateAppStatusCache(AppInfo* appEntry)
         GDIAL_LOGINFO("erasing old data");
         err = ObjectCache->erase(id);
     }
-    err = ObjectCache->insert(id,appEntry);
+    err = ObjectCache->insert(std::move(id),appEntry);
     GDIAL_LOGTRACE("Exiting ...");
     return err;
 }
@@ -96,7 +96,7 @@ std::string GDialAppStatusCache::SearchAppStatusInCache(const char* app_name)
             appEntry->appId.c_str(),
             appEntry->appError.c_str());
     }
-    GDIAL_LOGINFO("App State = ",state.c_str());
+    GDIAL_LOGINFO("App State = %s ",state.c_str());
     GDIAL_LOGTRACE("Exiting ...");
     return state;
 }

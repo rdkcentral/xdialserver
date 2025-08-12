@@ -159,7 +159,7 @@ static GList *gdial_rest_server_registered_apps_clear(GDialRestServer *self, GLi
   GDialRestServerPrivate *priv = gdial_rest_server_get_instance_private(self);
   GDialAppRegistry *app_registry = (GDialAppRegistry *)found->data;
   registered_apps = g_list_remove_link(registered_apps, found);
-  GDIAL_LOGINFO("gdial_local_rest_http_server_callback handler Removed for App[%s]instance[%x]", app_registry->name,priv->local_soup_instance);
+  GDIAL_LOGINFO("gdial_local_rest_http_server_callback handler Removed for App[%s]instance[%x]", app_registry->name,(unsigned int)priv->local_soup_instance);
   soup_server_remove_handler(priv->local_soup_instance, app_registry->app_uri);
   gdial_app_regstry_dispose (app_registry);
   g_list_free(found);
@@ -712,7 +712,10 @@ static void gdial_local_rest_http_server_callback(SoupServer *server,
       continue;
     }
     if (j == 0) {
-        g_strlcpy(base, elements[i], sizeof(base));
+        ret = g_strlcpy(base, elements[i], sizeof(base));
+	if (ret >= sizeof(base)) {
+            GDIAL_LOGERROR("Warn: base too long");
+        }
     }
     else if (j == 1) {
         ret = g_strlcpy(instance, elements[i], sizeof(instance));
@@ -1165,7 +1168,7 @@ gboolean gdial_rest_server_register_app(GDialRestServer *self, const gchar *app_
 
   if( 0 != strcmp(app_name,"system"))
   {
-    GDIAL_LOGINFO("gdial_local_rest_http_server_callback handler added for App[%s]uri[%s]instance[%x]",app_name,app_registry->app_uri,priv->local_soup_instance);
+    GDIAL_LOGINFO("gdial_local_rest_http_server_callback handler added for App[%s]uri[%s]instance[%x]",app_name,app_registry->app_uri,(unsigned int)priv->local_soup_instance);
     soup_server_add_handler(priv->local_soup_instance, app_registry->app_uri, gdial_local_rest_http_server_callback, self, NULL);
   }
   GDIAL_LOGTRACE("Exiting ...");
@@ -1197,7 +1200,7 @@ gboolean gdial_rest_server_register_app_registry(GDialRestServer *self, GDialApp
   g_return_val_if_fail(gdial_rest_server_is_app_registered(self, app_registry->name), FALSE);
   if( 0 != strcmp(app_registry->name,"system"))
   {
-    GDIAL_LOGINFO("gdial_local_rest_http_server_callback handler added for App[%s]uri[%s]instance[%x]",app_registry->name,app_registry->app_uri,priv->local_soup_instance);
+    GDIAL_LOGINFO("gdial_local_rest_http_server_callback handler added for App[%s]uri[%s]instance[%x]",app_registry->name,app_registry->app_uri,(unsigned int)priv->local_soup_instance);
     soup_server_add_handler(priv->local_soup_instance, app_registry->app_uri, gdial_local_rest_http_server_callback, self, NULL);
   }
   return TRUE;
