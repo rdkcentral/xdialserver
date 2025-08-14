@@ -110,6 +110,7 @@ void gdial_plat_util_log(gdial_plat_util_LogLevel level,
     const char *levelMap[] = {"FATAL", "ERROR", "WARN", "INFO", "VERBOSE", "TRACE"};
     const short kFormatMessageSize = 4096;
     char formatted[kFormatMessageSize];
+    char file_str[1024];
 
     if (((FATAL_LEVEL != level)&&(ERROR_LEVEL != level))&&
         (gDefaultLogLevel < level)){
@@ -120,10 +121,13 @@ void gdial_plat_util_log(gdial_plat_util_LogLevel level,
     va_start(argptr, format);
     vsnprintf(formatted, kFormatMessageSize, format, argptr);
     va_end(argptr);
+    /*Fix coverity error RW.EXPR_NOT_STRUCT_OR_UNION */
+    strncpy(file_str, file, sizeof(file_str));
+    file_str[sizeof(file_str) - 1] = '\0';
     fprintf(stderr, "[GDIAL][%d] %s [%s:%d] %s: %s \n",
                 (int)syscall(SYS_gettid),
                 levelMap[level],
-                basename(file).c_str(),
+                basename(file_str),
                 line,
                 func,
                 formatted);
