@@ -82,6 +82,10 @@ public:
                 reterror = GDIAL_CAST_ERROR_NONE;
             }
         }
+	else
+	{
+		delete AppObj; // fix RESOURCE_LEAK coverity
+	}
         GDIAL_LOGTRACE("Exiting ...");
         return reterror;
     }
@@ -239,7 +243,7 @@ public:
         GDIAL_LOGINFO("App[%s] param[%s] observer[%p]",applicationName.c_str(),parameter.c_str(),m_observer);
         if (nullptr!=m_observer)
         {
-            m_observer->onApplicationLaunchRequest(applicationName,parameter);
+            m_observer->onApplicationLaunchRequest(std::move(applicationName),std::move(parameter));
         }
         GDIAL_LOGTRACE("Exiting ...");
         return GDIAL_CAST_ERROR_NONE;
@@ -274,10 +278,10 @@ public:
                 m_observer);
         if (nullptr!=m_observer)
         {
-            m_observer->onApplicationLaunchRequestWithLaunchParam( applicationName,
-                                                                   payLoad,
-                                                                   queryString,
-                                                                   additionalDataUrl );
+            m_observer->onApplicationLaunchRequestWithLaunchParam( std::move(applicationName),
+                                                                   std::move(payLoad),
+                                                                   std::move(queryString),
+                                                                   std::move(additionalDataUrl) );
         }
         GDIAL_LOGTRACE("Exiting ...");
         return GDIAL_CAST_ERROR_NONE;
@@ -298,7 +302,7 @@ public:
         GDIAL_LOGINFO("App[%s]ID[%s]observer[%p]",applicationName.c_str(),applicationId.c_str(),m_observer);
         if (nullptr!=m_observer)
         {
-            m_observer->onApplicationHideRequest(applicationName,applicationId);
+            m_observer->onApplicationHideRequest(std::move(applicationName),std::move(applicationId));
         }
         GDIAL_LOGTRACE("Exiting ...");
         return GDIAL_CAST_ERROR_NONE;
@@ -320,7 +324,7 @@ public:
         GDIAL_LOGINFO("App[%s]ID[%s]observer[%p]",applicationName.c_str(),applicationId.c_str(),m_observer);
         if (nullptr!=m_observer)
         {
-            m_observer->onApplicationResumeRequest(applicationName,applicationId);
+            m_observer->onApplicationResumeRequest(std::move(applicationName),std::move(applicationId));
         }
         GDIAL_LOGTRACE("Exiting ...");
         return GDIAL_CAST_ERROR_NONE;
@@ -342,7 +346,7 @@ public:
         GDIAL_LOGINFO("App[%s]ID[%s]observer[%p]",applicationName.c_str(),applicationId.c_str(),m_observer);
         if (nullptr!=m_observer)
         {
-            m_observer->onApplicationStopRequest(applicationName,applicationId);
+            m_observer->onApplicationStopRequest(std::move(applicationName),std::move(applicationId));
         }
         GDIAL_LOGTRACE("Exiting ...");
         return GDIAL_CAST_ERROR_NONE;
@@ -364,7 +368,7 @@ public:
         GDIAL_LOGINFO("App[%s]ID[%s]observer[%p]",applicationName.c_str(),applicationId.c_str(),m_observer);
         if (nullptr!=m_observer)
         {
-            m_observer->onApplicationStateRequest(applicationName,applicationId);
+            m_observer->onApplicationStateRequest(std::move(applicationName),std::move(applicationId));
         }
         GDIAL_LOGTRACE("Exiting ...");
         return GDIAL_CAST_ERROR_NONE;

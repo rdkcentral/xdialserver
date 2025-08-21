@@ -43,7 +43,7 @@ class gdialServiceTest: public GDialNotifier
         {
             GDIAL_LOGINFO("Entering ...");
             std::string activation = status ? "true" : "false";
-            service->ActivationChanged(activation,"SampleTest");
+            service->ActivationChanged(std::move(activation),"SampleTest");
             GDIAL_LOGINFO("Exiting ...");
         }
 
@@ -137,9 +137,9 @@ class gdialServiceTest: public GDialNotifier
                     break;
                 }
                 
-                appReq->Names = Names;
+                appReq->Names = std::move(Names);
                 appReq->prefixes = prefixes;
-                appReq->cors = prefixes;
+                appReq->cors = std::move(prefixes);
                 appReq->allowStop = allowStop;
 
                 appReqList->pushBack(appReq);
