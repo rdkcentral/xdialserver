@@ -82,10 +82,14 @@ public:
                 reterror = GDIAL_CAST_ERROR_NONE;
             }
         }
-	else
-	{
-		delete AppObj; // fix RESOURCE_LEAK coverity
-	}
+		else
+		{
+			if (nullptr != AppObj)
+			{
+				delete AppObj;
+				AppObj = nullptr;
+			}
+		}
         GDIAL_LOGTRACE("Exiting ...");
         return reterror;
     }
