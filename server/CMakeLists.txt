@@ -108,15 +108,6 @@ target_link_libraries (gdial-server
   uuid
 )
 
-
-add_library(gdial-plat SHARED
-  plat/gdial-plat-app.c
-  plat/gdial-plat-dev.c
-  plat/gdial-plat-util.c
-  plat/gdial_app_registry.c
-)
-set_target_properties(gdial-plat PROPERTIES VERSION 1.0.0 SOVERSION 1)
-
 add_executable (gdial-server-ut gdialserver_ut.cpp)
 
 target_link_libraries (gdial-server-ut gdial-plat gdial-server)
@@ -128,7 +119,7 @@ set(GDIAL_SERVER_HEADERS
 
 # Install the targets and headers
 install(FILES ${GDIAL_SERVER_HEADERS} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/)
-install(TARGETS gdial-server gdial-plat
+install(TARGETS gdial-server
   LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
   ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
   RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}

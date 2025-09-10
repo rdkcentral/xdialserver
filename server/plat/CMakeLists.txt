@@ -74,9 +74,17 @@ if(PLATFORM)
   add_definitions(${PLATFORM})
 endif()
 
+set_target_properties(gdial-plat PROPERTIES VERSION 1.0.0 SOVERSION 1)
 add_library(gdial-plat SHARED ${GDIAL_PLAT_LIB_SOURCE_FILES})
 if(DISABLE_SECURITY_TOKEN)
   target_link_Libraries(gdial-plat PRIVATE ${GLIB_LIBRARIES} ${GOBJECT_LIBRARIES} -lpthread -lWPEFrameworkCore -lWPEFrameworkDefinitions -lWPEFrameworkCOM -lWPEFrameworkPlugins -lIARMBus -luuid)
 else()
   target_link_libraries(gdial-plat PRIVATE ${GLIB_LIBRARIES} ${GOBJECT_LIBRARIES} -lpthread -lWPEFrameworkCore -lWPEFrameworkDefinitions -lWPEFrameworkCOM -lWPEFrameworkPlugins -lWPEFrameworkSecurityUtil -lIARMBus -luuid)
 endif()
+
+include(GNUInstallDirs)
+install(TARGETS gdial-plat
+	LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+	ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+	RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+)
