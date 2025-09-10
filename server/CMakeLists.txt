@@ -23,6 +23,8 @@ project (gdial)
 set (GDIAL_VERSION_MAJOR 1)
 set (GDIAL_VERSION_MINOR 0)
 
+include(GNUInstallDirs)
+
 find_package (PkgConfig REQUIRED)
 pkg_search_module (GLIB REQUIRED glib-2.0)
 pkg_search_module (GIO REQUIRED gio-2.0)
@@ -90,7 +92,7 @@ link_directories (
 
 add_library(gdial-server SHARED ${GDIAL_EXEC_SOURCE_FILES})
 
-set_target_properties(${MODULE_NAME} PROPERTIES 
+set_target_properties(${MODULE_NAME} PROPERTIES
         CXX_STANDARD 11
         CXX_STANDARD_REQUIRED YES)
 set_source_files_properties(gdialservice.cpp PROPERTIES COMPILE_FLAGS "-fpermissive")
@@ -108,3 +110,16 @@ target_link_libraries (gdial-server
 add_executable (gdial-server-ut gdialserver_ut.cpp)
 
 target_link_libraries (gdial-server-ut gdial-plat gdial-server)
+
+set(GDIAL_SERVER_HEADERS
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/gdialsettings.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/gdialsettingsplat.h
+)
+
+# Install the targets and headers
+install(FILES ${GDIAL_SERVER_HEADERS} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/)
+install(TARGETS gdial-server gdial-plat
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+)
