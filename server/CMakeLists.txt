@@ -112,8 +112,8 @@ add_executable (gdial-server-ut gdialserver_ut.cpp)
 target_link_libraries (gdial-server-ut gdial-plat gdial-server)
 
 set(GDIAL_SERVER_HEADERS
-  include/gdialsettings.h
-  include/gdialsettingsplat.h
+  include/gdialservice.h
+  include/gdialservicecommon.h
 )
 
 # Install the targets and headers
