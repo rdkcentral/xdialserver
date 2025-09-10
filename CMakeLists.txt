@@ -21,5 +21,11 @@
 cmake_minimum_required(VERSION 3.10)
 project(xdialserver)
 
-# Add subdirectory for server
+# Pass platform flags and security token to server subdirectory
+if(NOT DEFINED PLATFORM)
+	set(PLATFORM "-DNETFLIX_CALLSIGN_0=1" CACHE STRING "Platform flags")
+endif()
+if(NOT DEFINED DISABLE_SECURITY_TOKEN)
+	set(DISABLE_SECURITY_TOKEN "-DDISABLE_SECURITY_TOKEN=1" CACHE STRING "Disable security token")
+endif()
 add_subdirectory(server)
