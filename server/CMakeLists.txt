@@ -112,8 +112,8 @@ add_executable (gdial-server-ut gdialserver_ut.cpp)
 target_link_libraries (gdial-server-ut gdial-plat gdial-server)
 
 set(GDIAL_SERVER_HEADERS
-  ${CMAKE_CURRENT_SOURCE_DIR}/include/gdialsettings.h
-  ${CMAKE_CURRENT_SOURCE_DIR}/include/gdialsettingsplat.h
+  include/gdialsettings.h
+  include/gdialsettingsplat.h
 )
 
 # Install the targets and headers
