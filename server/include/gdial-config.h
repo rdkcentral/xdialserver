@@ -17,8 +17,8 @@
  * limitations under the License.
  */
 
-#ifndef GDIAL_H_
-#define GDIAL_H_
+#ifndef _GDIAL_CONFIG_H_
+#define _GDIAL_CONFIG_H_
 
 #ifdef __cplusplus
 extern "C" {
@@ -80,12 +80,6 @@ extern "C" {
 #define GDIAL_APP_DIAL_DATA_MAX_KV_LEN_STR "255"
 #define GDIAL_THROTTLE_DELAY_US  100000
 #define GDIAL_DEBUG g_print
-
-enum {
- GDIAL_ERROR_NONE = 0,
- GDIAL_ERROR_NOT_REGISTERED,
- GDIAL_ERROR_FAIL_TO_START,
-} GDialError;
 
 #define GDIAL_GERROR_CHECK_AND_FREE(err, msg) \
 {\

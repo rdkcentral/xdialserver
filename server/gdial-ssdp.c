@@ -75,6 +75,8 @@ static const char ssdp_device_xml_template[] = ""
 static gchar *dd_xml_response_str_ = NULL;
 static gchar *app_friendly_name = NULL;
 static gchar *app_random_uuid = NULL;
+static gchar *app_manufacturer_name = NULL;
+static gchar *app_model_name = NULL;
 static pthread_mutex_t ssdpServerEventSync = PTHREAD_MUTEX_INITIALIZER;
 
 static void ssdp_http_server_callback(SoupServer *server, SoupMessage *msg, const char *path, GHashTable *query, SoupClientContext  *client, gpointer user_data) {
@@ -95,8 +97,8 @@ static void ssdp_http_server_callback(SoupServer *server, SoupMessage *msg, cons
   static size_t dd_xml_response_str_len = 0;
 
   if (!dd_xml_response_str_) {
-    const gchar *manufacturer= gdial_plat_dev_get_manufacturer();
-    const gchar *model = gdial_plat_dev_get_model();
+    const gchar *manufacturer= app_manufacturer_name;
+    const gchar *model = app_model_name;
 
     if (manufacturer == NULL) {
         manufacturer = gdial_options_->manufacturer;
@@ -337,6 +339,46 @@ int gdial_ssdp_set_friendlyname(const gchar *friendlyname)
         app_friendly_name = g_strdup(friendlyname);
 
         GDIAL_LOGINFO("gdial_ssdp_set_friendlyname app_friendly_name :%s  ",app_friendly_name);
+        if (dd_xml_response_str_!= NULL){
+            g_free(dd_xml_response_str_);
+            dd_xml_response_str_ = NULL;
+        }
+    }
+    pthread_mutex_unlock(&ssdpServerEventSync);
+    return 0;
+}
+
+int gdial_ssdp_set_manufacturername(const gchar *manufacturer_name)
+{
+    pthread_mutex_lock(&ssdpServerEventSync);
+    if(manufacturer_name)
+    {
+        if (app_manufacturer_name != NULL) {
+            g_free(app_manufacturer_name);
+        }
+        app_manufacturer_name = g_strdup(manufacturer_name);
+
+        GDIAL_LOGINFO("app_manufacturer_name :%s  ",app_manufacturer_name);
+        if (dd_xml_response_str_!= NULL){
+            g_free(dd_xml_response_str_);
+            dd_xml_response_str_ = NULL;
+        }
+    }
+    pthread_mutex_unlock(&ssdpServerEventSync);
+    return 0;
+}
+
+int gdial_ssdp_set_modelname(const gchar *model_name)
+{
+    pthread_mutex_lock(&ssdpServerEventSync);
+    if(model_name)
+    {
+        if (app_model_name != NULL) {
+            g_free(app_model_name);
+        }
+        app_model_name = g_strdup(model_name);
+
+        GDIAL_LOGINFO("app_model_name :%s  ",app_model_name);
         if (dd_xml_response_str_!= NULL){
             g_free(dd_xml_response_str_);
             dd_xml_response_str_ = NULL;
