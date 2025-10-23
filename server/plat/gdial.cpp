@@ -32,7 +32,9 @@
 #include <json/JsonData_StateControl.h>
 #include <com/Ids.h>
 #include <curl/curl.h>
+#ifndef DISABLE_SECURITY_TOKEN
 #include <securityagent/SecurityTokenUtil.h>
+#endif
 #include "gdial-app.h"
 #include "gdial-plat-dev.h"
 #include "gdial-os-app.h"
@@ -49,6 +51,8 @@ GDialAppStatusCache* AppCache = nullptr;
 static gdial_activation_cb g_activation_cb = NULL;
 static gdial_friendlyname_cb g_friendlyname_cb = NULL;
 static gdial_registerapps_cb g_registerapps_cb = NULL;
+static gdial_manufacturername_cb g_manufacturername_cb = NULL;
+static gdial_modelname_cb g_modelname_cb = NULL;
 
 #define DIAL_MAX_NUM_OF_APPS (64)
 #define DIAL_MAX_NUM_OF_APP_NAMES (64)
@@ -68,7 +72,7 @@ public:
         AppInfo* AppObj = new AppInfo(applicationName,applicationId,state,error);
         if ((nullptr != AppObj) && (nullptr != AppCache))
         {
-            GDIAL_LOGINFO("AppName : %s AppID : %s State : %s Error : %s",
+            GDIAL_LOGINFO("AppName[%s] AppID[%s] State[%s] Error[%s]",
                             AppObj->appName.c_str(),
                             AppObj->appId.c_str(),
                             AppObj->appState.c_str(),
@@ -78,6 +82,14 @@ public:
                 reterror = GDIAL_CAST_ERROR_NONE;
             }
         }
+		else
+		{
+			if (nullptr != AppObj)
+			{
+				delete AppObj;
+				AppObj = nullptr;
+			}
+		}
         GDIAL_LOGTRACE("Exiting ...");
         return reterror;
     }
@@ -88,7 +100,7 @@ public:
         GDialErrorCode error = GDIAL_CAST_ERROR_INTERNAL;
         if( g_friendlyname_cb && friendlyname )
         {
-            GDIAL_LOGINFO("GDialCastObject::friendlyNameChanged :%s ",friendlyname);
+            GDIAL_LOGINFO("GDialCastObject::friendlyNameChanged:[%s]",friendlyname);
             g_friendlyname_cb(friendlyname);
             error = GDIAL_CAST_ERROR_NONE;
         }
@@ -111,7 +123,7 @@ public:
             {
                 break;
             }
-            GDIAL_LOGINFO("Application: %d ", i);
+            GDIAL_LOGINFO("Application:[%d]", i);
             gAppPrefxes = g_list_prepend (gAppPrefxes, g_strdup(appEntry->prefixes.c_str()));
             GDIAL_LOGINFO("%s, ", appEntry->prefixes.c_str());
             GDIAL_LOGINFO("");
@@ -123,7 +135,7 @@ public:
             GHashTable *gProperties = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_free);
             std::string appAllowStop = appEntry->allowStop ? "true" : "false";
             g_hash_table_insert(gProperties,g_strdup("allowStop"),g_strdup(appAllowStop.c_str()));
-            GDIAL_LOGINFO("allowStop: %s", appAllowStop.c_str());
+            GDIAL_LOGINFO("allowStop:[%s]", appAllowStop.c_str());
             GDIAL_LOGINFO("");
 
             GDialAppRegistry*  app_registry = gdial_app_registry_new( g_strdup(appEntry->Names.c_str()),
@@ -165,7 +177,7 @@ public:
     {
         GDIAL_LOGTRACE("Entering ...");
         GDialErrorCode error = GDIAL_CAST_ERROR_INTERNAL;
-        GDIAL_LOGINFO("status: %s friendlyname: %s ",status.c_str(),friendlyName.c_str());
+        GDIAL_LOGINFO("status[%s] friendlyname[%s]",status.c_str(),friendlyName.c_str());
         if( g_activation_cb )
         {
             if(!strcmp(status.c_str(), "true"))
@@ -176,7 +188,7 @@ public:
             {
                 g_activation_cb(0,friendlyName.c_str());
             }
-            GDIAL_LOGINFO("status: %s  g_activation_cb :%p",status.c_str(), g_activation_cb);
+            GDIAL_LOGINFO("status[%s]  g_activation_cb[%p]",status.c_str(), g_activation_cb);
             error = GDIAL_CAST_ERROR_NONE;
         }
         GDIAL_LOGTRACE("Exiting ...");
@@ -189,19 +201,53 @@ public:
         gdial_plat_dev_nwstandby_mode_change(nwstandbyMode);
         GDIAL_LOGTRACE("Exiting ...");
     }
+
+    GDialErrorCode updateManufacturerName(const char* manufacturerName)
+    {
+        GDIAL_LOGTRACE("Entering ...");
+        GDialErrorCode error = GDIAL_CAST_ERROR_INTERNAL;
+        if( g_manufacturername_cb && manufacturerName )
+        {
+            GDIAL_LOGINFO("Manufacturer[%s]",manufacturerName);
+            g_manufacturername_cb(manufacturerName);
+            error = GDIAL_CAST_ERROR_NONE;
+        }
+        GDIAL_LOGTRACE("Exiting ...");
+        return error;
+    }
+
+    GDialErrorCode updateModelName(const char* modelName)
+    {
+        GDIAL_LOGTRACE("Entering ...");
+        GDialErrorCode error = GDIAL_CAST_ERROR_INTERNAL;
+        if( g_modelname_cb && modelName )
+        {
+            GDIAL_LOGINFO("ModelName[%s]",modelName);
+            g_modelname_cb(modelName);
+            error = GDIAL_CAST_ERROR_NONE;
+        }
+        GDIAL_LOGTRACE("Exiting ...");
+        return error;
+    }
     
     GDialErrorCode launchApplication(const char* appName, const char* args)
     {
         GDIAL_LOGTRACE("Entering ...");
         std::string applicationName = "",
                     parameter = "";
-        if (nullptr!=appName) applicationName = appName;
-        if (nullptr!=args) parameter = args;
+
+        if (nullptr!=appName){
+            applicationName = appName;
+        }
+
+        if (nullptr!=args){
+            parameter = args;
+        }
 
         GDIAL_LOGINFO("App[%s] param[%s] observer[%p]",applicationName.c_str(),parameter.c_str(),m_observer);
         if (nullptr!=m_observer)
         {
-            m_observer->onApplicationLaunchRequest(applicationName,parameter);
+            m_observer->onApplicationLaunchRequest(std::move(applicationName),std::move(parameter));
         }
         GDIAL_LOGTRACE("Exiting ...");
         return GDIAL_CAST_ERROR_NONE;
@@ -215,10 +261,18 @@ public:
                         additionalDataUrl = "";
         GDIAL_LOGTRACE("Entering ...");
 
-        if (nullptr!=appName) applicationName = appName;
-        if (nullptr!=argPayload) payLoad = argPayload;
-        if (nullptr!=argQueryString) queryString = argQueryString;
-        if (nullptr!=argAdditionalDataUrl) additionalDataUrl = argAdditionalDataUrl;
+        if (nullptr!=appName){
+            applicationName = appName;
+        }
+        if (nullptr!=argPayload){
+            payLoad = argPayload;
+        }
+        if (nullptr!=argQueryString){
+            queryString = argQueryString;
+        }
+        if (nullptr!=argAdditionalDataUrl){
+            additionalDataUrl = argAdditionalDataUrl;
+        }
 
         GDIAL_LOGINFO("App[%s] payload[%s] query_string[%s] additional_data_url[%s]observer[%p]",
                 applicationName.c_str(), 
@@ -228,10 +282,10 @@ public:
                 m_observer);
         if (nullptr!=m_observer)
         {
-            m_observer->onApplicationLaunchRequestWithLaunchParam( applicationName,
-                                                                   payLoad,
-                                                                   queryString,
-                                                                   additionalDataUrl );
+            m_observer->onApplicationLaunchRequestWithLaunchParam( std::move(applicationName),
+                                                                   std::move(payLoad),
+                                                                   std::move(queryString),
+                                                                   std::move(additionalDataUrl) );
         }
         GDIAL_LOGTRACE("Exiting ...");
         return GDIAL_CAST_ERROR_NONE;
@@ -242,13 +296,17 @@ public:
         GDIAL_LOGTRACE("Entering ...");
         std::string applicationName = "",
                     applicationId = "";
-        if (nullptr!=appName) applicationName = appName;
-        if (nullptr!=appID) applicationId = appID;
+        if (nullptr!=appName){
+            applicationName = appName;
+        }
+        if (nullptr!=appID){
+            applicationId = appID;
+        }
 
         GDIAL_LOGINFO("App[%s]ID[%s]observer[%p]",applicationName.c_str(),applicationId.c_str(),m_observer);
         if (nullptr!=m_observer)
         {
-            m_observer->onApplicationHideRequest(applicationName,applicationId);
+            m_observer->onApplicationHideRequest(std::move(applicationName),std::move(applicationId));
         }
         GDIAL_LOGTRACE("Exiting ...");
         return GDIAL_CAST_ERROR_NONE;
@@ -260,13 +318,17 @@ public:
         std::string applicationName = "",
                     applicationId = "";
 
-        if (nullptr!=appName) applicationName = appName;
-        if (nullptr!=appID) applicationId = appID;
+        if (nullptr!=appName){
+            applicationName = appName;
+        }
+        if (nullptr!=appID){
+            applicationId = appID;
+        }
 
         GDIAL_LOGINFO("App[%s]ID[%s]observer[%p]",applicationName.c_str(),applicationId.c_str(),m_observer);
         if (nullptr!=m_observer)
         {
-            m_observer->onApplicationResumeRequest(applicationName,applicationId);
+            m_observer->onApplicationResumeRequest(std::move(applicationName),std::move(applicationId));
         }
         GDIAL_LOGTRACE("Exiting ...");
         return GDIAL_CAST_ERROR_NONE;
@@ -278,13 +340,17 @@ public:
         std::string applicationName = "",
                     applicationId = "";
 
-        if (nullptr!=appName) applicationName = appName;
-        if (nullptr!=appID) applicationId = appID;
+        if (nullptr!=appName){
+            applicationName = appName;
+        }
+        if (nullptr!=appID){
+            applicationId = appID;
+        }
 
         GDIAL_LOGINFO("App[%s]ID[%s]observer[%p]",applicationName.c_str(),applicationId.c_str(),m_observer);
         if (nullptr!=m_observer)
         {
-            m_observer->onApplicationStopRequest(applicationName,applicationId);
+            m_observer->onApplicationStopRequest(std::move(applicationName),std::move(applicationId));
         }
         GDIAL_LOGTRACE("Exiting ...");
         return GDIAL_CAST_ERROR_NONE;
@@ -296,13 +362,17 @@ public:
         std::string applicationName = "",
                     applicationId = "";
 
-        if (nullptr!=appName) applicationName = appName;
-        if (nullptr!=appID) applicationId = appID;
+        if (nullptr!=appName){
+            applicationName = appName;
+        }
+        if (nullptr!=appID){
+            applicationId = appID;
+        }
 
         GDIAL_LOGINFO("App[%s]ID[%s]observer[%p]",applicationName.c_str(),applicationId.c_str(),m_observer);
         if (nullptr!=m_observer)
         {
-            m_observer->onApplicationStateRequest(applicationName,applicationId);
+            m_observer->onApplicationStateRequest(std::move(applicationName),std::move(applicationId));
         }
         GDIAL_LOGTRACE("Exiting ...");
         return GDIAL_CAST_ERROR_NONE;
@@ -331,6 +401,16 @@ void gdial_register_friendlyname_cb(gdial_friendlyname_cb cb)
 void gdial_register_registerapps_cb(gdial_registerapps_cb cb)
 {
    g_registerapps_cb = cb;
+}
+
+void gdial_register_manufacturername_cb(gdial_manufacturername_cb cb)
+{
+    g_manufacturername_cb = cb;
+}
+
+void gdial_register_modelname_cb(gdial_modelname_cb cb)
+{
+    g_modelname_cb = cb;
 }
 
 bool gdial_init(GMainContext *context)
@@ -435,7 +515,7 @@ map<string,string> parse_query(const char* query_string) {
 
 int gdial_os_application_start(const char *app_name, const char *payload, const char *query_string, const char *additional_data_url, int *instance_id) {
     GDIAL_LOGTRACE("Entering ...");
-    GDIAL_LOGINFO("App launch req: appName: %s  query: [%s], payload: [%s], additionalDataUrl [%s] instance[%p]",
+    GDIAL_LOGINFO("App launch req: appName[%s]  query[%s], payload[%s], additionalDataUrl [%s] instance[%p]",
         app_name, query_string, payload, additional_data_url,instance_id);
 
     if (strcmp(app_name,"system") == 0) {
@@ -497,31 +577,36 @@ std::string GetCurrentState() {
      std::string netflixState = "";
      Core::JSON::ArrayType<PluginHost::MetaData::Service> pluginResponse;
      Core::SystemInfo::SetEnvironment(_T("THUNDER_ACCESS"), (_T("127.0.0.1:9998")));
+     string sToken = "";
+     string query = "";
+#ifdef DISABLE_SECURITY_TOKEN
+    query = "token=" + sToken;
+#else
      unsigned char buffer[MAX_LENGTH] = {0};
 
      //Obtaining controller object
      if (NULL == controllerRemoteObject) {
          int ret = GetSecurityToken(MAX_LENGTH,buffer);
-         if(ret<0)
+         if(ret>0)
          {
-           controllerRemoteObject = new JSONRPC::LinkType<Core::JSON::IElement>(std::string());
-         } else {
-           string sToken = (char*)buffer;
-           string query = "token=" + sToken;
-           GDIAL_LOGINFO("Security token = %s ",query.c_str());
-           controllerRemoteObject = new JSONRPC::LinkType<Core::JSON::IElement>(std::string(), false, query);
+           sToken = (char*)buffer;
+           query = "token=" + sToken;
+           GDIAL_LOGINFO("Security token[%s] ",query.c_str());
          }
      }
+#endif
+     controllerRemoteObject = new JSONRPC::LinkType<Core::JSON::IElement>(std::string(), false, query);
+
      std::string nfxstatus = "status@" + nfx_callsign;
      if(controllerRemoteObject->Get(1000, _T(nfxstatus), pluginResponse) == Core::ERROR_NONE)
      {
-         GDIAL_LOGINFO("Obtained netflix status = %s",nfxstatus.c_str());
+         GDIAL_LOGINFO("Obtained netflix status[%s]",nfxstatus.c_str());
          Core::JSON::ArrayType<PluginHost::MetaData::Service>::Iterator index(pluginResponse.Elements());
          while (index.Next() == true) {
                 netflixState = index.Current().JSONState.Data();
          } //end of while loop
      } //end of if case for querrying
-     GDIAL_LOGINFO("Netflix State = %s",netflixState.c_str());
+     GDIAL_LOGINFO("Netflix State[%s]",netflixState.c_str());
      return netflixState;
 }
 void stop_netflix()
@@ -541,7 +626,7 @@ void stop_netflix()
 int gdial_os_application_stop(const char *app_name, int instance_id) {
     bool enable_stop = false;
     GDIAL_LOGTRACE("Entering ...");
-    GDIAL_LOGINFO("AppName = %s appID = %s",app_name,std::to_string(instance_id).c_str());
+    GDIAL_LOGINFO("AppName[%s] appID[%s]",app_name,std::to_string(instance_id).c_str());
     if((strcmp(app_name,"system") == 0)){
         GDIAL_LOGINFO("delete not supported for system app return GDIAL_APP_ERROR_BAD_REQUEST");
         return GDIAL_APP_ERROR_BAD_REQUEST;
@@ -591,7 +676,7 @@ int gdial_os_application_hide(const char *app_name, int instance_id)
         return GDIAL_APP_ERROR_NONE;
     }
     #if 0
-    GDIAL_LOGINFO("gdial_os_application_hide-->stop: appName = %s appID = %s",app_name,std::to_string(instance_id).c_str());
+    GDIAL_LOGINFO("gdial_os_application_hide-->stop: appName[%s] appID[%s]",app_name,std::to_string(instance_id).c_str());
     std::string State = AppCache->SearchAppStatusInCache(app_name);
     if (0 && State != "running") {
         return GDIAL_APP_ERROR_BAD_REQUEST;
@@ -607,7 +692,7 @@ int gdial_os_application_hide(const char *app_name, int instance_id)
     }
     return GDIAL_APP_ERROR_NONE;
     #else
-    GDIAL_LOGINFO("gdial_os_application_hide: appName = %s appID = %s",app_name,std::to_string(instance_id).c_str());
+    GDIAL_LOGINFO("gdial_os_application_hide: appName[%s] appID[%s]",app_name,std::to_string(instance_id).c_str());
     std::string State = AppCache->SearchAppStatusInCache(app_name);
     if (State != "running")
     {
@@ -635,7 +720,7 @@ int gdial_os_application_hide(const char *app_name, int instance_id)
 
 int gdial_os_application_resume(const char *app_name, int instance_id) {
     GDIAL_LOGTRACE("Entering ...");
-    GDIAL_LOGINFO("appName = %s appID = %s",app_name,std::to_string(instance_id).c_str());
+    GDIAL_LOGINFO("appName[%s] appID[%s]",app_name,std::to_string(instance_id).c_str());
 
     if((strcmp(app_name,"system") == 0)){
         GDIAL_LOGINFO("system app can not be resume");
@@ -668,7 +753,7 @@ int gdial_os_application_resume(const char *app_name, int instance_id) {
 
 int gdial_os_application_state(const char *app_name, int instance_id, GDialAppState *state) {
     GDIAL_LOGTRACE("Entering ...");
-    GDIAL_LOGINFO("App = %s Id = %d",app_name,instance_id);
+    GDIAL_LOGINFO("App[%s] Id[%d]",app_name,instance_id);
     if((strcmp(app_name,"system") == 0)){
         *state = GDIAL_APP_STATE_HIDE;
         GDIAL_LOGINFO("getApplicationState: AppState = suspended ");
@@ -676,7 +761,7 @@ int gdial_os_application_state(const char *app_name, int instance_id, GDialAppSt
         return GDIAL_APP_ERROR_NONE;
     }
     std::string State = AppCache->SearchAppStatusInCache(app_name);
-    GDIAL_LOGINFO("getApplicationState: AppState = %s ",State.c_str());
+    GDIAL_LOGINFO("getApplicationState: AppState[%s] ",State.c_str());
     /*
      *  return cache, but also trigger a refresh
      */
@@ -710,7 +795,7 @@ int gdial_os_application_state(const char *app_name, int instance_id, GDialAppSt
     if ( enable_stop != NULL ) {
        if (strcmp(app_name,"Netflix") == 0 && strcmp(enable_stop,"true") == 0) {
          std::string app_state = GetCurrentState();
-         GDIAL_LOGINFO("Presence of Netflix thunder plugin state = %s to confirm state", app_state.c_str());
+         GDIAL_LOGINFO("Presence of Netflix thunder plugin state[%s] to confirm state", app_state.c_str());
          if (app_state == "deactivated") {
            *state = GDIAL_APP_STATE_STOPPED;
            GDIAL_LOGINFO("app [%s] state converted to [%d]", app_name, *state);
@@ -732,7 +817,7 @@ int gdial_os_application_state(const char *app_name, int instance_id, GDialAppSt
 int gdial_os_application_state_changed(const char *applicationName, const char *applicationId, const char *state, const char *error)
 {
     GDIAL_LOGTRACE("Entering ...");
-    GDIAL_LOGINFO("appName: %s  appId: [%s], state: [%s], error [%s]",applicationName, applicationId, state, error);
+    GDIAL_LOGINFO("appName[%s]  appId[%s], state[%s], error [%s]",applicationName, applicationId, state, error);
 
     if (nullptr == GDialObjHandle)
     {
@@ -755,7 +840,7 @@ int gdial_os_application_state_changed(const char *applicationName, const char *
 int gdial_os_application_activation_changed(const char *activation, const char *friendlyname)
 {
     GDIAL_LOGTRACE("Entering ...");
-    GDIAL_LOGINFO("activation: %s  friendlyname: [%s]",activation, friendlyname);
+    GDIAL_LOGINFO("activation[%s]  friendlyname[%s]",activation, friendlyname);
 
     if (nullptr == GDialObjHandle)
     {
@@ -778,7 +863,7 @@ int gdial_os_application_activation_changed(const char *activation, const char *
 int gdial_os_application_friendlyname_changed(const char *friendlyname)
 {
     GDIAL_LOGTRACE("Entering ...");
-    GDIAL_LOGINFO("friendlyname: [%s]",friendlyname);
+    GDIAL_LOGINFO("friendlyname[%s]",friendlyname);
 
     if (nullptr == GDialObjHandle)
     {
@@ -847,6 +932,47 @@ void gdial_os_application_update_network_standby_mode(gboolean nwstandbymode)
         GDialObjHandle->updateNetworkStandbyMode(nwstandbymode);
     }
     GDIAL_LOGTRACE("Exiting ...");
+}
+
+int gdial_os_application_update_manufacturer_name(const char *manufacturer)
+{
+    GDialErrorCode returnValue = GDIAL_CAST_ERROR_INTERNAL;
+    GDIAL_LOGTRACE("Entering ...");
+    if ((nullptr == GDialObjHandle)||(nullptr == manufacturer))
+    {
+        GDIAL_LOGERROR("NULL GDialObjHandle[%p] manufacturer[%p]",GDialObjHandle,manufacturer);
+    }
+    else
+    {
+        GDIAL_LOGINFO("Manufacturer[%s]", manufacturer);
+        returnValue = GDialObjHandle->updateManufacturerName(manufacturer);
+        if (returnValue != GDIAL_CAST_ERROR_NONE) {
+            GDIAL_LOGERROR("Failed to updateManufacturerName. Error=%x",returnValue);
+        }
+    }
+
+    GDIAL_LOGTRACE("Exiting ...");
+    return returnValue;
+}
+
+int gdial_os_application_update_model_name(const char *model)
+{
+    GDialErrorCode returnValue = GDIAL_CAST_ERROR_INTERNAL;
+    GDIAL_LOGTRACE("Entering ...");
+    if ((nullptr == GDialObjHandle)||(nullptr == model))
+    {
+        GDIAL_LOGERROR("NULL GDialObjHandle[%p] manufacturer[%p]",GDialObjHandle,model);
+    }
+    else
+    {
+        GDIAL_LOGINFO("Model[%s]", model);
+        returnValue = GDialObjHandle->updateModelName(model);
+        if (returnValue != GDIAL_CAST_ERROR_NONE) {
+            GDIAL_LOGERROR("Failed to updateModelName. Error=%x",returnValue);
+        }
+    }
+    GDIAL_LOGTRACE("Exiting ...");
+    return returnValue;
 }
 
 int gdial_os_application_service_notification(gboolean isNotifyRequired, void* notifier)
