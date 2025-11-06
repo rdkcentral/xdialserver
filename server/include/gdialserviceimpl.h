@@ -97,7 +97,6 @@ public:
     virtual void onApplicationHideRequest(string appName, string appID) override;
     virtual void onApplicationResumeRequest(string appName, string appID) override;
     virtual void onApplicationStateRequest(string appName, string appID) override;
-    virtual void onStopped() override;
     virtual void updatePowerState(string powerState) override;
 
 private:

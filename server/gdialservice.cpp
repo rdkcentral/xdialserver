@@ -825,7 +825,6 @@ void *gdialServiceImpl::responseHandlerThread(void *ctx)
         }
     }
     _instance->m_gdialserver_response_handler_thread = 0;
-    _instance->m_observer->onStopped();
     pthread_exit(nullptr);
 }
 
@@ -1200,11 +1199,6 @@ void gdialServiceImpl::onApplicationStateRequest(string appName, string appID)
     payload.appIdOrQuery = appID;
     notifyResponse(payload);
     GDIAL_LOGTRACE("Exiting ...");
-}
-
-void gdialServiceImpl::onStopped()
-{
-    //
 }
 
 void gdialServiceImpl::updatePowerState(string powerState)
