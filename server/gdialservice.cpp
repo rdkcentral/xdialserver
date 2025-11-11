@@ -1107,7 +1107,7 @@ GDIAL_SERVICE_ERROR_CODES gdialService::setModelName(string model)
     {
         RequestHandlerPayload payload = {};
         payload.event = UPDATE_MODEL_NAME;
-        payload.model = model;
+        payload.model = std::move(model);
         payload.data_param = nullptr;
         payload.user_param1 = false;
         gdialImplInstance->sendRequest(payload);
@@ -1216,7 +1216,7 @@ void gdialServiceImpl::updatePowerState(string powerState)
     GDIAL_LOGINFO("powerState : %s",powerState.c_str());
     if (m_observer)
     {
-        m_observer->updatePowerState(powerState);
+        m_observer->updatePowerState(std::move(powerState));
     }
     GDIAL_LOGTRACE("Exiting ...");
 }
