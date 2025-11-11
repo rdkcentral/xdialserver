@@ -292,7 +292,7 @@ int gdialServiceImpl::start_GDialServer(int argc, char *argv[])
     soup_server_add_handler(ssdp_http_server, "/", gdial_http_server_throttle_callback, NULL, NULL);
 
     GSocketAddress *listen_address = g_inet_socket_address_new_from_string(iface_ipv4_address_, GDIAL_REST_HTTP_PORT);
-    SoupServerListenOptions option = 0;
+    SoupServerListenOptions option = (SoupServerListenOptions)0;
     gboolean success = soup_server_listen(rest_http_server, listen_address, option, &error);
     g_object_unref (listen_address);
     if (!success)
@@ -773,7 +773,7 @@ void *gdialServiceImpl::responseHandlerThread(void *ctx)
                             payload.c_str(),
                             query.c_str(),
                             AddDataUrl.c_str());
-                    _instance->m_observer->onApplicationLaunchRequestWithLaunchParam(appName,payload,query,AddDataUrl);
+                    _instance->m_observer->onApplicationLaunchRequestWithLaunchParam(std::move(appName),std::move(payload),std::move(query),std::move(AddDataUrl));
                 }
                 break;
                 case APP_LAUNCH_REQUEST:
@@ -781,7 +781,7 @@ void *gdialServiceImpl::responseHandlerThread(void *ctx)
                     std::string appName = response_data.appName,
                                 parameter = response_data.parameterOrPayload;
                     GDIAL_LOGINFO("AppLaunch : appName:%s parameter:%s",appName.c_str(),parameter.c_str());
-                    _instance->m_observer->onApplicationLaunchRequest(appName,parameter);
+                    _instance->m_observer->onApplicationLaunchRequest(std::move(appName),std::move(parameter));
                 }
                 break;
                 case APP_STOP_REQUEST:
@@ -789,7 +789,7 @@ void *gdialServiceImpl::responseHandlerThread(void *ctx)
                     std::string appName = response_data.appName,
                                 appId = response_data.appIdOrQuery;
                     GDIAL_LOGINFO("AppStop : appName:%s appId:%s",appName.c_str(),appId.c_str());
-                    _instance->m_observer->onApplicationStopRequest(appName,appId);
+                    _instance->m_observer->onApplicationStopRequest(std::move(appName),std::move(appId));
                 }
                 break;
                 case APP_HIDE_REQUEST:
@@ -797,7 +797,7 @@ void *gdialServiceImpl::responseHandlerThread(void *ctx)
                     std::string appName = response_data.appName,
                                 appId = response_data.appIdOrQuery;
                     GDIAL_LOGINFO("AppHide : appName:%s appId:%s",appName.c_str(),appId.c_str());
-                    _instance->m_observer->onApplicationHideRequest(appName,appId);
+                    _instance->m_observer->onApplicationHideRequest(std::move(appName),std::move(appId));
                 }
                 break;
                 case APP_STATE_REQUEST:
