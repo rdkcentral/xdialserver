@@ -376,7 +376,7 @@ int gdialServiceImpl::start_GDialServer(int argc, char *argv[])
         if (g_strstr_len(app_list_low, app_list_len, "netflix"))
         {
             GDIAL_LOGINFO("netflix is enabled from cmdline");
-            GList *allowed_origins = g_list_prepend(NULL, ".netflix.com");
+            GList *allowed_origins = g_list_prepend(NULL, (gpointer)".netflix.com");
             gdial_rest_server_register_app(dial_rest_server, "Netflix", NULL, NULL, TRUE, TRUE, allowed_origins);
             g_list_free(allowed_origins);
         }
@@ -388,7 +388,7 @@ int gdialServiceImpl::start_GDialServer(int argc, char *argv[])
         if (g_strstr_len(app_list_low, app_list_len, "youtube"))
         {
             GDIAL_LOGINFO("youtube is enabled from cmdline");
-            GList *allowed_origins = g_list_prepend(NULL, ".youtube.com");
+            GList *allowed_origins = g_list_prepend(NULL, (gpointer)".youtube.com");
             gdial_rest_server_register_app(dial_rest_server, "YouTube", NULL, NULL, TRUE, TRUE, allowed_origins);
             g_list_free(allowed_origins);
         }
@@ -400,7 +400,7 @@ int gdialServiceImpl::start_GDialServer(int argc, char *argv[])
         if (g_strstr_len(app_list_low, app_list_len, "youtubetv"))
         {
             GDIAL_LOGINFO("youtubetv is enabled from cmdline");
-            GList *allowed_origins = g_list_prepend(NULL, ".youtube.com");
+            GList *allowed_origins = g_list_prepend(NULL, (gpointer)".youtube.com");
             gdial_rest_server_register_app(dial_rest_server, "YouTubeTV", NULL, NULL, TRUE, TRUE, allowed_origins);
             g_list_free(allowed_origins);
         }
@@ -412,7 +412,7 @@ int gdialServiceImpl::start_GDialServer(int argc, char *argv[])
         if (g_strstr_len(app_list_low, app_list_len, "youtubekids"))
         {
             GDIAL_LOGINFO("youtubekids is enabled from cmdline");
-            GList *allowed_origins = g_list_prepend(NULL, ".youtube.com");
+            GList *allowed_origins = g_list_prepend(NULL, (gpointer)".youtube.com");
             gdial_rest_server_register_app(dial_rest_server, "YouTubeKids", NULL, NULL, TRUE, TRUE, allowed_origins);
             g_list_free(allowed_origins);
         }
@@ -424,7 +424,7 @@ int gdialServiceImpl::start_GDialServer(int argc, char *argv[])
         if (g_strstr_len(app_list_low, app_list_len, "amazoninstantvideo"))
         {
             GDIAL_LOGINFO("AmazonInstantVideo is enabled from cmdline");
-            GList *allowed_origins = g_list_prepend(NULL, ".amazonprime.com");
+            GList *allowed_origins = g_list_prepend(NULL, (gpointer)".amazonprime.com");
             gdial_rest_server_register_app(dial_rest_server, "AmazonInstantVideo", NULL, NULL, TRUE, TRUE, allowed_origins);
             g_list_free(allowed_origins);
         }
@@ -436,8 +436,8 @@ int gdialServiceImpl::start_GDialServer(int argc, char *argv[])
         if (g_strstr_len(app_list_low, app_list_len, "spotify"))
         {
             GDIAL_LOGINFO("spotify is enabled from cmdline");
-            GList *app_prefixes= g_list_prepend(NULL, "com.spotify");
-            GList *allowed_origins = g_list_prepend(NULL, ".spotify.com");
+            GList *app_prefixes= g_list_prepend(NULL, (gpointer)"com.spotify");
+            GList *allowed_origins = g_list_prepend(NULL, (gpointer)".spotify.com");
             gdial_rest_server_register_app(dial_rest_server, "com.spotify.Spotify.TV", app_prefixes, NULL, TRUE, TRUE, allowed_origins);
             g_list_free(allowed_origins);
             g_list_free(app_prefixes);
@@ -450,7 +450,7 @@ int gdialServiceImpl::start_GDialServer(int argc, char *argv[])
         if (g_strstr_len(app_list_low, app_list_len, "pairing"))
         {
             GDIAL_LOGINFO("pairing is enabled from cmdline");
-            GList *allowed_origins = g_list_prepend(NULL, ".comcast.com");
+            GList *allowed_origins = g_list_prepend(NULL, (gpointer)".comcast.com");
             gdial_rest_server_register_app(dial_rest_server, "Pairing", NULL, NULL, TRUE, TRUE, allowed_origins);
             g_list_free(allowed_origins);
         }
@@ -625,7 +625,7 @@ void *gdialServiceImpl::requestHandlerThread(void *ctx)
 {
     GDIAL_LOGTRACE("Entering ...");
     gdialServiceImpl *_instance = (gdialServiceImpl *)ctx;
-    RequestHandlerPayload reqHdlrPayload;
+    RequestHandlerPayload reqHdlrPayload = {};
     while(!_instance->m_RequestHandlerThreadExit)
     {
         reqHdlrPayload.appNameOrfriendlyname = "";
@@ -805,7 +805,7 @@ void *gdialServiceImpl::responseHandlerThread(void *ctx)
                     std::string appName = response_data.appName,
                                 appId = response_data.appIdOrQuery;
                     GDIAL_LOGINFO("AppState : appName:%s appId:%s",appName.c_str(),appId.c_str());
-                    _instance->m_observer->onApplicationStateRequest(appName,appId);
+                    _instance->m_observer->onApplicationStateRequest(std::move(appName),std::move(appId));
                 }
                 break;
                 case APP_RESUME_REQUEST:
@@ -813,7 +813,7 @@ void *gdialServiceImpl::responseHandlerThread(void *ctx)
                     std::string appName = response_data.appName,
                                 appId = response_data.appIdOrQuery;
                     GDIAL_LOGINFO("AppResume : appName:%s appId:%s",appName.c_str(),appId.c_str());
-                    _instance->m_observer->onApplicationResumeRequest(appName,appId);
+                    _instance->m_observer->onApplicationResumeRequest(std::move(appName),std::move(appId));
                 }
                 break;
                 default:
@@ -981,13 +981,14 @@ GDIAL_SERVICE_ERROR_CODES gdialService::ApplicationStateChanged(string applicati
                     error.c_str());
     if ((nullptr != m_gdialService ) && (nullptr != gdialImplInstance))
     {
-        RequestHandlerPayload payload;
+        RequestHandlerPayload payload = {};
         payload.event = APP_STATE_CHANGED;
-
-        payload.appNameOrfriendlyname = applicationName;
-        payload.appIdOractivation = applicationId;
-        payload.state = appState;
-        payload.error = error;
+        payload.appNameOrfriendlyname = std::move(applicationName);
+        payload.appIdOractivation = std::move(applicationId);
+        payload.state = std::move(appState);
+        payload.error = std::move(error);
+        payload.data_param = nullptr;
+        payload.user_param1 = false;
         gdialImplInstance->sendRequest(payload);
     }
     GDIAL_LOGTRACE("Exiting ...");
@@ -1001,11 +1002,12 @@ GDIAL_SERVICE_ERROR_CODES gdialService::ActivationChanged(string activation, str
     GDIAL_LOGINFO("activation[%s] friendlyname[%s]",activation.c_str(),friendlyname.c_str());
     if ((nullptr != m_gdialService ) && (nullptr != gdialImplInstance))
     {
-        RequestHandlerPayload payload;
+        RequestHandlerPayload payload = {};
         payload.event = ACTIVATION_CHANGED;
-
-        payload.appNameOrfriendlyname = friendlyname;
-        payload.appIdOractivation = activation;
+        payload.appNameOrfriendlyname = std::move(friendlyname);
+        payload.appIdOractivation = std::move(activation);
+        payload.data_param = nullptr;
+        payload.user_param1 = false;
         GDIAL_LOGINFO("ACTIVATION_CHANGED request sent");
         gdialImplInstance->sendRequest(payload);
     }
@@ -1020,10 +1022,11 @@ GDIAL_SERVICE_ERROR_CODES gdialService::FriendlyNameChanged(string friendlyname)
     GDIAL_LOGINFO("friendlyname[%s]",friendlyname.c_str());
     if ((nullptr != m_gdialService ) && (nullptr != gdialImplInstance))
     {
-        RequestHandlerPayload payload;
+        RequestHandlerPayload payload = {};
         payload.event = FRIENDLYNAME_CHANGED;
-
-        payload.appNameOrfriendlyname = friendlyname;
+        payload.appNameOrfriendlyname = std::move(friendlyname);
+        payload.data_param = nullptr;
+        payload.user_param1 = false;
         gdialImplInstance->sendRequest(payload);
     }
     GDIAL_LOGTRACE("Exiting ...");
@@ -1050,9 +1053,10 @@ GDIAL_SERVICE_ERROR_CODES gdialService::RegisterApplications(RegisterAppEntryLis
     GDIAL_LOGINFO("appConfigList[%p]",appConfigList);
     if ((nullptr != m_gdialService ) && (nullptr != gdialImplInstance))
     {
-        RequestHandlerPayload payload;
+        RequestHandlerPayload payload = {};
         payload.event = REGISTER_APPLICATIONS;
         payload.data_param = appConfigList;
+        payload.user_param1 = false;
         gdialImplInstance->sendRequest(payload);
     }
     GDIAL_LOGTRACE("Exiting ...");
@@ -1066,9 +1070,10 @@ void gdialService::setNetworkStandbyMode(bool nwStandbymode)
     GDIAL_LOGINFO("nwStandbymode[%u]",nwStandbymode);
     if ((nullptr != m_gdialService ) && (nullptr != gdialImplInstance))
     {
-        RequestHandlerPayload payload;
+        RequestHandlerPayload payload = {};
         payload.event = UPDATE_NW_STANDBY;
         payload.user_param1 = (bool)nwStandbymode;
+        payload.data_param = nullptr;
         gdialImplInstance->sendRequest(payload);
     }
     GDIAL_LOGTRACE("Exiting ...");
@@ -1082,9 +1087,11 @@ GDIAL_SERVICE_ERROR_CODES gdialService::setManufacturerName(string manufacturer)
     GDIAL_LOGINFO("Manufacturer[%s]",manufacturer.c_str());
     if ((nullptr != m_gdialService ) && (nullptr != gdialImplInstance))
     {
-        RequestHandlerPayload payload;
+        RequestHandlerPayload payload = {};
         payload.event = UPDATE_MANUFACTURER_NAME;
-        payload.manufacturer = manufacturer;
+        payload.manufacturer = std::move(manufacturer);
+        payload.data_param = nullptr;
+        payload.user_param1 = false;
         gdialImplInstance->sendRequest(payload);
     }
     GDIAL_LOGTRACE("Exiting ...");
@@ -1098,9 +1105,11 @@ GDIAL_SERVICE_ERROR_CODES gdialService::setModelName(string model)
     GDIAL_LOGINFO("Model[%s]",model.c_str());
     if ((nullptr != m_gdialService ) && (nullptr != gdialImplInstance))
     {
-        RequestHandlerPayload payload;
+        RequestHandlerPayload payload = {};
         payload.event = UPDATE_MODEL_NAME;
         payload.model = model;
+        payload.data_param = nullptr;
+        payload.user_param1 = false;
         gdialImplInstance->sendRequest(payload);
     }
     GDIAL_LOGTRACE("Exiting ...");
@@ -1133,10 +1142,10 @@ void gdialServiceImpl::onApplicationLaunchRequestWithLaunchParam(string appName,
     GDIAL_LOGTRACE("Entering ...");
     payload.event = APP_LAUNCH_REQUEST_WITH_PARAMS;
 
-    payload.appName = appName;
-    payload.parameterOrPayload = strPayLoad;
-    payload.appIdOrQuery = strQuery;
-    payload.AddDataUrl = strAddDataUrl;
+    payload.appName = std::move(appName);
+    payload.parameterOrPayload = std::move(strPayLoad);
+    payload.appIdOrQuery = std::move(strQuery);
+    payload.AddDataUrl = std::move(strAddDataUrl);
     notifyResponse(payload);
     GDIAL_LOGTRACE("Exiting ...");
 }
@@ -1147,8 +1156,8 @@ void gdialServiceImpl::onApplicationLaunchRequest(string appName, string paramet
     GDIAL_LOGTRACE("Entering ...");
     payload.event = APP_LAUNCH_REQUEST;
 
-    payload.appName = appName;
-    payload.parameterOrPayload = parameter;
+    payload.appName = std::move(appName);
+    payload.parameterOrPayload = std::move(parameter);
     notifyResponse(payload);
     GDIAL_LOGTRACE("Exiting ...");
 }
@@ -1159,8 +1168,8 @@ void gdialServiceImpl::onApplicationStopRequest(string appName, string appID)
     GDIAL_LOGTRACE("Entering ...");
     payload.event = APP_STOP_REQUEST;
 
-    payload.appName = appName;
-    payload.appIdOrQuery = appID;
+    payload.appName = std::move(appName);
+    payload.appIdOrQuery = std::move(appID);
     notifyResponse(payload);
     GDIAL_LOGTRACE("Exiting ...");
 }
@@ -1171,8 +1180,8 @@ void gdialServiceImpl::onApplicationHideRequest(string appName, string appID)
     GDIAL_LOGTRACE("Entering ...");
     payload.event = APP_HIDE_REQUEST;
 
-    payload.appName = appName;
-    payload.appIdOrQuery = appID;
+    payload.appName = std::move(appName);
+    payload.appIdOrQuery = std::move(appID);
     notifyResponse(payload);
     GDIAL_LOGTRACE("Exiting ...");
 }
@@ -1183,8 +1192,8 @@ void gdialServiceImpl::onApplicationResumeRequest(string appName, string appID)
     GDIAL_LOGTRACE("Entering ...");
     payload.event = APP_RESUME_REQUEST;
 
-    payload.appName = appName;
-    payload.appIdOrQuery = appID;
+    payload.appName = std::move(appName);
+    payload.appIdOrQuery = std::move(appID);
     notifyResponse(payload);
     GDIAL_LOGTRACE("Exiting ...");
 }
@@ -1195,8 +1204,8 @@ void gdialServiceImpl::onApplicationStateRequest(string appName, string appID)
     GDIAL_LOGTRACE("Entering ...");
     payload.event = APP_STATE_REQUEST;
 
-    payload.appName = appName;
-    payload.appIdOrQuery = appID;
+    payload.appName = std::move(appName);
+    payload.appIdOrQuery = std::move(appID);
     notifyResponse(payload);
     GDIAL_LOGTRACE("Exiting ...");
 }

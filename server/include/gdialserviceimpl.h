@@ -103,7 +103,7 @@ private:
     gdialServiceImpl(){};
     virtual ~gdialServiceImpl(){};
 
-    GDialNotifier *m_observer;
+    GDialNotifier *m_observer{nullptr};
     pthread_t m_gdialserver_main_thread{0};
 
     static void *mainThread(void *ctx);
