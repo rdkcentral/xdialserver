@@ -62,7 +62,7 @@ void GDialAppStatusCache :: setAppCacheId(std::string app_name,std::string id)
 AppCacheErrorCodes GDialAppStatusCache::UpdateAppStatusCache(AppInfo* appEntry)
 {
     GDIAL_LOGTRACE("Entering ...");
-    AppCacheErrorCodes err;
+    AppCacheErrorCodes err = AppCacheError_OK;
     GDIAL_LOGINFO("APPCache: AppName[%s] AppID[%s] AppState[%s] Error[%s]",
                     appEntry->appName.c_str(),
                     appEntry->appId.c_str(),
@@ -71,9 +71,16 @@ AppCacheErrorCodes GDialAppStatusCache::UpdateAppStatusCache(AppInfo* appEntry)
 
     std::string id = getAppCacheId(appEntry->appName.c_str());
 
+    // FIX(Coverity): Check return value of erase() before insert
+    // Reason: Ensure old data removed successfully before inserting new
+    // Impact: Better error handling. Public API unchanged.
     if(doIdExist(id)) {
         GDIAL_LOGINFO("erasing old data");
         err = ObjectCache->erase(id);
+        if (err != AppCacheError_OK) {
+            GDIAL_LOGERROR("Failed to erase old cache entry");
+            return err;
+        }
     }
     err = ObjectCache->insert(std::move(id),appEntry);
     GDIAL_LOGTRACE("Exiting ...");
@@ -88,13 +95,20 @@ std::string GDialAppStatusCache::SearchAppStatusInCache(const char* app_name)
     std::string id = getAppCacheId(app_name);
     if(doIdExist(id))
     {
+        // FIX(Coverity): Add NULL check for appEntry
+        // Reason: findObject() may return NULL
+        // Impact: Prevent NULL pointer dereference. Public API unchanged.
         AppInfo* appEntry = ObjectCache->findObject(id);
-
-        state = appEntry->appState;
-        GDIAL_LOGINFO("APPCache: App Name[%s] AppID[%s] Error[%s]",
-            appEntry->appName.c_str(),
-            appEntry->appId.c_str(),
-            appEntry->appError.c_str());
+        if (appEntry) {
+            state = appEntry->appState;
+            GDIAL_LOGINFO("APPCache: App Name[%s] AppID[%s] Error[%s]",
+                appEntry->appName.c_str(),
+                appEntry->appId.c_str(),
+                appEntry->appError.c_str());
+        }
+        else {
+            GDIAL_LOGERROR("Cache entry exists but findObject returned NULL");
+        }
     }
     GDIAL_LOGINFO("App State = %s ",state.c_str());
     GDIAL_LOGTRACE("Exiting ...");

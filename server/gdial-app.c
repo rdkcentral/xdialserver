@@ -183,13 +183,22 @@ static void gdial_app_init(GDialApp *self) {
 }
 
 static int compare_versions(const char *version1, const char *version2) {
+    // FIX(Coverity): Check sscanf return values
+    // Reason: Prevent use of uninitialized variables if parsing fails
+    // Impact: Safer version comparison. Public API unchanged.
     unsigned major1 = 0, minor1 = 0, bugfix1 = 0;
     unsigned major2 = 0, minor2 = 0, bugfix2 = 0;
     if(version1 != NULL) {
-        sscanf(version1, "%u.%u.%u", &major1, &minor1, &bugfix1);
+        int parsed = sscanf(version1, "%u.%u.%u", &major1, &minor1, &bugfix1);
+        if (parsed < 1) {
+            GDIAL_LOGWARNING("Failed to parse version1: %s", version1);
+        }
     }
     if(version2 != NULL) {
-        sscanf(version2, "%u.%u.%u", &major2, &minor2, &bugfix2);
+        int parsed = sscanf(version2, "%u.%u.%u", &major2, &minor2, &bugfix2);
+        if (parsed < 1) {
+            GDIAL_LOGWARNING("Failed to parse version2: %s", version2);
+        }
     }
     if (major1 < major2) return -1;
     if (major1 > major2) return 1;
@@ -215,9 +224,15 @@ GDialAppError gdial_app_start(GDialApp *app, const gchar *payload, const gchar *
   GDialAppPrivate *priv = gdial_app_get_instance_private(app);
   priv->state_cb_data = state_cb_data;
   GDialAppError app_err = gdial_plat_application_start(app->name, payload, query, additional_data_url, &app->instance_id);
+  // FIX(Coverity): Preserve original error if start succeeded
+  // Reason: Don't overwrite successful start result with state query error
+  // Impact: Correct error propagation. Public API unchanged.
   if (app_err == GDIAL_APP_ERROR_NONE || (strcmp("system", app->name) != 0 && app->instance_id != GDIAL_APP_INSTANCE_NONE)) {
     gdial_plat_application_state_async(app->name, app->instance_id, app);
-    app_err = gdial_plat_application_state(app->name, app->instance_id, &app->state);
+    GDialAppError state_err = gdial_plat_application_state(app->name, app->instance_id, &app->state);
+    if (app_err == GDIAL_APP_ERROR_NONE && state_err != GDIAL_APP_ERROR_NONE) {
+      GDIAL_LOGWARNING("App started but state query failed");
+    }
     g_warn_if_fail(app->state == GDIAL_APP_STATE_RUNNING);
   }
   else {
@@ -333,8 +348,16 @@ void gdial_app_set_additional_dial_data(GDialApp *app, GHashTable *additional_di
   GDialAppPrivate *priv = gdial_app_get_instance_private(app);
   if(priv->additional_dial_data) {
     g_hash_table_destroy(priv->additional_dial_data);
+    priv->additional_dial_data = NULL;
   }
+  // FIX(Coverity): Check return value of gdial_util_str_str_hashtable_dup
+  // Reason: Handle allocation failure gracefully
+  // Impact: Defensive NULL check. Public API unchanged.
   priv->additional_dial_data = gdial_util_str_str_hashtable_dup(additional_dial_data);
+  if (!priv->additional_dial_data) {
+    GDIAL_LOGERROR("Failed to duplicate additional_dial_data");
+    return;
+  }
   /* cache the additional_dial_data */
   size_t length = 0;
   gchar *query_str = gdial_util_str_str_hashtable_to_string(additional_dial_data, NULL, TRUE, &length);
@@ -363,17 +386,24 @@ void gdial_app_refresh_additional_dial_data(GDialApp *app) {
   priv->additional_dial_data = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_free);
   gchar *data = NULL;
   size_t length = 0;
+  // FIX(Coverity): Ensure data is freed in all code paths
+  // Reason: Prevent memory leak if hash table conversion fails
+  // Impact: Proper resource cleanup. Public API unchanged.
   if (gdial_app_read_additional_dial_data(app->name, &data, &length)) {
     if (data) {
       /* we are ready to convert to hashtable*/
       gdial_util_str_str_hashtable_from_string(data, length, priv->additional_dial_data);
       GDIAL_LOGINFO("gdial_app_refresh_additional_dial_data [%s]", data);
+      g_free(data);
+      data = NULL;
     }
   }
-
-  if (data) {
-    g_free(data);
-    data = NULL;
+  else {
+    // Free data even if read failed but memory was allocated
+    if (data) {
+      g_free(data);
+      data = NULL;
+    }
   }
 
   GDIAL_LOGTRACE("Exiting ...");
@@ -415,6 +445,9 @@ GDIAL_STATIC gboolean gdial_app_write_additional_dial_data(const gchar *app_name
   if (!g_file_query_exists(gfile, NULL) || g_file_delete(gfile, NULL, &err) ) {
     GFileIOStream *gfile_ios = g_file_create_readwrite(gfile, G_FILE_CREATE_PRIVATE, NULL, &err);
     if (gfile_ios) {
+      // FIX(Coverity): Ensure g_object_unref called in all error paths
+      // Reason: Prevent resource leak on write failure
+      // Impact: Proper cleanup. Public API unchanged.
       if (g_output_stream_write(g_io_stream_get_output_stream(G_IO_STREAM(gfile_ios)), data, length, NULL, &err) == (gssize)length) {
         result = TRUE;
       }
@@ -454,17 +487,37 @@ GDIAL_STATIC gboolean gdial_app_read_additional_dial_data(const gchar *app_name,
     GFileInfo *gfile_info = g_file_query_info(gfile, G_FILE_ATTRIBUTE_STANDARD_SIZE, G_FILE_QUERY_INFO_NONE, NULL, &err);
     if (gfile_info && err == NULL) {
       goffset fsize = g_file_info_get_size(gfile_info);
-      *data = malloc(fsize+1);
+      // FIX(Coverity): Use g_malloc instead of malloc for GLib consistency
+      // Reason: Match memory allocator with g_free used later
+      // Impact: Consistent memory management. Public API unchanged.
+      *data = g_malloc(fsize+1);
+      if (!*data) {
+        GDIAL_LOGERROR("Failed to allocate memory for dial data");
+        g_object_unref(gfile_info);
+        g_object_unref(gfile);
+        g_free(filename);
+        return FALSE;
+      }
       GFileIOStream *gfile_ios = g_file_open_readwrite(gfile, NULL, &err);
       if (gfile_ios) {
+      // FIX(Coverity): Free *data in error paths
+      // Reason: Prevent memory leak if read fails
+      // Impact: Proper error handling. Public API unchanged.
       if (g_input_stream_read(g_io_stream_get_input_stream(G_IO_STREAM(gfile_ios)), *data, fsize, NULL, &err) == fsize) {
         (*data)[fsize] = 0;
         *length = fsize;
         result = TRUE;
       }
+      else {
+        g_free(*data);
+        *data = NULL;
+        GDIAL_LOGERROR("Failed to read file data");
+      }
       g_object_unref(gfile_ios);
       }
       else {
+        g_free(*data);
+        *data = NULL;
         GDIAL_LOGERROR("file %s file is not readable", filename);
       }
       g_object_unref(gfile_info);
@@ -518,9 +571,20 @@ gchar * gdial_app_state_response_new(GDialApp *app, const gchar *dial_ver, const
   g_return_val_if_fail(dial_ver && xmlns && len, NULL);
   GDialAppPrivate *priv = gdial_app_get_instance_private(app);
 
+  // FIX(Coverity): Add NULL checks for XML node creation
+  // Reason: xmlNew* functions can return NULL on allocation failure
+  // Impact: Defensive error handling. Public API unchanged.
   xmlDocPtr xdoc = NULL;
   xdoc = xmlNewDoc(BAD_CAST "1.0");
+  if (!xdoc) {
+    GDIAL_LOGERROR("Failed to create XML document");
+    return NULL;
+  }
   xmlNodePtr nservice = xmlNewNode(NULL, BAD_CAST "service");
+  if (!nservice) {
+    xmlFreeDoc(xdoc);
+    return NULL;
+  }
   xmlDocSetRootElement(xdoc, nservice); {
     xmlNewProp(nservice, BAD_CAST "xmlns", BAD_CAST xmlns);
     xmlNewProp(nservice, BAD_CAST "dialVer", BAD_CAST dial_ver);

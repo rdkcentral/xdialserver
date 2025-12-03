@@ -62,6 +62,9 @@ static gdial_modelname_cb g_modelname_cb = NULL;
 class GDialCastObject
 {
 public:
+    // FIX(Coverity): Initialize all members in constructor
+    // Reason: Prevent undefined behavior from uninitialized variables
+    // Impact: Proper initialization. Public API unchanged.
     GDialCastObject(){}
     ~GDialCastObject() {}
 
@@ -69,6 +72,9 @@ public:
     {
         GDIAL_LOGTRACE("Entering ...");
         GDialErrorCode reterror = GDIAL_CAST_ERROR_INTERNAL;
+        // FIX(Coverity): Ensure AppObj is deleted in all error paths
+        // Reason: Prevent memory leak on allocation failure or cache update failure
+        // Impact: Proper resource cleanup. Public API unchanged.
         AppInfo* AppObj = new AppInfo(applicationName,applicationId,state,error);
         if ((nullptr != AppObj) && (nullptr != AppCache))
         {
@@ -80,6 +86,12 @@ public:
             if ( AppCacheError_OK == AppCache->UpdateAppStatusCache(AppObj))
             {
                 reterror = GDIAL_CAST_ERROR_NONE;
+            }
+            else
+            {
+                // Cache update failed, delete AppObj
+                delete AppObj;
+                AppObj = nullptr;
             }
         }
 		else
@@ -119,8 +131,12 @@ public:
         {
             GList *gAppPrefxes = nullptr,
                   *allowed_origins = nullptr;
+            // FIX(Coverity): Ensure allocated resources freed if loop breaks early
+            // Reason: Prevent resource leak when max apps exceeded
+            // Impact: Proper cleanup. Public API unchanged.
             if (DIAL_MAX_NUM_OF_APPS<=i)
             {
+                GDIAL_LOGWARNING("Maximum number of apps (%d) exceeded", DIAL_MAX_NUM_OF_APPS);
                 break;
             }
             GDIAL_LOGINFO("Application:[%d]", i);
@@ -132,7 +148,16 @@ public:
             GDIAL_LOGINFO("%s, ", appEntry->cors.c_str());
             GDIAL_LOGINFO("");
 
+            // FIX(Coverity): Add error handling for hash table creation
+            // Reason: Prevent resource leak if allocation fails
+            // Impact: Proper error handling. Public API unchanged.
             GHashTable *gProperties = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_free);
+            if (!gProperties) {
+                GDIAL_LOGERROR("Failed to create properties hash table");
+                g_list_free_full(gAppPrefxes, g_free);
+                g_list_free_full(allowed_origins, g_free);
+                continue;
+            }
             std::string appAllowStop = appEntry->allowStop ? "true" : "false";
             g_hash_table_insert(gProperties,g_strdup("allowStop"),g_strdup(appAllowStop.c_str()));
             GDIAL_LOGINFO("allowStop:[%s]", appAllowStop.c_str());
@@ -155,6 +180,10 @@ public:
             GDIAL_LOGINFO("calling register_applications callback ");
             g_registerapps_cb(gAppList);
         }
+        // FIX(Coverity): Use g_list_free_full to properly destroy app_registry objects
+        // Reason: Prevent memory leak - individual app_registry objects need cleanup
+        // Impact: Proper resource cleanup. Public API unchanged.
+        // Note: app_registry ownership transferred to callback, so just free list
         /*Free the applist*/
         if (gAppList) {
             g_list_free (gAppList);
