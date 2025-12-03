@@ -476,7 +476,7 @@ static void gdial_rest_server_handle_POST(GDialRestServer *gdial_rest_server, So
     GDIAL_LOGINFO("query = %s", query_str);
       if (!use_query_directly_from_soup) {
         char *tmp = soup_uri_encode(query_str, NULL);
-        // FIX(Coverity): Use g_strdup for consistency with g_free later
+        // note that we later g_free(query_str_safe) which doesn't necessarily work with malloc'ed memory (seems to depend on glib version)
         query_str_safe = g_strdup(tmp);
         free(tmp);
       }
