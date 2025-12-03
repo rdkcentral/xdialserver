@@ -731,33 +731,21 @@ static void gdial_local_rest_http_server_callback(SoupServer *server,
       GDIAL_LOGWARNING("Warn: empty elements in URI path");
       continue;
     }
-    // FIX(Coverity): Check buffer copy return value and fail immediately on truncation
-    // Reason: Prevent buffer overflow - return error before truncated buffer is used
-    // Impact: Safer URI parsing. Public API unchanged.
     if (j == 0) {
         ret = g_strlcpy(base, elements[i], sizeof(base));
         if (ret >= sizeof(base)) {
-            GDIAL_LOGERROR("Error: base too long, truncated");
-            g_strfreev(elements);
-            gdial_soup_message_set_http_error(msg, SOUP_STATUS_NOT_IMPLEMENTED);
-            return;
+            GDIAL_LOGERROR("Warn: base too long");
         }
     }
     else if (j == 1) {
         ret = g_strlcpy(instance, elements[i], sizeof(instance));
         if (ret >= sizeof(instance)) {
-            GDIAL_LOGERROR("Error: instance too long, truncated");
-            g_strfreev(elements);
-            gdial_soup_message_set_http_error(msg, SOUP_STATUS_NOT_IMPLEMENTED);
-            return;
+            GDIAL_LOGERROR("Warn: instance too long");
         }
     }
     ret = g_strlcpy(last_elem, elements[i], sizeof(last_elem));
     if (ret >= sizeof(last_elem)) {
-        GDIAL_LOGERROR("Error: last_elem too long, truncated");
-        g_strfreev(elements);
-        gdial_soup_message_set_http_error(msg, SOUP_STATUS_NOT_IMPLEMENTED);
-        return;
+        GDIAL_LOGERROR("Warn: last_elem too long");
     }
     GDIAL_LOGINFO("last_elem[%s]", last_elem);
     j++;
@@ -788,11 +776,6 @@ static void gdial_local_rest_http_server_callback(SoupServer *server,
 static void gdial_rest_http_server_apps_callback(SoupServer *server,
             SoupMessage *msg, const gchar *path, GHashTable *query,
             SoupClientContext  *client, gpointer user_data) {
-  // FIX(Coverity): Complex nested if-else structure
-  // Reason: Multiple nested blocks with many return points difficult to maintain
-  // Impact: Added documentation for clarity. Full refactoring would require
-  // major restructuring beyond scope of security fixes.
-  // Note: Consider refactoring into smaller handler functions in future work
   gchar *remote_address_str = g_inet_address_to_string(g_inet_socket_address_get_address(G_INET_SOCKET_ADDRESS(soup_client_context_get_remote_address(client))));
   g_print_with_timestamp("gdial_rest_http_server_apps_callback() %s path=%s recv from [%s], in thread %lx", msg->method, path, remote_address_str, pthread_self());
   g_free(remote_address_str);
@@ -821,11 +804,8 @@ static void gdial_rest_http_server_apps_callback(SoupServer *server,
   gdial_rest_server_http_return_if_fail(gdial_soup_message_security_check(msg), msg, SOUP_STATUS_INTERNAL_SERVER_ERROR);
   gdial_rest_server_http_return_if_fail(path != NULL, msg, SOUP_STATUS_INTERNAL_SERVER_ERROR);
 
-  // FIX(Coverity): Check for integer overflow in path length
-  // Reason: Prevent integer overflow in boundary checks
-  // Impact: Safer size validation. Public API unchanged.
   size_t path_len = strlen(path);
-  gdial_rest_server_http_return_if_fail(path_len < GDIAL_REST_HTTP_MAX_URI_LEN && path_len < SIZE_MAX, msg, SOUP_STATUS_INTERNAL_SERVER_ERROR);
+  gdial_rest_server_http_return_if_fail(path_len < GDIAL_REST_HTTP_MAX_URI_LEN, msg, SOUP_STATUS_INTERNAL_SERVER_ERROR);
   gdial_rest_server_http_return_if_fail(path_len > (GDIAL_STR_SIZEOF(GDIAL_REST_HTTP_APPS_URI) + GDIAL_STR_SIZEOF("/")), msg, SOUP_STATUS_NOT_IMPLEMENTED);
   gdial_rest_server_http_return_if_fail(strncmp(path, GDIAL_REST_HTTP_APPS_URI, GDIAL_STR_SIZEOF(GDIAL_REST_HTTP_APPS_URI)) == 0, msg, SOUP_STATUS_NOT_IMPLEMENTED);
 
@@ -835,20 +815,8 @@ static void gdial_rest_http_server_apps_callback(SoupServer *server,
   /*
    * @TODO remote consecutive slashes.
    */
-  // FIX(Coverity): Validate path elements for path traversal attacks
-  // Reason: Prevent directory traversal with ../ sequences
-  // Impact: Security hardening. Public API unchanged.
   gchar **elements = g_strsplit(&path[1], "/", 4);
   gdial_rest_server_http_return_if_fail(elements != NULL, msg, SOUP_STATUS_NOT_IMPLEMENTED);
-
-  // Validate for path traversal sequences
-  for (int elem_idx = 0; elements[elem_idx] != NULL; elem_idx++) {
-    if (strstr(elements[elem_idx], "..") != NULL) {
-      GDIAL_LOGERROR("Path traversal attempt detected in URI");
-      g_strfreev(elements);
-      gdial_rest_server_http_return_if_fail(FALSE, msg, SOUP_STATUS_FORBIDDEN);
-    }
-  }
 
   gchar base[GDIAL_REST_HTTP_PATH_COMPONENT_MAX_LEN] = {0};
   gchar app_name[GDIAL_REST_HTTP_PATH_COMPONENT_MAX_LEN] = {0};
@@ -992,10 +960,6 @@ static void gdial_rest_http_server_apps_callback(SoupServer *server,
         gdial_rest_server_handle_OPTIONS(msg, "DELETE, OPTIONS");
       }
       else if (msg->method == SOUP_METHOD_DELETE) {
-        // FIX(Coverity): Race condition - app_state may change between check and use
-        // Reason: Concurrent access without synchronization in multi-threaded environment
-        // Impact: Adding defensive check. Full mutex protection would require API changes.
-        // Note: Platform layer should handle thread safety for app state changes
         GDialApp *app = gdial_app_find_instance_by_name(app_name);
         GDialApp *app_by_instance = gdial_rest_server_check_instance(app, instance);
         if (app_by_instance) {
@@ -1186,9 +1150,6 @@ GDialRestServer *gdial_rest_server_new(SoupServer *rest_http_server,SoupServer *
 gboolean gdial_rest_server_register_app(GDialRestServer *self, const gchar *app_name, const GList *app_prefixes, GHashTable *properties, gboolean is_singleton, gboolean use_additional_data, const GList *allowed_origins) {
 
   g_return_val_if_fail(self != NULL && app_name != NULL, FALSE);
-  // FIX(Coverity): Validate app_name before use in format strings
-  // Reason: Prevent format string vulnerability
-  // Impact: Input validation. Public API unchanged.
   GDIAL_LOGTRACE("Entering ...");
   /*
    *@TODO: support multiple app instances.
@@ -1346,10 +1307,8 @@ GDIAL_STATIC_INLINE void *GET_APP_response_builder_set_option(void *builder, con
    * Simple check only...
    */
   if (option_name && option_value) {
-    // FIX(Coverity): Use g_hash_table_replace to prevent memory leak
-    // Reason: Replace frees existing key/value if present
-    // Impact: Prevents leak on duplicate keys. Public API unchanged.
-    g_hash_table_replace(rbuilder->options, g_strdup(option_name), g_strdup(option_value));
+    // note that this will leak if option_name key is already in the table
+    g_hash_table_insert(rbuilder->options, g_strdup(option_name), g_strdup(option_value));
   }
   return builder;
 }
@@ -1387,12 +1346,8 @@ GDIAL_STATIC_INLINE void *GET_APP_response_builder_set_additionalData(void *buil
 
 GDIAL_STATIC_INLINE gchar *GET_APP_response_builder_build(void *builder, gsize *length) {
   GDialServerResponseBuilderGetApp * rbuilder = (GDialServerResponseBuilderGetApp *)builder;
-  // FIX(Coverity): Check rbuf for NULL immediately after allocation
-  // Reason: Prevent NULL pointer dereference
-  // Impact: Defensive check moved before any use. Public API unchanged.
   GString *rbuf = g_string_new_len('\0', 128);
   if(rbuf == NULL){
-    if (length) *length = 0;
     return NULL;
   }
   gsize options_length = 0;

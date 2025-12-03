@@ -40,9 +40,6 @@ const char * gdial_plat_util_get_iface_ipv4_addr(const char *ifname) {
   int sock = socket(AF_INET, SOCK_DGRAM, 0);
   if (sock >= 0) {
     ifr.ifr_addr.sa_family = AF_INET;
-    // FIX(Coverity): Ensure null termination of ifr.ifr_name
-    // Reason: Prevent buffer overflow if ifname is exactly IFNAMSIZ bytes
-    // Impact: Defensive null termination. Public API unchanged.
     strncpy(ifr.ifr_name, ifname, IFNAMSIZ-1);
     ifr.ifr_name[IFNAMSIZ-1] = '\0';
     if (ioctl(sock, SIOCGIFADDR, &ifr) == 0) {
@@ -50,9 +47,6 @@ const char * gdial_plat_util_get_iface_ipv4_addr(const char *ifname) {
         result = iface_ipv4_addr;
       }
     }
-    // FIX(Coverity): Socket closed in all paths
-    // Reason: Ensure resource cleanup even on error
-    // Impact: Confirmed proper cleanup. Public API unchanged.
     close(sock);
   }
 
@@ -122,18 +116,10 @@ void gdial_plat_util_log(gdial_plat_util_LogLevel level,
         return;
     }
 
-    // FIX(Coverity): Format string vulnerability warning
-    // Reason: User-controlled format string in vsnprintf
-    // Impact: Callers must use trusted format strings. Document requirement.
-    // Note: This is a logging function - callers responsible for format safety
     va_list argptr;
     va_start(argptr, format);
     vsnprintf(formatted, kFormatMessageSize, format, argptr);
     va_end(argptr);
-    // FIX(Coverity): basename() not thread-safe warning
-    // Reason: basename() may modify input or return static buffer
-    // Impact: Document thread-safety requirements for callers
-    // Note: In practice, read-only string literal safe in this context
     fprintf(stderr, "[GDIAL][%d] %s [%s:%d] %s: %s \n",
                 (int)syscall(SYS_gettid),
                 levelMap[level],

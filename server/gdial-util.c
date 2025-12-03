@@ -69,13 +69,8 @@ gboolean gdial_util_str_str_hashtable_from_string(const gchar *ht_str, gsize len
   return TRUE;
 }
 
-// FIX(Coverity): Document merge behavior and add defensive checks
-// Reason: Prevent undefined behavior when dst and src overlap
-// Impact: Safer merge operation. Public API unchanged.
-// Note: dst and src must not share keys. dst takes ownership of src's keys/values.
 GHashTable * gdial_util_str_str_hashtable_merge(GHashTable *dst, const GHashTable *src) {
   if (dst && src) {
-    g_return_val_if_fail(dst != src, dst);
     GHashTableIter iter;
     gpointer key, value;
     g_hash_table_iter_init (&iter, (GHashTable *)src);
@@ -130,10 +125,7 @@ gboolean gdial_util_str_str_hashtable_equal(const GHashTable *ht1, const GHashTa
   gpointer key, value1, value2;
   g_hash_table_iter_init(&iter, (GHashTable *)ht1);
   while (g_hash_table_iter_next(&iter, &key, &value1)) {
-    // FIX(Coverity): Remove incorrect GHashTable cast for key
-    // Reason: key should be gconstpointer, not GHashTable*
-    // Impact: Correct type usage. Public API unchanged.
-    value2 = g_hash_table_lookup((GHashTable *)ht2, key);
+    value2 = g_hash_table_lookup((GHashTable *)ht2, (GHashTable *)key);
     if ((value1 == value2) || (value1 && value2 && g_strcmp0(value2, value1) == 0)) {
     }
     else {

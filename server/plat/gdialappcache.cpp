@@ -62,7 +62,7 @@ void GDialAppStatusCache :: setAppCacheId(std::string app_name,std::string id)
 AppCacheErrorCodes GDialAppStatusCache::UpdateAppStatusCache(AppInfo* appEntry)
 {
     GDIAL_LOGTRACE("Entering ...");
-    AppCacheErrorCodes err = AppCacheError_OK;
+    AppCacheErrorCodes err;
     GDIAL_LOGINFO("APPCache: AppName[%s] AppID[%s] AppState[%s] Error[%s]",
                     appEntry->appName.c_str(),
                     appEntry->appId.c_str(),
@@ -71,16 +71,9 @@ AppCacheErrorCodes GDialAppStatusCache::UpdateAppStatusCache(AppInfo* appEntry)
 
     std::string id = getAppCacheId(appEntry->appName.c_str());
 
-    // FIX(Coverity): Check return value of erase() before insert
-    // Reason: Ensure old data removed successfully before inserting new
-    // Impact: Better error handling. Public API unchanged.
     if(doIdExist(id)) {
         GDIAL_LOGINFO("erasing old data");
         err = ObjectCache->erase(id);
-        if (err != AppCacheError_OK) {
-            GDIAL_LOGERROR("Failed to erase old cache entry");
-            return err;
-        }
     }
     err = ObjectCache->insert(std::move(id),appEntry);
     GDIAL_LOGTRACE("Exiting ...");
