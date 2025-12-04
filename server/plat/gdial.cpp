@@ -119,12 +119,8 @@ public:
         {
             GList *gAppPrefxes = nullptr,
                   *allowed_origins = nullptr;
-            // FIX(Coverity): Ensure allocated resources freed if loop breaks early
-            // Reason: Prevent resource leak when max apps exceeded
-            // Impact: Proper cleanup. Public API unchanged.
             if (DIAL_MAX_NUM_OF_APPS<=i)
             {
-                GDIAL_LOGWARNING("Maximum number of apps (%d) exceeded", DIAL_MAX_NUM_OF_APPS);
                 break;
             }
             GDIAL_LOGINFO("Application:[%d]", i);

@@ -161,12 +161,7 @@ static GList *gdial_rest_server_registered_apps_clear(GDialRestServer *self, GLi
   GDialRestServerPrivate *priv = gdial_rest_server_get_instance_private(self);
   GDialAppRegistry *app_registry = (GDialAppRegistry *)found->data;
   registered_apps = g_list_remove_link(registered_apps, found);
-  // FIX(Coverity): Validate app_registry->name before use in format string
-  // Reason: Prevent format string vulnerability with untrusted input
-  // Impact: Internal validation added. Public API unchanged.
-  if (app_registry->name != NULL) {
-    GDIAL_LOGINFO("gdial_local_rest_http_server_callback handler Removed for App[%s]instance[%x]", app_registry->name,(uintptr_t)priv->local_soup_instance);
-  }
+  GDIAL_LOGINFO("gdial_local_rest_http_server_callback handler Removed for App[%s]instance[%x]", app_registry->name,(uintptr_t)priv->local_soup_instance);
   soup_server_remove_handler(priv->local_soup_instance, app_registry->app_uri);
   gdial_app_regstry_dispose (app_registry);
   g_list_free(found);
@@ -463,9 +458,6 @@ static void gdial_rest_server_handle_POST(GDialRestServer *gdial_rest_server, So
     if (app_registry->use_additional_data) {
       additional_data_url = gdial_rest_server_new_additional_data_url(listening_port, app_registry->name, FALSE, app_registry->app_uri );
     }
-    // FIX(Coverity): soup_uri_encode uses malloc, must use free() not g_free()
-    // Reason: Memory allocator mismatch causes undefined behavior
-    // Impact: Consistent memory management. Public API unchanged.
     gchar *additional_data_url_safe = soup_uri_encode(additional_data_url, NULL);
     GDIAL_LOGINFO("additionalDataUrl = %s, %s", additional_data_url, additional_data_url_safe);
     g_signal_connect_object(app, "state-changed", G_CALLBACK(gdial_rest_app_state_changed_cb), gdial_rest_server, 0);
@@ -547,10 +539,8 @@ static void gdial_rest_server_handle_POST(GDialRestServer *gdial_rest_server, So
     }
   }
   else {
-    // FIX(Coverity): Set app to NULL after unref to prevent use-after-free
-    // Reason: Prevent accidental use of app pointer after unreferencing
-    // Impact: Defensive programming. Public API unchanged.
     g_object_unref(app);
+    // FIX(Coverity): Set app to NULL after unref to prevent use-after-free
     app = NULL;
     gdial_rest_server_http_return_if(start_error == GDIAL_APP_ERROR_FORBIDDEN, msg, SOUP_STATUS_FORBIDDEN);
     gdial_rest_server_http_return_if(start_error == GDIAL_APP_ERROR_UNAUTH, msg, SOUP_STATUS_UNAUTHORIZED);
@@ -623,9 +613,6 @@ static void gdial_rest_server_handle_GET_app(GDialRestServer *gdial_rest_server,
   gchar *response_str = gdial_app_state_response_new(app, GDIAL_PROTOCOL_VERSION_STR, client_dial_version_str, GDIAL_PROTOCOL_XMLNS_SCHEMA, &response_len);
   #endif
   soup_message_set_response(msg, "text/xml; charset=utf-8", SOUP_MEMORY_TAKE, response_str, response_len);
-  // FIX(Coverity): Ensure app object is properly unreferenced when stopped
-  // Reason: Proper resource cleanup for stopped applications
-  // Impact: Defensive check ensures cleanup. Public API unchanged.
   if (app_state == GDIAL_APP_STATE_STOPPED) {
     GDIAL_LOGINFO("deleting app instance from state %d ", app_state);
     g_object_unref(app);
@@ -667,10 +654,10 @@ static void gdial_rest_server_handle_POST_dial_data(GDialRestServer *gdial_rest_
     /*append url query to body_query */
       if (query) {
         GHashTable *dupQuery = gdial_util_str_str_hashtable_dup(query);
+        body_query = query ? gdial_util_str_str_hashtable_merge(body_query, dupQuery) : body_query;
         // FIX(Coverity): Correct typo g_hash_table_destory -> g_hash_table_destroy
         // Reason: Fix dead code - function name was misspelled
         // Impact: Enables proper hash table cleanup. Public API unchanged.
-        body_query = query ? gdial_util_str_str_hashtable_merge(body_query, dupQuery) : body_query;
         g_hash_table_destroy(dupQuery);
       }
     #endif
@@ -733,7 +720,7 @@ static void gdial_local_rest_http_server_callback(SoupServer *server,
     }
     if (j == 0) {
         ret = g_strlcpy(base, elements[i], sizeof(base));
-        if (ret >= sizeof(base)) {
+    if (ret >= sizeof(base)) {
             GDIAL_LOGERROR("Warn: base too long");
         }
     }
@@ -1197,10 +1184,7 @@ gboolean gdial_rest_server_register_app(GDialRestServer *self, const gchar *app_
 
 gboolean gdial_rest_server_register_app_registry(GDialRestServer *self, GDialAppRegistry *app_registry) {
 
-  // FIX(Coverity): Validate app_registry and name before use in format strings
-  // Reason: Prevent format string vulnerability
-  // Impact: Input validation. Public API unchanged.
-  g_return_val_if_fail(self != NULL && app_registry != NULL && app_registry->name != NULL, FALSE);
+  g_return_val_if_fail(self != NULL && app_registry != NULL, FALSE);
 
   GDialRestServerPrivate *priv = gdial_rest_server_get_instance_private(self);
   if (g_list_find_custom(priv->registered_apps, app_registry->name, GCompareFunc_match_registry_app_name) != NULL) {

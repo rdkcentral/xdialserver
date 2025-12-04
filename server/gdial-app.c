@@ -183,22 +183,13 @@ static void gdial_app_init(GDialApp *self) {
 }
 
 static int compare_versions(const char *version1, const char *version2) {
-    // FIX(Coverity): Check sscanf return values
-    // Reason: Prevent use of uninitialized variables if parsing fails
-    // Impact: Safer version comparison. Public API unchanged.
     unsigned major1 = 0, minor1 = 0, bugfix1 = 0;
     unsigned major2 = 0, minor2 = 0, bugfix2 = 0;
     if(version1 != NULL) {
-        int parsed = sscanf(version1, "%u.%u.%u", &major1, &minor1, &bugfix1);
-        if (parsed < 1) {
-            GDIAL_LOGWARNING("Failed to parse version1: %s", version1);
-        }
+        sscanf(version1, "%u.%u.%u", &major1, &minor1, &bugfix1);
     }
     if(version2 != NULL) {
-        int parsed = sscanf(version2, "%u.%u.%u", &major2, &minor2, &bugfix2);
-        if (parsed < 1) {
-            GDIAL_LOGWARNING("Failed to parse version2: %s", version2);
-        }
+        sscanf(version2, "%u.%u.%u", &major2, &minor2, &bugfix2);
     }
     if (major1 < major2) return -1;
     if (major1 > major2) return 1;
@@ -527,20 +518,9 @@ gchar * gdial_app_state_response_new(GDialApp *app, const gchar *dial_ver, const
   g_return_val_if_fail(dial_ver && xmlns && len, NULL);
   GDialAppPrivate *priv = gdial_app_get_instance_private(app);
 
-  // FIX(Coverity): Add NULL checks for XML node creation
-  // Reason: xmlNew* functions can return NULL on allocation failure
-  // Impact: Defensive error handling. Public API unchanged.
   xmlDocPtr xdoc = NULL;
   xdoc = xmlNewDoc(BAD_CAST "1.0");
-  if (!xdoc) {
-    GDIAL_LOGERROR("Failed to create XML document");
-    return NULL;
-  }
   xmlNodePtr nservice = xmlNewNode(NULL, BAD_CAST "service");
-  if (!nservice) {
-    xmlFreeDoc(xdoc);
-    return NULL;
-  }
   xmlDocSetRootElement(xdoc, nservice); {
     xmlNewProp(nservice, BAD_CAST "xmlns", BAD_CAST xmlns);
     xmlNewProp(nservice, BAD_CAST "dialVer", BAD_CAST dial_ver);
