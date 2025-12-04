@@ -540,7 +540,7 @@ static void gdial_rest_server_handle_POST(GDialRestServer *gdial_rest_server, So
   }
   else {
     g_object_unref(app);
-    // FIX(Coverity): Set app to NULL after unref to prevent use-after-free
+    // FIX(Copilot): Set app to NULL after unref to prevent use-after-free
     app = NULL;
     gdial_rest_server_http_return_if(start_error == GDIAL_APP_ERROR_FORBIDDEN, msg, SOUP_STATUS_FORBIDDEN);
     gdial_rest_server_http_return_if(start_error == GDIAL_APP_ERROR_UNAUTH, msg, SOUP_STATUS_UNAUTHORIZED);
@@ -655,7 +655,7 @@ static void gdial_rest_server_handle_POST_dial_data(GDialRestServer *gdial_rest_
       if (query) {
         GHashTable *dupQuery = gdial_util_str_str_hashtable_dup(query);
         body_query = query ? gdial_util_str_str_hashtable_merge(body_query, dupQuery) : body_query;
-        // FIX(Coverity): Correct typo g_hash_table_destory -> g_hash_table_destroy
+        // FIX(Copilot): Correct typo g_hash_table_destory -> g_hash_table_destroy
         g_hash_table_destroy(dupQuery);
       }
     #endif

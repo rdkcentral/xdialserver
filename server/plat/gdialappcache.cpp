@@ -89,7 +89,7 @@ std::string GDialAppStatusCache::SearchAppStatusInCache(const char* app_name)
     if(doIdExist(id))
     {
         AppInfo* appEntry = ObjectCache->findObject(id);
-        // FIX(Coverity): Add NULL check for appEntry
+        // FIX(Copilot): Add NULL check for appEntry
         if (appEntry) {
             state = appEntry->appState;
             GDIAL_LOGINFO("APPCache: App Name[%s] AppID[%s] Error[%s]",
