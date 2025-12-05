@@ -98,7 +98,7 @@ std::string GDialAppStatusCache::SearchAppStatusInCache(const char* app_name)
                 appEntry->appError.c_str());
         }
         else {
-            GDIAL_LOGERROR("Cache entry exists but findObject returned NULL");
+            GDIAL_LOGERROR("Cache entry exists but findObject returned NOT_FOUND");
         }
     }
     GDIAL_LOGINFO("App State = %s ",state.c_str());
