@@ -197,7 +197,7 @@ int gdial_ssdp_new(SoupServer *ssdp_http_server, GDialOptions *options, const gc
   }
 
   GSSDPClient *ssdp_client = gssdp_client_new(
-#ifndef HAVE_GSSDP_VERSION_1_2_OR_NEWER
+#ifndef HAVE_GSSDP_VERSION_1_6_OR_NEWER
     NULL,
 #endif
     gdial_options_->iface_name, &error);
