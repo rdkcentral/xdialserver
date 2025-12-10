@@ -71,7 +71,7 @@ G_DEFINE_TYPE_WITH_PRIVATE(GDialRestServer, gdial_rest_server, G_TYPE_OBJECT)
 
 static gboolean gdial_soup_message_security_check(SoupMessage *msg) {
   g_return_val_if_fail(msg != NULL, FALSE);
-  SoupURI *uri = soup_message_get_uri(msg);
+  GUri *uri = soup_message_get_uri(msg);
   g_return_val_if_fail(uri != NULL && SOUP_URI_VALID_FOR_HTTP(uri), FALSE);
 
   return TRUE;
@@ -251,7 +251,7 @@ GDIAL_STATIC gboolean gdial_rest_server_is_allowed_youtube_origin(GDialRestServe
    * ORIGIN header is not present.
    * 7.10.1 The ORIGIN header MUST match https://${ANY}.youtube.com or package
    */
-  SoupURI *origin_uri = soup_uri_new(header_origin);
+  GUri *origin_uri = soup_uri_new(header_origin);
   const gchar *uri_scheme = origin_uri ? soup_uri_get_scheme(origin_uri) : NULL;
 
   if (origin_uri && uri_scheme &&
@@ -284,7 +284,7 @@ GDIAL_STATIC gboolean gdial_rest_server_is_allowed_origin(GDialRestServer *self,
 
   gboolean is_allowed = FALSE;
 
-  SoupURI *origin_uri = soup_uri_new(header_origin);
+  GUri *origin_uri = soup_uri_new(header_origin);
   const gchar *uri_scheme = origin_uri ? soup_uri_get_scheme(origin_uri) : NULL;
 
   if (origin_uri && uri_scheme &&
