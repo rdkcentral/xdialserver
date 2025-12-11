@@ -79,7 +79,7 @@ static gboolean gdial_soup_message_security_check(SoupMessage *msg) {
 
 static void gdial_soup_message_set_http_error(SoupMessage *msg, guint state_code) {
   GDIAL_LOGERROR("uri[%s] state_code[%d]", soup_uri_get_path(soup_message_get_uri(msg)), state_code);
-  soup_message_headers_replace(msg->response_headers, "Connection", "close");
+  soup_message_headers_replace(soup_message_get_response_headers (msg), "Connection", "close");
   soup_message_set_status(msg, state_code);
   return;
 }
@@ -422,7 +422,7 @@ static void gdial_rest_server_handle_POST(GDialRestServer *gdial_rest_server, So
   GDIAL_LOGTRACE("Entering ...");
   GDialAppRegistry *app_registry = gdial_rest_server_find_app_registry(gdial_rest_server, app_name);
   gdial_rest_server_http_return_if_fail(app_registry, msg, SOUP_STATUS_NOT_FOUND);
-  if (request_body && request_body->data && request_body->length) {
+  if (soup_server_message_get_request_body (msg) && request_body->data && request_body->length) {
     gdial_rest_server_http_return_if_fail(request_body->length <= GDIAL_REST_HTTP_MAX_PAYLOAD, msg, SOUP_STATUS_REQUEST_ENTITY_TOO_LARGE);
     gdial_rest_server_http_return_if_fail(!gdial_rest_server_is_bad_payload(request_body->data, request_body->length), msg, SOUP_STATUS_BAD_REQUEST);
   }
@@ -476,7 +476,7 @@ static void gdial_rest_server_handle_POST(GDialRestServer *gdial_rest_server, So
         query_str_safe = g_strdup(query_str);
       }
     }
-    const gchar *payload = msg->request_body->data;
+    const gchar *payload = request_body->data;
     gchar *payload_safe = NULL;
     if (payload && strlen(payload)) {
       if (g_str_has_prefix(app->name, "YouTube")) {
@@ -511,8 +511,8 @@ static void gdial_rest_server_handle_POST(GDialRestServer *gdial_rest_server, So
    * created;
    */
   if (start_error == GDIAL_APP_ERROR_NONE) {
-    soup_message_headers_replace(msg->response_headers, "Content-Type", "text/plain; charset=utf-8");
-    gdial_soup_message_headers_replace_va(msg->response_headers, "Location", "http://%s:%d%s/%s/run",
+    soup_message_headers_replace(soup_message_get_response_headers (msg), "Content-Type", "text/plain; charset=utf-8");
+    gdial_soup_message_headers_replace_va(soup_message_get_response_headers (msg), "Location", "http://%s:%d%s/%s/run",
       soup_uri_get_host(soup_message_get_uri(msg)), listening_port, GDIAL_REST_HTTP_APPS_URI, app->name);
     gdial_soup_message_headers_set_Allow_Origin(msg, TRUE);
     if (new_app_instance) {
@@ -529,9 +529,9 @@ static void gdial_rest_server_handle_POST(GDialRestServer *gdial_rest_server, So
        *
        * If relaunch is needed it is better to leave it to the app.
        */
-      if(msg->request_body && msg->request_body->data) {
-        GDIAL_LOGINFO("POST request payload = [%s]", msg->request_body->data);
-        gdial_app_set_launch_payload(app, msg->request_body->data);
+      if(soup_server_message_get_request_body (msg) && request_body->data) {
+        GDIAL_LOGINFO("POST request payload = [%s]", request_body->data);
+        gdial_app_set_launch_payload(app, request_body->data);
       }
     }
     else {
@@ -625,9 +625,9 @@ static void gdial_rest_server_handle_POST_dial_data(GDialRestServer *gdial_rest_
    * All instances of same app shares same additonalDataUrl
    */
   GDIAL_LOGTRACE("Entering ...");
-  if(msg->request_body && msg->request_body->data && msg->request_body->length) {
-    gdial_rest_server_http_return_if_fail(msg->request_body->length < GDIAL_APP_DIAL_DATA_MAX_LEN, msg, SOUP_STATUS_REQUEST_ENTITY_TOO_LARGE);
-    gdial_rest_server_http_return_if_fail(!gdial_rest_server_is_bad_payload(msg->request_body->data, msg->request_body->length), msg, SOUP_STATUS_BAD_REQUEST);
+  if(soup_server_message_get_request_body (msg) && request_body->data && request_body->length) {
+    gdial_rest_server_http_return_if_fail(request_body->length < GDIAL_APP_DIAL_DATA_MAX_LEN, msg, SOUP_STATUS_REQUEST_ENTITY_TOO_LARGE);
+    gdial_rest_server_http_return_if_fail(!gdial_rest_server_is_bad_payload(request_body->data, request_body->length), msg, SOUP_STATUS_BAD_REQUEST);
   }
   /*
    * Cache dial_data so as to use on future queries.
@@ -642,13 +642,13 @@ static void gdial_rest_server_handle_POST_dial_data(GDialRestServer *gdial_rest_
   /*
    * Give priority to body (body overrites query
    */
-  if (GDIAL_MERGE_URL_AND_BODY_QUERY && query && !msg->request_body) {
+  if (GDIAL_MERGE_URL_AND_BODY_QUERY && query && !soup_server_message_get_request_body (msg)) {
     gdial_app_set_additional_dial_data(app, query);
   }
-  else if ((msg->request_body && msg->request_body->data && msg->request_body->length)) {
+  else if ((soup_server_message_get_request_body (msg)&& request_body->data && request_body->length)) {
     /* according to SoupMessage doc, msg->request_body c string, with the nul byte at data[length] */
-    gdial_rest_server_http_return_if_fail(msg->request_body->data[msg->request_body->length] == '\0', msg, SOUP_STATUS_BAD_REQUEST);
-    GHashTable *body_query = soup_form_decode(msg->request_body->data);
+    gdial_rest_server_http_return_if_fail(request_body->data[request_body->length] == '\0', msg, SOUP_STATUS_BAD_REQUEST);
+    GHashTable *body_query = soup_form_decode(request_body->data);
     if (body_query) {
       #if GDIAL_MERGE_URL_AND_BODY_QUERY
     /*append url query to body_query */
@@ -676,8 +676,7 @@ static void gdial_rest_server_handle_POST_dial_data(GDialRestServer *gdial_rest_
 }
 
 inline static void gdial_rest_http_server_system_callback(SoupServer *server,
-            SoupMessage *msg, const gchar *path, GHashTable *query,
-            SoupClientContext  *client, gpointer user_data) {
+            SoupMessage *msg, const gchar *path, GHashTable *query, gpointer user_data) {
 
   GDialRestServer *gdial_rest_server = (GDIAL_REST_SERVER(user_data));
 
@@ -696,8 +695,7 @@ inline static void gdial_rest_http_server_system_callback(SoupServer *server,
 }
 
 static void gdial_local_rest_http_server_callback(SoupServer *server,
-            SoupMessage *msg, const gchar *path, GHashTable *query,
-            SoupClientContext  *client, gpointer user_data) {
+            SoupMessage *msg, const gchar *path, GHashTable *query, gpointer user_data) {
   gchar *remote_address_str = g_inet_address_to_string(g_inet_socket_address_get_address(G_INET_SOCKET_ADDRESS(soup_client_context_get_remote_address(client))));
   GDIAL_LOGINFO("method[%s] path[%s] recv from [%s], in thread %lx", msg->method, path, remote_address_str, pthread_self());
   g_free(remote_address_str);
@@ -759,9 +757,8 @@ static void gdial_local_rest_http_server_callback(SoupServer *server,
 }
 
 static void gdial_rest_http_server_apps_callback(SoupServer *server,
-            SoupMessage *msg, const gchar *path, GHashTable *query,
-            SoupClientContext  *client, gpointer user_data) {
-  gchar *remote_address_str = g_inet_address_to_string(g_inet_socket_address_get_address(G_INET_SOCKET_ADDRESS(soup_client_context_get_remote_address(client))));
+            SoupMessage *msg, const gchar *path, GHashTable *query, gpointer user_data) {
+  gchar *remote_address_str = g_inet_address_to_string(g_inet_socket_address_get_address(G_INET_SOCKET_ADDRESS(soup_server_message_get_remote_address(msg))));
   g_print_with_timestamp("gdial_rest_http_server_apps_callback() %s path=%s recv from [%s], in thread %lx", msg->method, path, remote_address_str, pthread_self());
   g_free(remote_address_str);
 
