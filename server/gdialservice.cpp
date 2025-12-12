@@ -204,7 +204,7 @@ static void gdial_http_server_throttle_callback(SoupServer *server,
 {
   GDIAL_LOGINFO("gdial_http_server_throttle_callback ");
   soup_message_headers_replace(soup_server_message_get_response_headers(msg), "Connection", "close");
-  soup_message_set_status(msg, SOUP_STATUS_NOT_FOUND);
+  soup_server_message_set_status(msg, SOUP_STATUS_NOT_FOUND, NULL);
 }
 
 static void gdial_quit_thread(int signum)
@@ -490,16 +490,16 @@ int gdialServiceImpl::start_GDialServer(int argc, char *argv[])
         GSList *uris = soup_server_get_uris(m_servers[i]);
         for (GSList *uri =  uris; uri != NULL; uri = uri->next)
         {
-            SoupURI *origin_uri = (SoupURI *)uri->data;
+            GUri *origin_uri = (GUri *)uri->data;
             if (!origin_uri)
             {
-                GDIAL_LOGWARNING("Failed to get SoupURI from SoupServer at index [%d]", i);
+                GDIAL_LOGWARNING("Failed to get GUri from SoupServer at index [%d]", i);
                 continue;
             }
-            char *uri_string = soup_uri_to_string(origin_uri, FALSE);
+            char *uri_string = g_uri_to_string(origin_uri);
             GDIAL_LOGINFO("Listening on %s", uri_string);
             g_free(uri_string);
-            soup_uri_free(origin_uri);
+            g_uri_unref(origin_uri);
         }
         g_slist_free(uris);
     }
