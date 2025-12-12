@@ -131,12 +131,12 @@ static void ssdp_http_server_callback(SoupServer *server, SoupServerMessage *msg
 
     if ( application_url_str )
     {
-        soup_message_headers_replace (soup_server_message_get_response_headers(msg), "Application-URL", application_url_str);", application_url_str);
+        soup_message_headers_replace (soup_server_message_get_response_headers(msg), "Application-URL", application_url_str);
         g_free(application_url_str);
         application_url_str = NULL;
 
         soup_server_message_set_response(msg, "text/xml; charset=utf-8", SOUP_MEMORY_STATIC, dd_xml_response_str_, dd_xml_response_str_len);
-        soup_server_message_set_status(msg, SOUP_STATUS_OK);
+        soup_server_message_set_status(msg, SOUP_STATUS_OK, NULL);
 
         GDIAL_CHECK("Content-Type:text/xml");
         GDIAL_CHECK("Application-URL: exist");
