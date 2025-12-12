@@ -199,11 +199,11 @@ static void signal_handler_rest_server_rest_enable(GDialRestServer *dial_rest_se
 }
 
 static void gdial_http_server_throttle_callback(SoupServer *server,
-            SoupMessage *msg, const gchar *path, GHashTable *query,
-            SoupClientContext  *client, gpointer user_data)
+            SoupServerMessage *msg, const gchar *path, GHashTable *query,
+            gpointer user_data)
 {
   GDIAL_LOGINFO("gdial_http_server_throttle_callback ");
-  soup_message_headers_replace(msg->response_headers, "Connection", "close");
+  soup_message_headers_replace(soup_server_message_get_response_headers(msg), "Connection", "close");
   soup_message_set_status(msg, SOUP_STATUS_NOT_FOUND);
 }
 
