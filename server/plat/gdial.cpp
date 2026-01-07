@@ -383,7 +383,7 @@ public:
         m_observer = service;
     }
 private:
-    GDialNotifier *m_observer;
+    GDialNotifier *m_observer{nullptr};
 };
 
 GDialCastObject* GDialObjHandle = nullptr;
