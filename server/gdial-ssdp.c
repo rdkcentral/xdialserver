@@ -257,6 +257,7 @@ int gdial_ssdp_new(SoupServer *ssdp_http_server, GDialOptions *options, const gc
 
 int gdial_ssdp_destroy() {
   GDIAL_LOGTRACE("Entering ...");
+  pthread_mutex_lock(&ssdpServerEventSync);
   if (ssdp_http_server_)
   {
     soup_server_remove_handler(ssdp_http_server_, "/dd.xml");
@@ -315,6 +316,7 @@ int gdial_ssdp_destroy() {
     g_object_unref(ssdp_client_);
     ssdp_client_ = NULL;
   }
+  pthread_mutex_unlock(&ssdpServerEventSync);
   pthread_mutex_destroy(&ssdpServerEventSync);
   GDIAL_LOGTRACE("Exiting ...");
   return 0;
