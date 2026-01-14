@@ -10,9 +10,9 @@ INSTALL_PREFIX="$GITHUB_WORKSPACE/install/usr"
 mkdir -p "$INSTALL_PREFIX"
 
 ##############################
-# System dependencies
-apt update
-apt install -y \
+# System dependencies (sudo REQUIRED in GitHub Actions)
+sudo apt update
+sudo apt install -y \
   ninja-build meson cmake curl \
   libsoup2.4-dev libxml2-dev libglib2.0-dev \
   gobject-introspection libgirepository1.0-dev \
@@ -114,5 +114,5 @@ cp libWPEFrameworkSecurityUtil.so "$STUB_LIB/"
 cp securityagent/* "$STUB_INCLUDE/WPEFramework/securityagent/"
 
 echo "========================================================"
-echo "Thunder stack + stubs installed into $INSTALL_PREFIX"
+echo "Dependencies built and installed into $INSTALL_PREFIX"
 echo "========================================================"
