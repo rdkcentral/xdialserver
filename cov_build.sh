@@ -2,18 +2,17 @@
 set -e
 set -x
 
-##############################
 GITHUB_WORKSPACE="${PWD}"
+INSTALL_PREFIX="$GITHUB_WORKSPACE/install/usr"
 
-ls -la "${GITHUB_WORKSPACE}"
+export CMAKE_PREFIX_PATH="$INSTALL_PREFIX"
+export PKG_CONFIG_PATH="$INSTALL_PREFIX/lib/pkgconfig:$INSTALL_PREFIX/lib/x86_64-linux-gnu/pkgconfig"
+export LD_LIBRARY_PATH="$INSTALL_PREFIX/lib:$INSTALL_PREFIX/lib/x86_64-linux-gnu"
 
-echo "building xdialserver"
+cmake -G Ninja \
+  -S "$GITHUB_WORKSPACE/server" \
+  -B build/xdialserver \
+  -DCMAKE_INSTALL_PREFIX="$INSTALL_PREFIX" \
+  -DCMAKE_MODULE_PATH="$GITHUB_WORKSPACE/install/tools/cmake"
 
-cd "${GITHUB_WORKSPACE}/server"
-
-rm -rf CMakeCache.txt CMakeFiles
-
-cmake .
-make
-
-echo "===== xdialserver build completed successfully ====="
+cmake --build build/xdialserver
