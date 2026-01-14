@@ -13,7 +13,7 @@ mkdir -p "$INSTALL_PREFIX"
 # System dependencies (sudo REQUIRED in GitHub Actions)
 sudo apt update
 sudo apt install -y \
-  ninja-build meson cmake curl \
+  ninja-build meson cmake curl libcurl4-openssl-dev \
   libsoup2.4-dev libxml2-dev libglib2.0-dev \
   gobject-introspection libgirepository1.0-dev \
   libgtk-3-dev libcunit1-dev valac pandoc
