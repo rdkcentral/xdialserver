@@ -15,7 +15,9 @@ cmake -G Ninja \
   -DCMAKE_INSTALL_PREFIX="$INSTALL_PREFIX" \
   -DCMAKE_MODULE_PATH="$GITHUB_WORKSPACE/install/tools/cmake" \
   -DCMAKE_CXX_FLAGS="\
+-I$INSTALL_PREFIX/include/WPEFramework \
 -I$INSTALL_PREFIX/include/WPEFramework/core \
--I$INSTALL_PREFIX/include/WPEFramework/plugins"
+-I$INSTALL_PREFIX/include/WPEFramework/plugins \
+-I$INSTALL_PREFIX/include/WPEFramework/interfaces"
 
 cmake --build build/xdialserver
