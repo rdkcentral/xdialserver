@@ -9,9 +9,7 @@ on:
 jobs:
   build-entservices-on-pr:
     name: Build xdialserver component in github rdkcentral
-    runs-on: ubuntu-latest
-    container:
-      image: ghcr.io/rdkcentral/docker-rdk-ci:latest
+    runs-on: ubuntu-22.04
 
     steps:
       - name: Checkout code
