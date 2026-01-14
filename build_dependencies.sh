@@ -22,7 +22,7 @@ pip install jsonref
 
 ##############################
 # Build trower-base64
-git clone https://github.com/xmidt-org/trower-base64.git || true
+git clone https://github.com/xmidt-org/trower-base64.git
 cd trower-base64
 meson setup build --prefix="$INSTALL_PREFIX"
 ninja -C build
@@ -31,14 +31,14 @@ cd ..
 
 ##############################
 # Clone required repositories
-git clone https://github.com/rdkcentral/iarmbus.git || true
+git clone https://github.com/rdkcentral/iarmbus.git
 export IARMBUS_PATH="$GITHUB_WORKSPACE/iarmbus"
 
-git clone --branch R4.4.3 https://github.com/rdkcentral/ThunderTools.git || true
-git clone --branch R4.4.1 https://github.com/rdkcentral/Thunder.git || true
-git clone --branch main https://github.com/rdkcentral/entservices-apis.git || true
-git clone https://$GITHUB_TOKEN@github.com/rdkcentral/entservices-testframework.git || true
-git clone --branch gssdp-1.2.3 https://gitlab.gnome.org/GNOME/gssdp.git || true
+git clone --branch R4.4.3 https://github.com/rdkcentral/ThunderTools.git
+git clone --branch R4.4.1 https://github.com/rdkcentral/Thunder.git
+git clone --branch main https://github.com/rdkcentral/entservices-apis.git
+git clone https://$GITHUB_TOKEN@github.com/rdkcentral/entservices-testframework.git
+git clone --branch gssdp-1.2.3 https://gitlab.gnome.org/GNOME/gssdp.git
 
 ##############################
 # Build gssdp
