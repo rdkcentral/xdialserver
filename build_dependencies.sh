@@ -70,7 +70,9 @@ cmake -G Ninja -S ThunderTools -B build/ThunderTools \
     -DCMAKE_MODULE_PATH="$GITHUB_WORKSPACE/install/tools/cmake" \
     -DGENERIC_CMAKE_MODULE_PATH="$GITHUB_WORKSPACE/install/tools/cmake" \
 
+DESTDIR="$GITHUB_WORKSPACE/install" \
 cmake --build build/ThunderTools --target install
+
 
 
 ############################
