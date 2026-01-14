@@ -11,7 +11,6 @@ echo "building xdialserver"
 
 cd "${GITHUB_WORKSPACE}/server"
 
-# 🔥 CRITICAL: clean cache from previous Option 2 builds
 rm -rf CMakeCache.txt CMakeFiles
 
 cmake .
