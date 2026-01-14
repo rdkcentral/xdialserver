@@ -21,7 +21,7 @@ fi
 cd trower-base64
 meson setup --warnlevel 3 --werror build
 ninja -C build
-ninja -C build install
+sudo ninja -C build install
 cd ..
 ###########################################
 # Clone the required repositories
@@ -52,7 +52,7 @@ rm -rf build
 meson setup build
 
 ninja -C build
-ninja -C build install
+sudo ninja -C build install
 cd -
 
 ############################
