@@ -10,7 +10,6 @@ jobs:
   build-entservices-on-pr:
     name: Build xdialserver component in github rdkcentral
     runs-on: ubuntu-22.04
-    options: --user root
 
     steps:
       - name: Checkout code
