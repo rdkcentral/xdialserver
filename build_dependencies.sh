@@ -27,7 +27,9 @@ apt-get install -y \
     libglib2.0-dev \
     gobject-introspection \
     libgirepository1.0-dev \
-    libgtk-3-dev valac pandoc
+    libgtk-3-dev \
+    valac \
+    pandoc
 pip3 install jsonref
 
 ############################
