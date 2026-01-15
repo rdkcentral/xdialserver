@@ -9,9 +9,25 @@ cd ${GITHUB_WORKSPACE}
 # # ############################# 
 #1. Install Dependencies and packages
 
-apt update
-apt install -y git python3 python3-pip cmake libcunit1 libcunit1-doc libcunit1-dev libcurl4-openssl-dev
-apt install -y ninja-build meson curl libsoup2.4-dev libxml2-dev libglib2.0-dev gobject-introspection libgirepository1.0-dev libgtk-3-dev valac pandoc
+apt-get update
+apt-get install -y \
+    git \
+    python3 \
+    python3-pip \
+    cmake \
+    libcunit1 \
+    libcunit1-doc \
+    libcunit1-dev \
+    libcurl4-openssl-dev \
+    ninja-build \
+    meson \
+    curl \
+    libsoup2.4-dev \
+    libxml2-dev \
+    libglib2.0-dev \
+    gobject-introspection \
+    libgirepository1.0-dev \
+    libgtk-3-dev valac pandoc
 pip3 install jsonref
 
 ############################
