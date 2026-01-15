@@ -10,7 +10,7 @@ cd ${GITHUB_WORKSPACE}
 #1. Install Dependencies and packages
 
 apt update
-apt install -y ninja-build meson curl libsoup2.4-dev libxml2-dev libglib2.0-dev gobject-introspection libgirepository1.0-dev libgtk-3-dev valac pandoc
+apt install -y git python3 python3-pip cmake ninja-build meson curl libsoup2.4-dev libxml2-dev libglib2.0-dev gobject-introspection libgirepository1.0-dev libgtk-3-dev libcurl4-openssl-dev libgtk-3-dev libcunit1-dev valac pandoc
 pip install jsonref
 
 ############################
