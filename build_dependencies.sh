@@ -10,6 +10,7 @@ cd ${GITHUB_WORKSPACE}
 #1. Install Dependencies and packages
 
 apt update
+apt install -y git
 apt install -y python3
 apt install -y python3-pip
 apt install -y cmake
