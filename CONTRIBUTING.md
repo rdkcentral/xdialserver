@@ -12,3 +12,4 @@ How to contribute
 3. Submit a PR against the chosen sprint branch.
 4. The PR will be reviewed and if accepted merged into the sprint branch.
 5. All changes in sprint branch are accepted into release branch `stable2` by planned releases.
+
