@@ -199,12 +199,22 @@ static void signal_handler_rest_server_rest_enable(GDialRestServer *dial_rest_se
 }
 
 static void gdial_http_server_throttle_callback(SoupServer *server,
+#ifdef HAVE_LIBSOUP_VERSION_3
             SoupServerMessage *msg, const gchar *path, GHashTable *query,
             gpointer user_data)
+#else
+            SoupMessage *msg, const gchar *path, GHashTable *query,
+            SoupClientContext  *client, gpointer user_data)
+#endif
 {
   GDIAL_LOGINFO("gdial_http_server_throttle_callback ");
+#ifdef HAVE_LIBSOUP_VERSION_3
   soup_message_headers_replace(soup_server_message_get_response_headers(msg), "Connection", "close");
   soup_server_message_set_status(msg, SOUP_STATUS_NOT_FOUND, NULL);
+#else
+  soup_message_headers_replace(msg->response_headers, "Connection", "close");
+  soup_message_set_status(msg, SOUP_STATUS_NOT_FOUND);
+#endif
 }
 
 static void gdial_quit_thread(int signum)
@@ -490,6 +500,7 @@ int gdialServiceImpl::start_GDialServer(int argc, char *argv[])
         GSList *uris = soup_server_get_uris(m_servers[i]);
         for (GSList *uri =  uris; uri != NULL; uri = uri->next)
         {
+#ifdef HAVE_LIBSOUP_VERSION_3
             GUri *origin_uri = (GUri *)uri->data;
             if (!origin_uri)
             {
@@ -500,6 +511,18 @@ int gdialServiceImpl::start_GDialServer(int argc, char *argv[])
             GDIAL_LOGINFO("Listening on %s", uri_string);
             g_free(uri_string);
             g_uri_unref(origin_uri);
+#else
+            SoupURI *origin_uri = (SoupURI *)uri->data;
+            if (!origin_uri)
+            {
+                GDIAL_LOGWARNING("Failed to get SoupURI from SoupServer at index [%d]", i);
+                continue;
+            }
+            char *uri_string = soup_uri_to_string(origin_uri, FALSE);
+            GDIAL_LOGINFO("Listening on %s", uri_string);
+            g_free(uri_string);
+            soup_uri_free(origin_uri);
+#endif
         }
         g_slist_free(uris);
     }

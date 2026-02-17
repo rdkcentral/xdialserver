@@ -63,8 +63,8 @@ static gboolean soup_message_read_timeout_callback(gpointer user_data) {
 }
 
 
-static void server_request_read_callback (SoupServer *server, SoupMessage *msg,
-    SoupClientContext *context, gpointer data) {
+static void server_request_read_callback (SoupServer *server, SoupServerMessage *msg,
+    gpointer data) {
   GDIAL_LOGTRACE("Entering ...");
   g_print_with_timestamp("server_request_read_callback tid=[%lx] msg=%p", pthread_self(), msg);
   g_object_weak_unref(G_OBJECT(msg), (GWeakNotify)soup_message_weak_ref_callback, msg);
@@ -72,13 +72,13 @@ static void server_request_read_callback (SoupServer *server, SoupMessage *msg,
   GDIAL_LOGTRACE("Exiting ...");
 }
 
-static void server_request_finished_callback (SoupServer *server, SoupMessage *msg,
-    SoupClientContext *context, gpointer data) {
+static void server_request_finished_callback (SoupServer *server, SoupServerMessage *msg,
+    gpointer data) {
     GDIAL_LOGTRACE("!!!");
 }
 
-static void server_request_aborted_callback (SoupServer *server, SoupMessage *msg,
-    SoupClientContext *context, gpointer data) {
+static void server_request_aborted_callback (SoupServer *server, SoupServerMessage *msg,
+    gpointer data) {
   GDIAL_LOGTRACE("Entering ...");
   g_print_with_timestamp("server_request_aborted_callback tid=[%lx] msg=%p", pthread_self(), msg);
 
@@ -97,14 +97,14 @@ static void soup_message_weak_ref_callback(gpointer user_data, GObject *obj) {
   GDIAL_LOGTRACE("Exiting ...");
 }
 
-static void server_request_started_callback (SoupServer *server, SoupMessage *msg,
-    SoupClientContext *context, gpointer data) {
+static void server_request_started_callback (SoupServer *server, SoupServerMessage *msg,
+    gpointer data) {
 
   static const int throttle = GDIAL_THROTTLE_DELAY_US;
   GDIAL_LOGTRACE("Entering ...");
   DialShieldConnectionContext *conn_context = g_new(DialShieldConnectionContext, 1);
   guint read_timeout_source = g_timeout_add(2000, (GSourceFunc)soup_message_read_timeout_callback, msg);
-  conn_context->read_gsocket = soup_client_context_get_gsocket(context);
+  conn_context->read_gsocket = soup_server_message_get_socket(msg);
   conn_context->read_timeout_source = read_timeout_source;
   g_print_with_timestamp("server_request_started_callback tid=[%lx] msg=%p timeout source %d added with socket fd = %d",
     pthread_self(), msg, read_timeout_source, g_socket_get_fd(conn_context->read_gsocket));
