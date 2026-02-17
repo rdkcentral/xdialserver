@@ -34,17 +34,6 @@ if (LIBSOUP3_FOUND)
     pkg_search_module (GSSDP REQUIRED gssdp-1.6)
     add_definitions(-DHAVE_GSSDP_VERSION_1_6_OR_NEWER)
     message("Using gssdp-1.6")
-  else()
-    # Fallback to gssdp-1.2 if gssdp-1.6 not found
-    pkg_search_module (GSSDP12 gssdp-1.2)
-    if (GSSDP12_FOUND)
-      pkg_search_module (GSSDP REQUIRED gssdp-1.2)
-      add_definitions(-DHAVE_GSSDP_VERSION_1_2_OR_NEWER)
-      message("Using gssdp-1.2")
-    else()
-      pkg_search_module (GSSDP REQUIRED gssdp-1.0)
-      message("Using gssdp-1.0")
-    endif()
   endif()	
 else()
   pkg_search_module (GSSDP12 gssdp-1.2)
@@ -98,22 +87,22 @@ if (LIBSOUP3_FOUND)
   set (GDIAL_EXEC_SOURCE_FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/gdial-util.c
     ${CMAKE_CURRENT_SOURCE_DIR}/gdial-app.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/gdial1p6-rest.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/gdial1p6-ssdp.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/gdial1p6-shield.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/libsoup-3p0/gdial-rest.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/libsoup-3p0/gdial-ssdp.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/libsoup-3p0/gdial-shield.c
     ${CMAKE_CURRENT_SOURCE_DIR}/gdialservice.cpp
   )
-  message("Using libsoup-3.0 compatible source files (gdial1p6-*.c)")
+  message("Using libsoup-3.0 compatible source files from libsoup-3p0/")
 else()
   set (GDIAL_EXEC_SOURCE_FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/gdial-util.c
     ${CMAKE_CURRENT_SOURCE_DIR}/gdial-app.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/gdial-rest.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/gdial-ssdp.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/gdial-shield.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/libsoup-2p4/gdial-rest.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/libsoup-2p4/gdial-ssdp.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/libsoup-2p4/gdial-shield.c
     ${CMAKE_CURRENT_SOURCE_DIR}/gdialservice.cpp
   )
-  message("Using libsoup-2.4 compatible source files (gdial-*.c)")
+  message("Using libsoup-2.4 compatible source files from libsoup-2p4/")
 endif()
 
 link_directories (
