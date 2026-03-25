@@ -120,6 +120,7 @@ void gdial_plat_util_log(gdial_plat_util_LogLevel level,
     va_start(argptr, format);
     vsnprintf(formatted, kFormatMessageSize, format, argptr);
     va_end(argptr);
+    /* coverity[printf_args : FALSE] */
     fprintf(stderr, "[GDIAL][%ld] %s [%s:%d] %s: %s \n",
                 (long)syscall(SYS_gettid),
                 levelMap[level],

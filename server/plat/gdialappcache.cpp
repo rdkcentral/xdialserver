@@ -74,6 +74,10 @@ AppCacheErrorCodes GDialAppStatusCache::UpdateAppStatusCache(AppInfo* appEntry)
     if(doIdExist(id)) {
         GDIAL_LOGINFO("erasing old data");
         err = ObjectCache->erase(id);
+        if(err != AppCacheError_OK)
+        {
+            GDIAL_LOGINFO("erasing failed");
+        }
     }
     err = ObjectCache->insert(std::move(id),appEntry);
     GDIAL_LOGTRACE("Exiting ...");

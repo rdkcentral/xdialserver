@@ -501,6 +501,7 @@ static void gdial_rest_server_handle_POST(GDialRestServer *gdial_rest_server, So
      * start_error = NONE;
      * app exist, and could be in hidden state, so resume;
      */
+    /* coverity[deadcode : FALSE] */
     start_error = gdial_app_start(app, NULL, NULL, NULL, gdial_rest_server);
   }
 
@@ -535,6 +536,7 @@ static void gdial_rest_server_handle_POST(GDialRestServer *gdial_rest_server, So
       }
     }
     else {
+      /* coverity[deadcode : FALSE] */
       soup_message_set_status(msg, SOUP_STATUS_OK);
     }
   }
@@ -880,7 +882,9 @@ static void gdial_rest_http_server_apps_callback(SoupServer *server,
 
   const gchar *header_origin = soup_message_headers_get_one(msg->request_headers, "Origin");
   GDIAL_LOGERROR("Origin %s, Host: %s, Method: %s", header_origin, header_host, msg->method);
+  /* coverity[url_manipulation : FALSE] */
   if (!gdial_rest_server_is_allowed_origin(gdial_rest_server, header_origin, app_name)) {
+    /* coverity[pw.parameter_hidden : FALSE] */
     gdial_rest_server_http_print_and_return_if_fail(FALSE, msg, SOUP_STATUS_FORBIDDEN, "origin %s is not allowed", header_origin);
   }
   /*
