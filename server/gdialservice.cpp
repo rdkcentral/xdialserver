@@ -500,18 +500,6 @@ int gdialServiceImpl::start_GDialServer(int argc, char *argv[])
         GSList *uris = soup_server_get_uris(m_servers[i]);
         for (GSList *uri =  uris; uri != NULL; uri = uri->next)
         {
-#ifdef HAVE_LIBSOUP_VERSION_3
-            GUri *origin_uri = (GUri *)uri->data;
-            if (!origin_uri)
-            {
-                GDIAL_LOGWARNING("Failed to get GUri from SoupServer at index [%d]", i);
-                continue;
-            }
-            char *uri_string = g_uri_to_string(origin_uri);
-            GDIAL_LOGINFO("Listening on %s", uri_string);
-            g_free(uri_string);
-            g_uri_unref(origin_uri);
-#else
             SoupURI *origin_uri = (SoupURI *)uri->data;
             if (!origin_uri)
             {
@@ -522,7 +510,6 @@ int gdialServiceImpl::start_GDialServer(int argc, char *argv[])
             GDIAL_LOGINFO("Listening on %s", uri_string);
             g_free(uri_string);
             soup_uri_free(origin_uri);
-#endif
         }
         g_slist_free(uris);
     }
@@ -1110,11 +1097,9 @@ GDIAL_SERVICE_ERROR_CODES gdialService::setManufacturerName(string manufacturer)
     GDIAL_LOGINFO("Manufacturer[%s]",manufacturer.c_str());
     if ((nullptr != m_gdialService ) && (nullptr != gdialImplInstance))
     {
-        RequestHandlerPayload payload = {};
+        RequestHandlerPayload payload;
         payload.event = UPDATE_MANUFACTURER_NAME;
-        payload.manufacturer = std::move(manufacturer);
-        payload.data_param = nullptr;
-        payload.user_param1 = false;
+        payload.manufacturer = manufacturer;
         gdialImplInstance->sendRequest(payload);
     }
     GDIAL_LOGTRACE("Exiting ...");
@@ -1128,11 +1113,9 @@ GDIAL_SERVICE_ERROR_CODES gdialService::setModelName(string model)
     GDIAL_LOGINFO("Model[%s]",model.c_str());
     if ((nullptr != m_gdialService ) && (nullptr != gdialImplInstance))
     {
-        RequestHandlerPayload payload = {};
+        RequestHandlerPayload payload;
         payload.event = UPDATE_MODEL_NAME;
-        payload.model = std::move(model);
-        payload.data_param = nullptr;
-        payload.user_param1 = false;
+        payload.model = model;
         gdialImplInstance->sendRequest(payload);
     }
     GDIAL_LOGTRACE("Exiting ...");

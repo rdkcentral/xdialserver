@@ -316,7 +316,6 @@ int gdial_ssdp_destroy() {
     g_object_unref(ssdp_client_);
     ssdp_client_ = NULL;
   }
-  pthread_mutex_unlock(&ssdpServerEventSync);
   pthread_mutex_destroy(&ssdpServerEventSync);
   GDIAL_LOGTRACE("Exiting ...");
   return 0;
