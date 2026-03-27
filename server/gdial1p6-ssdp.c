@@ -79,12 +79,12 @@ static gchar *app_manufacturer_name = NULL;
 static gchar *app_model_name = NULL;
 static pthread_mutex_t ssdpServerEventSync = PTHREAD_MUTEX_INITIALIZER;
 
-static void ssdp_http_server_callback(SoupServer *server, SoupMessage *msg, const char *path, GHashTable *query, SoupClientContext  *client, gpointer user_data) {
+static void ssdp_http_server_callback(SoupServer *server, SoupServerMessage *msg, const char *path, GHashTable *query, gpointer user_data) {
   /*
    * /dd.xml only supports GET
    */
-  if (!msg || !msg->method || msg->method != SOUP_METHOD_GET) {
-    soup_message_set_status(msg, SOUP_STATUS_BAD_REQUEST);
+  if (!msg || !soup_server_message_get_method(msg) || soup_server_message_get_method(msg) != SOUP_METHOD_GET) {
+    soup_server_message_set_status(msg, SOUP_STATUS_BAD_REQUEST, NULL);
     GDIAL_CHECK("GET_method_only");
     GDIAL_DEBUG("warning: SSDP HTTP Method is not GET");
     return;
@@ -122,7 +122,7 @@ static void ssdp_http_server_callback(SoupServer *server, SoupMessage *msg, cons
     }
     else {
         GDIAL_LOGERROR("Failed to allocate memory for dd.xml response");
-        soup_message_set_status(msg, SOUP_STATUS_INTERNAL_SERVER_ERROR);
+        soup_server_message_set_status(msg, SOUP_STATUS_INTERNAL_SERVER_ERROR, NULL);
     }
   }
 
@@ -131,12 +131,12 @@ static void ssdp_http_server_callback(SoupServer *server, SoupMessage *msg, cons
 
     if ( application_url_str )
     {
-        soup_message_headers_replace (msg->response_headers, "Application-URL", application_url_str);
+        soup_message_headers_replace (soup_server_message_get_response_headers(msg), "Application-URL", application_url_str);
         g_free(application_url_str);
         application_url_str = NULL;
 
-        soup_message_set_response(msg, "text/xml; charset=utf-8", SOUP_MEMORY_STATIC, dd_xml_response_str_, dd_xml_response_str_len);
-        soup_message_set_status(msg, SOUP_STATUS_OK);
+        soup_server_message_set_response(msg, "text/xml; charset=utf-8", SOUP_MEMORY_STATIC, dd_xml_response_str_, dd_xml_response_str_len);
+        soup_server_message_set_status(msg, SOUP_STATUS_OK, NULL);
 
         GDIAL_CHECK("Content-Type:text/xml");
         GDIAL_CHECK("Application-URL: exist");
@@ -144,7 +144,7 @@ static void ssdp_http_server_callback(SoupServer *server, SoupMessage *msg, cons
     else
     {
         GDIAL_LOGERROR("Failed to allocate memory for response_headers");
-        soup_message_set_status(msg, SOUP_STATUS_INTERNAL_SERVER_ERROR);
+        soup_server_message_set_status(msg, SOUP_STATUS_INTERNAL_SERVER_ERROR, NULL);
     }
   }
   pthread_mutex_unlock(&ssdpServerEventSync);
@@ -197,7 +197,7 @@ int gdial_ssdp_new(SoupServer *ssdp_http_server, GDialOptions *options, const gc
   }
 
   GSSDPClient *ssdp_client = gssdp_client_new(
-#ifndef HAVE_GSSDP_VERSION_1_2_OR_NEWER
+#ifndef HAVE_GSSDP_VERSION_1_6_OR_NEWER
     NULL,
 #endif
     gdial_options_->iface_name, &error);
@@ -316,6 +316,7 @@ int gdial_ssdp_destroy() {
     g_object_unref(ssdp_client_);
     ssdp_client_ = NULL;
   }
+  pthread_mutex_unlock(&ssdpServerEventSync);
   pthread_mutex_destroy(&ssdpServerEventSync);
   GDIAL_LOGTRACE("Exiting ...");
   return 0;

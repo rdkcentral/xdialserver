@@ -56,7 +56,7 @@ public:
 
 private:
     GDialObjectCacheHelper* ObjectCache;
-    GDialNotifier* m_observer;
+    GDialNotifier* m_observer{nullptr};
     static std::string Netflix_AppCacheId;
     static std::string Youtube_AppCacheId;
 };

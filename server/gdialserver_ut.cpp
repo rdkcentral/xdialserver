@@ -181,11 +181,6 @@ class gdialServiceTest: public GDialNotifier
             GDIAL_LOGINFO("App:%s  appID:%s",appName.c_str(),appID.c_str());
         }
 
-        virtual void onStopped() override
-        {
-            GDIAL_LOGINFO("~~~~~~~~~~~");
-        }
-
         virtual void updatePowerState(string powerState) override
         {
             GDIAL_LOGINFO("powerState : %s",powerState.c_str());

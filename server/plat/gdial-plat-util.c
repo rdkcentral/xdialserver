@@ -120,8 +120,8 @@ void gdial_plat_util_log(gdial_plat_util_LogLevel level,
     va_start(argptr, format);
     vsnprintf(formatted, kFormatMessageSize, format, argptr);
     va_end(argptr);
-    fprintf(stderr, "[GDIAL][%d] %s [%s:%d] %s: %s \n",
-                (int)syscall(SYS_gettid),
+    fprintf(stderr, "[GDIAL][%ld] %s [%s:%d] %s: %s \n",
+                (long)syscall(SYS_gettid),
                 levelMap[level],
                 basename(file),
                 line,

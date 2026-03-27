@@ -97,14 +97,13 @@ public:
     virtual void onApplicationHideRequest(string appName, string appID) override;
     virtual void onApplicationResumeRequest(string appName, string appID) override;
     virtual void onApplicationStateRequest(string appName, string appID) override;
-    virtual void onStopped() override;
     virtual void updatePowerState(string powerState) override;
 
 private:
     gdialServiceImpl(){};
     virtual ~gdialServiceImpl(){};
 
-    GDialNotifier *m_observer;
+    GDialNotifier *m_observer{nullptr};
     pthread_t m_gdialserver_main_thread{0};
 
     static void *mainThread(void *ctx);
