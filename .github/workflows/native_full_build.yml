@@ -11,7 +11,7 @@ jobs:
     name: Build xdialserver component in github rdkcentral
     runs-on: ubuntu-latest
     container:
-      image: ubuntu:22.04
+      image: ghcr.io/rdkcentral/docker-rdk-ci:latest
 
     steps:
       - name: Checkout code
