@@ -120,11 +120,11 @@ void gdial_plat_util_log(gdial_plat_util_LogLevel level,
     va_start(argptr, format);
     vsnprintf(formatted, kFormatMessageSize, format, argptr);
     va_end(argptr);
-    const char *filename = basename((char*)file);
     fprintf(stderr, "[GDIAL][%ld] %s [%s:%d] %s: %s \n",
                 (long)syscall(SYS_gettid),
                 levelMap[level],
-                filename,
+                /* coverity[PRINTF_ARGS : FALSE] */
+                basename(file),
                 line,
                 func,
                 formatted);
