@@ -224,7 +224,6 @@ int main(int argc, char *argv[])
             if (nullptr != testObject)
             {
                 delete testObject;
-                testObject = nullptr;
             }
             testObject = new gdialServiceTest(gdial_args);
         }

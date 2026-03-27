@@ -123,6 +123,7 @@ void gdial_plat_util_log(gdial_plat_util_LogLevel level,
     fprintf(stderr, "[GDIAL][%ld] %s [%s:%d] %s: %s \n",
                 (long)syscall(SYS_gettid),
                 levelMap[level],
+                /* coverity[PRINTF_ARGS : FALSE] */
                 basename(file),
                 line,
                 func,
