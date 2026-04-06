@@ -87,9 +87,9 @@ if (LIBSOUP3_FOUND)
   set (GDIAL_EXEC_SOURCE_FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/gdial-util.c
     ${CMAKE_CURRENT_SOURCE_DIR}/gdial-app.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/libsoup3/gdial1p6-rest.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/libsoup3/gdial1p6-ssdp.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/libsoup3/gdial1p6-shield.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/libsoup3/gdial-rest.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/libsoup3/gdial-ssdp.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/libsoup3/gdial-shield.c
     ${CMAKE_CURRENT_SOURCE_DIR}/gdialservice.cpp
   )
   message("Using libsoup-3.0 compatible source files (gdial1p6-*.c)")
