@@ -1,2 +1,109 @@
 # Tests
-The test files will be updated to this repo in near future.
+
+## L1 Tests (Unit Tests)
+
+The L1 tests are unit tests built with Google Test (gtest) framework for xdialserver components.
+
+### Structure
+
+The test suite is organized by component to promote modularity and maintainability:
+
+```
+tests/
+├── L1Tests/
+│   ├── server/                     # REST/DIAL protocol tests
+│   │   ├── test_gdialServer.cpp    # Test cases
+│   │   ├── gdial_rest_stubs.h      # Stub declarations
+│   │   └── gdial_rest_stubs.cpp    # Stub implementations
+│   ├── plat/                       # Platform-specific tests
+│   │   ├── test_gdialPlat.cpp      # Test cases
+│   │   ├── gdial_plat_stubs.h      # Stub declarations
+│   │   └── gdial_plat_stubs.cpp    # Stub implementations
+│   ├── utils/                      # Utility function tests
+│   │   ├── test_gdialUtil.cpp      # Test cases
+│   │   ├── gdial_util_stubs.h      # Stub declarations
+│   │   └── gdial_util_stubs.cpp    # Stub implementations
+│   ├── stubs/                      # Shared test stubs
+│   │   ├── xdialserver_test_stubs.h    # Combined stub interface
+│   │   └── xdialserver_test_stubs.cpp  # Combined stub implementations
+│   ├── mocks/                      # Shared mock implementations
+│   │   ├── IarmBusMock.h           # IARM bus mock
+│   │   └── IarmBusMock.cpp         # IARM bus mock implementation
+│   ├── test_main.cpp               # Test runner entry point
+│   └── Makefile.am                 # Autotools build configuration
+├── mocks/xdialserver/              # xdialserver-specific shared mocks
+├── Makefile.am
+└── README.md
+```
+
+### Building Locally
+
+Prerequisites:
+- autoconf, automake, libtool
+- pkg-config
+- Google Test (libgtest-dev, libgmock-dev)
+- xdialserver dependencies: glib, libsoup, libgssdp, libxml2, uuid, etc.
+
+Build steps:
+
+```bash
+# Generate configure script
+autoreconf -if
+
+# Configure with L1 tests enabled
+./configure --enable-l1tests
+
+# Build tests
+make -C tests/L1Tests
+
+# Run tests
+./tests/L1Tests/run_L1Tests
+```
+
+### Adding New Tests
+
+1. **Choose a component** — Add test cases to the appropriate subdirectory:
+   - `server/` for REST/DIAL protocol tests
+   - `plat/` for platform-specific component tests
+   - `utils/` for utility function tests
+
+2. **Create test file** — Add a new test cpp file with the pattern `test_*.cpp`
+   ```cpp
+   #include <gtest/gtest.h>
+   
+   class MyComponentTest : public ::testing::Test {
+       protected:
+           void SetUp() override { /* Initialize */ }
+           void TearDown() override { /* Cleanup */ }
+   };
+   
+   TEST_F(MyComponentTest, MyTestCase) {
+       EXPECT_TRUE(true);
+   }
+   ```
+
+3. **Add stubs if needed** — Create component-specific stub headers and implementations
+   - `component_stubs.h` — Stub declarations
+   - `component_stubs.cpp` — Stub implementations
+
+4. **Update Makefile.am** — Add your test source files to the `run_L1Tests_SOURCES` list
+
+### Test Organization
+
+Tests follow the same component structure as the source code:
+
+| Component | Location | Tests |
+|-----------|----------|-------|
+| REST/DIAL | `server/` | `test_gdialServer.cpp` |
+| Platform | `plat/` | `test_gdialPlat.cpp` |
+| Utilities | `utils/` | `test_gdialUtil.cpp` |
+| Shared Stubs | `stubs/` | `xdialserver_test_stubs.*` |
+| IARM/Mocks | `mocks/` | `IarmBusMock.*` |
+
+### GitHub Actions CI
+
+Tests are automatically built and run on:
+- Push to `develop` and `main` branches
+- Pull requests to `develop` and `main` branches
+
+See [.github/workflows/L1-tests.yml](../.github/workflows/L1-tests.yml) for workflow details.

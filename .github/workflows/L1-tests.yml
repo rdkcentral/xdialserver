@@ -1,0 +1,237 @@
+name: L1-tests
+
+on:
+  push:
+    branches:
+      - develop
+      - main
+  pull_request:
+    branches:
+      - develop
+      - main
+  workflow_call:
+    secrets:
+      RDKCM_RDKE:
+        required: true
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  BUILD_TYPE: Debug
+
+jobs:
+  L1-tests:
+    name: Build and run unit tests
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Set up CMake
+        uses: jwlawson/actions-setup-cmake@v1.13
+        with:
+          cmake-version: '3.16.x'
+          github-api-token: ''
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+      - run: pip install jsonref
+
+      - name: ACK External Trigger
+        run: |
+           echo "Message: External Trigger Received for L1 Tests"
+           echo "Trigger Source: ${{ inputs.caller_source }}"
+
+      - name: Set up CMake
+        uses: jwlawson/actions-setup-cmake@v1.13
+        with:
+          cmake-version: '3.16.x'
+
+      - name: Install packages
+        run: >
+          sudo apt update
+          &&
+          sudo apt install -y
+          autoconf automake libtool pkg-config
+          libgtest-dev libgmock-dev
+          build-essential g++ cmake
+          valgrind lcov clang ninja-build
+          libglib2.0-dev libgio-2.0-dev libdbus-1-dev
+          libgssdp-dev libsoup-dev libxml2-dev
+          uuid-dev libcurl4-openssl-dev
+          libsystemd-dev libboost-all-dev libwebsocketpp-dev
+          meson libcunit1 libcunit1-dev curl
+          protobuf-compiler-grpc libgrpc-dev libgrpc++-dev
+          libyajl-dev libwpeframework-dev libiarmbus-dev
+
+      - name: Build trower-base64
+        run: |
+            if [ ! -d "trower-base64" ]; then
+            git clone https://github.com/xmidt-org/trower-base64.git
+            fi
+            cd trower-base64
+            meson setup --warnlevel 3 --werror build
+            ninja -C build
+            sudo ninja -C build install
+
+      - name: Checkout xdialserver
+        uses: actions/checkout@v3
+        with:
+          path: xdialserver
+
+      # - name: Checkout entservices-testframework
+      #   uses: actions/checkout@v3
+      #   with:
+      #     repository: rdkcentral/entservices-testframework
+      #     path: entservices-testframework
+      #     token: ${{ secrets.RDKCM_RDKE }}
+      #     ref: feature/RDKEMW-14961-2
+    
+      - name: Checkout googletest
+        uses: actions/checkout@v3
+        with:
+          repository: google/googletest
+          path: googletest
+          ref: v1.15.0
+
+      - name: Build googletest
+        run: |
+          cmake -S "$GITHUB_WORKSPACE/googletest" \
+            -B build/googletest \
+            -DCMAKE_INSTALL_PREFIX="$GITHUB_WORKSPACE/install/usr" \
+            -DBUILD_GMOCK=ON \
+            -DBUILD_SHARED_LIBS=OFF \
+            -DCMAKE_POSITION_INDEPENDENT_CODE=ON
+          cmake --build build/googletest -j$(nproc)
+          cmake --install build/googletest
+
+      # - name: Generate external headers
+      #   # Empty headers to mute errors
+      #   run: >
+      #     cd "$GITHUB_WORKSPACE/entservices-testframework/Tests/"
+      #     &&
+      #     mkdir -p
+      #     headers
+      #     headers/WPEFramework
+      #     headers/WPEFramework/core
+      #     headers/WPEFramework/interfaces
+      #     headers/rdk/iarmbus
+      #     headers/rdk/iarmmgrs-hal
+      #     headers/uuid
+      #     &&
+      #     cd headers
+      #     &&
+      #     touch
+      #     WPEFramework/core.h
+      #     WPEFramework/interfaces.h
+      #     WPEFramework/plugins.h
+      #     rdk/iarmbus/libIBus.h
+      #     rdk/iarmbus/libIBusDaemon.h
+      #     rdk/iarmmgrs-hal/iarmmgrs_hal.h
+      #     uuid/uuid.h
+      #     &&
+      #     mkdir -p proc
+      #     &&
+      #     touch proc/readproc.h
+
+      - name: Generate stub headers
+        # All stub content lives in tests/L1Tests/stubs/xdialserver_test_stubs.h
+        # (committed to the repo).  The individual shadow headers that source
+        # files #include are generated here as thin wrappers so they never
+        # need to be committed.  Truly empty stubs (IARM, WPEFramework) are
+        # created with touch.
+        run: |
+          STUBS="$GITHUB_WORKSPACE/xdialserver/tests/L1Tests/stubs"
+          WRAPPER='#pragma once\n#include "xdialserver_test_stubs.h"'
+
+          # Create stubs directory if it doesn't exist
+          mkdir -p "$STUBS"
+
+          # Shadow headers: block the real headers and redirect to the
+          # combined stub.
+          for f in \
+              libIBus.h libIARMCore.h; do
+            printf "$WRAPPER\n" > "$STUBS/$f"
+          done
+
+          # Empty stubs: headers from WPEFramework and IARM that are unused
+          # in the test paths.
+          touch \
+            "$STUBS/libIARMBus.h" \
+            "$STUBS/libIBusDaemon.h" \
+            "$STUBS/libIARMUtil.h"
+
+      - name: Build xdialserver L1 tests
+        run: |
+          cd "$GITHUB_WORKSPACE/xdialserver"
+          autoreconf -if
+
+          # Compiler / linker flags for coverage instrumentation
+          export CFLAGS="-fprofile-arcs -ftest-coverage -g -O0"
+          export CXXFLAGS="-fprofile-arcs -ftest-coverage -g -O0"
+          export LDFLAGS="--coverage"
+
+          # Tell pkg-config / the build where to find googletest
+          export PKG_CONFIG_PATH="$GITHUB_WORKSPACE/install/usr/lib/pkgconfig:${PKG_CONFIG_PATH:-}"
+          export CPPFLAGS="-I$GITHUB_WORKSPACE/install/usr/include"
+          export LIBRARY_PATH="$GITHUB_WORKSPACE/install/usr/lib:${LIBRARY_PATH:-}"
+
+          ./configure --enable-l1tests
+            # TESTFRAMEWORK_DIR="$GITHUB_WORKSPACE/entservices-testframework"
+          make -C tests/L1Tests
+
+      - name: Run unit tests without valgrind 
+        run: |
+          cd "$GITHUB_WORKSPACE/xdialserver/tests/L1Tests"
+          ./run_L1Tests --gtest_output="json:$GITHUB_WORKSPACE/xdialserverL1TestResults.json"
+          cp "$GITHUB_WORKSPACE/xdialserverL1TestResults.json" \
+             "$GITHUB_WORKSPACE/xdialserverL1TestResultsWithoutValgrind.json"
+
+      - name: Run unit tests with valgrind
+        if: ${{ !env.ACT }}
+        run: |
+          cd "$GITHUB_WORKSPACE/xdialserver/tests/L1Tests"
+          valgrind \
+            --tool=memcheck \
+            --log-file="$GITHUB_WORKSPACE/valgrind_log" \
+            --leak-check=yes \
+            --show-reachable=yes \
+            --track-fds=yes \
+            --fair-sched=try \
+            ./run_L1Tests --gtest_output="json:$GITHUB_WORKSPACE/xdialserverL1TestResultsWithValgrind.json"
+
+      - name: Generate coverage
+        if: ${{ !env.ACT }}
+        run: |
+          lcov -c \
+            -o coverage.info \
+            -d "$GITHUB_WORKSPACE/xdialserver"
+
+          lcov -r coverage.info \
+            '/usr/include/*' \
+            '*/install/usr/include/*' \
+            '*/googletest/*' \
+            '*/entservices-testframework/*' \
+            '*/tests/*' \
+            '*/mocks/*' \
+            '*/stubs/*' \
+            -o filtered_coverage.info
+
+          genhtml \
+            -o coverage \
+            -t "xdialserver L1 coverage" \
+            filtered_coverage.info
+
+      - name: Upload artifacts
+        if: ${{ !env.ACT }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: artifacts-L1-xdialserver
+          path: |
+            coverage/
+            valgrind_log
+            xdialserverL1TestResultsWithoutValgrind.json
+            xdialserverL1TestResultsWithValgrind.json
+          if-no-files-found: warn
