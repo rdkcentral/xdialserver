@@ -58,8 +58,8 @@ jobs:
           libgtest-dev libgmock-dev
           build-essential g++ cmake
           valgrind lcov clang ninja-build
-          libglib2.0-dev libgobject2.0-dev libdbus-1-dev
-          libgssdp-1.0-dev libsoup-2.4-dev libxml2-dev
+          libglib2.0-dev libdbus-1-dev
+          libgssdp-1.6-dev libsoup2.4-dev libxml2-dev
           uuid-dev libcurl4-openssl-dev
           libsystemd-dev libboost-all-dev libwebsocketpp-dev
           meson libcunit1 libcunit1-dev curl

@@ -42,8 +42,8 @@ Prerequisites:
 - autoconf, automake, libtool, pkg-config
 - Build tools: gcc, g++, make, cmake
 - Google Test: libgtest-dev, libgmock-dev
-- GLib: libglib2.0-dev, libgobject2.0-dev, libgio-2.0-dev
-- DIAL/SSDP: libgssdp-1.0-dev (or libgssdp-1.2-dev), libsoup-2.4-dev (or libsoup3.0-dev)
+- GLib/GIO: libglib2.0-dev
+- DIAL/SSDP: libgssdp-1.6-dev (or compatible gssdp dev package), libsoup2.4-dev (or libsoup-3.0-dev)
 - XML: libxml2-dev
 - Other: uuid-dev, libdbus-1-dev, valgrind, lcov
 
@@ -59,8 +59,8 @@ sudo apt install -y \
     autoconf automake libtool pkg-config \
     libgtest-dev libgmock-dev \
     build-essential g++ cmake \
-    libglib2.0-dev libgobject2.0-dev libgio-2.0-dev \
-    libgssdp-1.0-dev libsoup-2.4-dev libxml2-dev \
+    libglib2.0-dev \
+    libgssdp-1.6-dev libsoup2.4-dev libxml2-dev \
     uuid-dev libdbus-1-dev \
     valgrind lcov
 ```

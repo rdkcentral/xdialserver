@@ -37,7 +37,6 @@ AM_CPPFLAGS = -I$(top_srcdir)/tests/L1Tests/stubs \
 	      -I$(top_srcdir)/server \
 	      -I$(top_srcdir)/server/plat \
 	      $(GLIB_CFLAGS) \
-	      $(GOBJECT_CFLAGS) \
 	      $(GIO_CFLAGS) \
 	      $(GSSDP_CFLAGS) \
 	      $(SOUP_CFLAGS) \
@@ -61,7 +60,7 @@ run_L1Tests_SOURCES = \
 	stubs/xdialserver_test_stubs.cpp \
 	mocks/IarmBusMock.cpp
 
-run_L1Tests_LDADD = -lgtest -lgmock $(GLIB_LIBS) $(GOBJECT_LIBS) $(GIO_LIBS) $(GSSDP_LIBS) $(SOUP_LIBS) $(XML2_LIBS)
+run_L1Tests_LDADD = -lgtest -lgmock $(GLIB_LIBS) $(GIO_LIBS) $(GSSDP_LIBS) $(SOUP_LIBS) $(XML2_LIBS)
 
 # Run tests on 'make check'
 TESTS = run_L1Tests
