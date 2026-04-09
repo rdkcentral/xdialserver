@@ -52,15 +52,15 @@ noinst_PROGRAMS = run_L1Tests
 run_L1Tests_SOURCES = \
 	test_main.cpp \
 	server/test_gdialServer.cpp \
-	server/gdial_rest_stubs.cpp \
 	plat/test_gdialPlat.cpp \
-	plat/gdial_plat_stubs.cpp \
 	utils/test_gdialUtil.cpp \
-	utils/gdial_util_stubs.cpp \
 	stubs/xdialserver_test_stubs.cpp \
-	mocks/IarmBusMock.cpp
+	plat/gdial_plat_stubs.cpp \
+	$(top_srcdir)/server/gdial-util.c \
+	$(top_srcdir)/server/gdial-app.c \
+	$(top_srcdir)/server/plat/gdial_app_registry.c
 
-run_L1Tests_LDADD = -lgtest -lgmock $(GLIB_LIBS) $(GIO_LIBS) $(GSSDP_LIBS) $(SOUP_LIBS) $(XML2_LIBS)
+run_L1Tests_LDADD = -lgtest -lgmock $(GLIB_LIBS) $(GIO_LIBS) $(XML2_LIBS) -luuid
 
 # Run tests on 'make check'
 TESTS = run_L1Tests
