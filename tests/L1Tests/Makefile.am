@@ -42,7 +42,7 @@ AM_CPPFLAGS = -I$(top_srcdir)/tests/L1Tests/stubs \
 	      $(SOUP_CFLAGS) \
 	      $(XML2_CFLAGS)
 
-AM_CXXFLAGS = -Wall -std=c++11 -g
+AM_CXXFLAGS = -Wall -std=c++14 -g
 
 AM_LDFLAGS = -pthread
 
