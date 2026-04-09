@@ -43,7 +43,7 @@ Prerequisites:
 - Build tools: gcc, g++, make, cmake
 - Google Test: libgtest-dev, libgmock-dev
 - GLib/GIO: libglib2.0-dev
-- DIAL/SSDP: libgssdp-1.6-dev (or compatible gssdp dev package), libsoup2.4-dev (or libsoup-3.0-dev)
+- DIAL/SSDP: libgssdp-1.2-dev (or compatible gssdp dev package), libsoup2.4-dev (or libsoup-3.0-dev)
 - XML: libxml2-dev
 - Other: uuid-dev, libdbus-1-dev, valgrind, lcov
 
@@ -60,7 +60,7 @@ sudo apt install -y \
     libgtest-dev libgmock-dev \
     build-essential g++ cmake \
     libglib2.0-dev \
-    libgssdp-1.6-dev libsoup2.4-dev libxml2-dev \
+    libgssdp-1.2-dev libsoup2.4-dev libxml2-dev \
     uuid-dev libdbus-1-dev \
     valgrind lcov
 ```
