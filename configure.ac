@@ -27,10 +27,25 @@ AM_PROG_AR
 
 # Check for pkg-config
 PKG_CHECK_MODULES([GLIB], [glib-2.0])
+PKG_CHECK_MODULES([GOBJECT], [gobject-2.0])
 PKG_CHECK_MODULES([GIO], [gio-2.0])
-PKG_CHECK_MODULES([GSSDP], [gssdp-1.2], [], [PKG_CHECK_MODULES([GSSDP], [gssdp-1.0])])
-PKG_CHECK_MODULES([SOUP], [libsoup-3.0], [], [PKG_CHECK_MODULES([SOUP], [libsoup-2.4])])
+
+# Check for DIAL protocol dependencies
+PKG_CHECK_MODULES([GSSDP], [gssdp-1.0], [], 
+    [PKG_CHECK_MODULES([GSSDP], [gssdp-1.2], [], 
+        [AC_MSG_WARN([gssdp library not found])])])
+
+PKG_CHECK_MODULES([SOUP], [libsoup-2.4], [], 
+    [PKG_CHECK_MODULES([SOUP], [libsoup-3.0], [], 
+        [AC_MSG_WARN([libsoup library not found])])])
+
 PKG_CHECK_MODULES([XML2], [libxml-2.0])
+
+# Optional RDK-specific packages
+PKG_CHECK_MODULES([WPEFRAMEWORK], [WPEFramework], [], 
+    [AC_MSG_WARN([WPEFramework development headers not found - platform tests may be limited])])
+PKG_CHECK_MODULES([IARMBUS], [libIARMBus], [], 
+    [AC_MSG_WARN([libIARMBus development headers not found - IARM tests may be limited])])
 
 # L1 Tests support
 AC_ARG_ENABLE([l1tests],
