@@ -30,13 +30,16 @@ PKG_CHECK_MODULES([GLIB], [glib-2.0])
 PKG_CHECK_MODULES([GIO], [gio-2.0])
 
 # Check for DIAL protocol dependencies
-PKG_CHECK_MODULES([GSSDP], [gssdp-1.6], [],
-    [PKG_CHECK_MODULES([GSSDP], [gssdp-1.2], [],
-        [PKG_CHECK_MODULES([GSSDP], [gssdp-1.0], [],
+PKG_CHECK_MODULES([GSSDP], [gssdp-1.2],
+    [],
+    [PKG_CHECK_MODULES([GSSDP], [gssdp-1.0],
+        [],
         [AC_MSG_WARN([gssdp library not found])])])
 
-PKG_CHECK_MODULES([SOUP], [libsoup-2.4], [],
-    [PKG_CHECK_MODULES([SOUP], [libsoup-3.0], [],
+PKG_CHECK_MODULES([SOUP], [libsoup-2.4],
+    [],
+    [PKG_CHECK_MODULES([SOUP], [libsoup-3.0],
+        [],
         [AC_MSG_WARN([libsoup library not found])])])
 
 PKG_CHECK_MODULES([XML2], [libxml-2.0])
