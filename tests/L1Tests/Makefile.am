@@ -36,6 +36,8 @@ AM_CPPFLAGS = -I$(top_srcdir)/tests/L1Tests/stubs \
 	      -I$(top_srcdir)/server/include \
 	      -I$(top_srcdir)/server \
 	      -I$(top_srcdir)/server/plat \
+	      -DGDIAL_STATIC=extern \
+	      -DGDIAL_STATIC_INLINE=extern \
 	      $(GLIB_CFLAGS) \
 	      $(GIO_CFLAGS) \
 	      $(GSSDP_CFLAGS) \
