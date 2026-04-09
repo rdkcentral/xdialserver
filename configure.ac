@@ -18,7 +18,7 @@
 ##########################################################################
 
 AC_INIT([xdialserver], [1.0.0])
-AM_INIT_AUTOMAKE([-Wall -Werror foreign])
+AM_INIT_AUTOMAKE([-Wall -Werror foreign subdir-objects])
 
 AC_PROG_CC
 AC_PROG_CXX
