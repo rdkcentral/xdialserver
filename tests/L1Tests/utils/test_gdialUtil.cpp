@@ -257,12 +257,20 @@ TEST_F(GDialUtilHashTableTest, Equal_NullLeftNotEqual) {
 /* ================================================================== */
 
 TEST_F(GDialUtilHashTableTest, Merge_AddsSrcKeysToDst) {
+    /* merge() reuses src key/value pointers inside dst via g_hash_table_replace.
+     * Use a non-owning src table here to avoid double-free in fixture teardown. */
+    GHashTable *src = g_hash_table_new(g_str_hash, g_str_equal);
+
     g_hash_table_insert(ht1, g_strdup("a"), g_strdup("1"));
-    g_hash_table_insert(ht2, g_strdup("b"), g_strdup("2"));
-    GHashTable *result = gdial_util_str_str_hashtable_merge(ht1, ht2);
+    g_hash_table_insert(src, g_strdup("b"), g_strdup("2"));
+
+    GHashTable *result = gdial_util_str_str_hashtable_merge(ht1, src);
+
     EXPECT_EQ(result, ht1);
     EXPECT_EQ(g_hash_table_size(ht1), (guint)2);
     EXPECT_STREQ((gchar *)g_hash_table_lookup(ht1, "b"), "2");
+
+    g_hash_table_destroy(src);
 }
 
 TEST_F(GDialUtilHashTableTest, Merge_NullSrcReturnsDstUnchanged) {
