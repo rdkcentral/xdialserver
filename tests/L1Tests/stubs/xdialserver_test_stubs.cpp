@@ -48,12 +48,9 @@
 
 #include <stdio.h>
 #include <stdarg.h>
-
-extern "C" {
 #include "gdialservicelogging.h"
-}
 
-extern "C" void gdial_plat_util_log(
+void gdial_plat_util_log(
         gdial_plat_util_LogLevel level,
         const char *func,
         const char *file,
@@ -67,9 +64,9 @@ extern "C" void gdial_plat_util_log(
     (void)format;
 }
 
-extern "C" void gdial_plat_util_logger_init(void) {}
+void gdial_plat_util_logger_init(void) {}
 
-extern "C" void gdial_plat_util_set_loglevel(gdial_plat_util_LogLevel level)
+void gdial_plat_util_set_loglevel(gdial_plat_util_LogLevel level)
 {
     (void)level;
 }

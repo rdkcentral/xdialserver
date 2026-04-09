@@ -50,38 +50,36 @@
  *  - all other calls    return NONE (or void)
  */
 
-extern "C" {
+#include <glib.h>
 #include "gdial-plat-app.h"
 #include "gdial-plat-dev.h"
-#include <glib.h>
-}
 
 /* ------------------------------------------------------------------ */
 /* Platform init / term                                                 */
 /* ------------------------------------------------------------------ */
 
-extern "C" gint gdial_plat_init(GMainContext *ctx)
+gint gdial_plat_init(GMainContext *ctx)
 {
     (void)ctx;
     return 0;
 }
 
-extern "C" void gdial_plat_term(void) {}
+void gdial_plat_term(void) {}
 
 /* ------------------------------------------------------------------ */
 /* Callback registration                                               */
 /* ------------------------------------------------------------------ */
 
-extern "C" void gdail_plat_register_activation_cb(gdial_plat_activation_cb cb)      { (void)cb; }
-extern "C" void gdail_plat_register_friendlyname_cb(gdial_plat_friendlyname_cb cb)  { (void)cb; }
-extern "C" void gdail_plat_register_registerapps_cb(gdial_plat_registerapps_cb cb)  { (void)cb; }
-extern "C" void gdail_plat_register_manufacturername_cb(gdial_plat_manufacturername_cb cb) { (void)cb; }
-extern "C" void gdail_plat_register_modelname_cb(gdial_plat_modelname_cb cb)        { (void)cb; }
+void gdail_plat_register_activation_cb(gdial_plat_activation_cb cb)      { (void)cb; }
+void gdail_plat_register_friendlyname_cb(gdial_plat_friendlyname_cb cb)  { (void)cb; }
+void gdail_plat_register_registerapps_cb(gdial_plat_registerapps_cb cb)  { (void)cb; }
+void gdail_plat_register_manufacturername_cb(gdial_plat_manufacturername_cb cb) { (void)cb; }
+void gdail_plat_register_modelname_cb(gdial_plat_modelname_cb cb)        { (void)cb; }
 
 static gdial_plat_application_state_cb s_state_cb = nullptr;
 static gpointer s_state_cb_data = nullptr;
 
-extern "C" void gdial_plat_application_set_state_cb(
+void gdial_plat_application_set_state_cb(
         gdial_plat_application_state_cb cb, gpointer user_data)
 {
     s_state_cb      = cb;
@@ -92,7 +90,7 @@ extern "C" void gdial_plat_application_set_state_cb(
 /* Synchronous application operations                                  */
 /* ------------------------------------------------------------------ */
 
-extern "C" GDialAppError gdial_plat_application_start(
+GDialAppError gdial_plat_application_start(
         const gchar *app_name, const gchar *payload,
         const gchar *query, const gchar *additional_data_url,
         gint *instance_id)
@@ -102,28 +100,28 @@ extern "C" GDialAppError gdial_plat_application_start(
     return GDIAL_APP_ERROR_NONE;
 }
 
-extern "C" GDialAppError gdial_plat_application_hide(
+GDialAppError gdial_plat_application_hide(
         const gchar *app_name, gint instance_id)
 {
     (void)app_name; (void)instance_id;
     return GDIAL_APP_ERROR_NONE;
 }
 
-extern "C" GDialAppError gdial_plat_application_resume(
+GDialAppError gdial_plat_application_resume(
         const gchar *app_name, gint instance_id)
 {
     (void)app_name; (void)instance_id;
     return GDIAL_APP_ERROR_NONE;
 }
 
-extern "C" GDialAppError gdial_plat_application_stop(
+GDialAppError gdial_plat_application_stop(
         const gchar *app_name, gint instance_id)
 {
     (void)app_name; (void)instance_id;
     return GDIAL_APP_ERROR_NONE;
 }
 
-extern "C" GDialAppError gdial_plat_application_state(
+GDialAppError gdial_plat_application_state(
         const gchar *app_name, gint instance_id, GDialAppState *state)
 {
     (void)app_name; (void)instance_id;
@@ -135,7 +133,7 @@ extern "C" GDialAppError gdial_plat_application_state(
 /* Notification helpers                                                */
 /* ------------------------------------------------------------------ */
 
-extern "C" GDialAppError gdial_plat_application_state_changed(
+GDialAppError gdial_plat_application_state_changed(
         const char *appName, const char *appId,
         const char *state, const char *error)
 {
@@ -143,51 +141,51 @@ extern "C" GDialAppError gdial_plat_application_state_changed(
     return GDIAL_APP_ERROR_NONE;
 }
 
-extern "C" GDialAppError gdial_plat_application_activation_changed(
+GDialAppError gdial_plat_application_activation_changed(
         const char *activation, const char *friendlyname)
 {
     (void)activation; (void)friendlyname;
     return GDIAL_APP_ERROR_NONE;
 }
 
-extern "C" GDialAppError gdial_plat_application_friendlyname_changed(
+GDialAppError gdial_plat_application_friendlyname_changed(
         const char *friendlyname)
 {
     (void)friendlyname;
     return GDIAL_APP_ERROR_NONE;
 }
 
-extern "C" const char *gdial_plat_application_get_protocol_version(void)
+const char *gdial_plat_application_get_protocol_version(void)
 {
     return "2.2.1";
 }
 
-extern "C" GDialAppError gdial_plat_application_register_applications(void *p)
+GDialAppError gdial_plat_application_register_applications(void *p)
 {
     (void)p;
     return GDIAL_APP_ERROR_NONE;
 }
 
-extern "C" void gdial_plat_application_update_network_standby_mode(gboolean mode)
+void gdial_plat_application_update_network_standby_mode(gboolean mode)
 {
     (void)mode;
 }
 
-extern "C" GDialAppError gdial_plat_application_update_manufacturer_name(
+GDialAppError gdial_plat_application_update_manufacturer_name(
         const char *manufacturer)
 {
     (void)manufacturer;
     return GDIAL_APP_ERROR_NONE;
 }
 
-extern "C" GDialAppError gdial_plat_application_update_model_name(
+GDialAppError gdial_plat_application_update_model_name(
         const char *model)
 {
     (void)model;
     return GDIAL_APP_ERROR_NONE;
 }
 
-extern "C" GDialAppError gdial_plat_application_service_notification(
+GDialAppError gdial_plat_application_service_notification(
         gboolean isNotifyRequired, void *notifier)
 {
     (void)isNotifyRequired; (void)notifier;
@@ -198,7 +196,7 @@ extern "C" GDialAppError gdial_plat_application_service_notification(
 /* Async operations (return nullptr = no async handle)                 */
 /* ------------------------------------------------------------------ */
 
-extern "C" void *gdial_plat_application_start_async(
+void *gdial_plat_application_start_async(
         const gchar *app_name, const gchar *payload,
         const gchar *query, const gchar *additional_data_url,
         void *user_data)
@@ -208,35 +206,35 @@ extern "C" void *gdial_plat_application_start_async(
     return nullptr;
 }
 
-extern "C" void *gdial_plat_application_state_async(
+void *gdial_plat_application_state_async(
         const gchar *app_name, gint instance_id, void *user_data)
 {
     (void)app_name; (void)instance_id; (void)user_data;
     return nullptr;
 }
 
-extern "C" void *gdial_plat_application_hide_async(
+void *gdial_plat_application_hide_async(
         const gchar *app_name, gint instance_id, void *user_data)
 {
     (void)app_name; (void)instance_id; (void)user_data;
     return nullptr;
 }
 
-extern "C" void *gdial_plat_application_resume_async(
+void *gdial_plat_application_resume_async(
         const gchar *app_name, gint instance_id, void *user_data)
 {
     (void)app_name; (void)instance_id; (void)user_data;
     return nullptr;
 }
 
-extern "C" void *gdial_plat_application_stop_async(
+void *gdial_plat_application_stop_async(
         const gchar *app_name, gint instance_id, void *user_data)
 {
     (void)app_name; (void)instance_id; (void)user_data;
     return nullptr;
 }
 
-extern "C" void gdial_plat_application_remove_async_source(void *async_source)
+void gdial_plat_application_remove_async_source(void *async_source)
 {
     (void)async_source;
 }
@@ -245,10 +243,10 @@ extern "C" void gdial_plat_application_remove_async_source(void *async_source)
 /* Device / power-state operations                                     */
 /* ------------------------------------------------------------------ */
 
-extern "C" bool gdial_plat_dev_set_power_state_on(void)  { return true; }
-extern "C" bool gdial_plat_dev_set_power_state_off(void) { return true; }
-extern "C" bool gdial_plat_dev_toggle_power_state(void)  { return true; }
-extern "C" void gdial_plat_dev_nwstandby_mode_change(gboolean NetworkStandbyMode) { (void)NetworkStandbyMode; }
-extern "C" void gdail_plat_dev_register_nwstandbymode_cb(gdial_plat_dev_nwstandbymode_cb cb) { (void)cb; }
-extern "C" void gdail_plat_dev_register_powerstate_cb(gdial_plat_dev_powerstate_cb cb)       { (void)cb; }
+bool gdial_plat_dev_set_power_state_on(void)  { return true; }
+bool gdial_plat_dev_set_power_state_off(void) { return true; }
+bool gdial_plat_dev_toggle_power_state(void)  { return true; }
+void gdial_plat_dev_nwstandby_mode_change(gboolean NetworkStandbyMode) { (void)NetworkStandbyMode; }
+void gdail_plat_dev_register_nwstandbymode_cb(gdial_plat_dev_nwstandbymode_cb cb) { (void)cb; }
+void gdail_plat_dev_register_powerstate_cb(gdial_plat_dev_powerstate_cb cb)       { (void)cb; }
 
