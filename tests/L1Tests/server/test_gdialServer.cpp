@@ -49,11 +49,11 @@
 
 #include <gtest/gtest.h>
 #include <cstring>
+#include <libxml/tree.h>
 
 extern "C" {
 #include <glib.h>
 #include <glib-object.h>
-#include <libxml/tree.h>
 #include "gdial-app.h"
 }
 
