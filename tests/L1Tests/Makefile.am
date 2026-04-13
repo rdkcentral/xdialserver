@@ -59,6 +59,7 @@ run_L1Tests_SOURCES = \
 	server/test_gdialRest.cpp \
 	server/test_gdialShield.cpp \
 	server/test_gdialSsdp.cpp \
+	mocks/gssdp_mock.c \
 	plat/test_gdialPlat.cpp \
 	plat/test_gdialPlatUtil.cpp \
 	utils/test_gdialUtil.cpp \
