@@ -79,6 +79,42 @@ void gdail_plat_register_modelname_cb(gdial_plat_modelname_cb cb)        { (void
 static gdial_plat_application_state_cb s_state_cb = nullptr;
 static gpointer s_state_cb_data = nullptr;
 
+static GDialAppState s_app_state = GDIAL_APP_STATE_STOPPED;
+static GDialAppError s_start_err = GDIAL_APP_ERROR_NONE;
+static GDialAppError s_hide_err = GDIAL_APP_ERROR_NONE;
+static GDialAppError s_resume_err = GDIAL_APP_ERROR_NONE;
+static GDialAppError s_stop_err = GDIAL_APP_ERROR_NONE;
+static GDialAppError s_state_err = GDIAL_APP_ERROR_NONE;
+
+extern "C" void gdial_plat_stub_reset_behavior(void)
+{
+    s_app_state = GDIAL_APP_STATE_STOPPED;
+    s_start_err = GDIAL_APP_ERROR_NONE;
+    s_hide_err = GDIAL_APP_ERROR_NONE;
+    s_resume_err = GDIAL_APP_ERROR_NONE;
+    s_stop_err = GDIAL_APP_ERROR_NONE;
+    s_state_err = GDIAL_APP_ERROR_NONE;
+}
+
+extern "C" void gdial_plat_stub_set_app_state(GDialAppState state)
+{
+    s_app_state = state;
+}
+
+extern "C" void gdial_plat_stub_set_errors(
+        GDialAppError start_err,
+        GDialAppError hide_err,
+        GDialAppError resume_err,
+        GDialAppError stop_err,
+        GDialAppError state_err)
+{
+    s_start_err = start_err;
+    s_hide_err = hide_err;
+    s_resume_err = resume_err;
+    s_stop_err = stop_err;
+    s_state_err = state_err;
+}
+
 void gdial_plat_application_set_state_cb(
         gdial_plat_application_state_cb cb, gpointer user_data)
 {
@@ -96,6 +132,9 @@ GDialAppError gdial_plat_application_start(
         gint *instance_id)
 {
     (void)app_name; (void)payload; (void)query; (void)additional_data_url;
+    if (s_start_err != GDIAL_APP_ERROR_NONE) {
+        return s_start_err;
+    }
     if (instance_id) *instance_id = 1;
     return GDIAL_APP_ERROR_NONE;
 }
@@ -104,28 +143,31 @@ GDialAppError gdial_plat_application_hide(
         const gchar *app_name, gint instance_id)
 {
     (void)app_name; (void)instance_id;
-    return GDIAL_APP_ERROR_NONE;
+    return s_hide_err;
 }
 
 GDialAppError gdial_plat_application_resume(
         const gchar *app_name, gint instance_id)
 {
     (void)app_name; (void)instance_id;
-    return GDIAL_APP_ERROR_NONE;
+    return s_resume_err;
 }
 
 GDialAppError gdial_plat_application_stop(
         const gchar *app_name, gint instance_id)
 {
     (void)app_name; (void)instance_id;
-    return GDIAL_APP_ERROR_NONE;
+    return s_stop_err;
 }
 
 GDialAppError gdial_plat_application_state(
         const gchar *app_name, gint instance_id, GDialAppState *state)
 {
     (void)app_name; (void)instance_id;
-    if (state) *state = GDIAL_APP_STATE_STOPPED;
+    if (s_state_err != GDIAL_APP_ERROR_NONE) {
+        return s_state_err;
+    }
+    if (state) *state = s_app_state;
     return GDIAL_APP_ERROR_NONE;
 }
 
