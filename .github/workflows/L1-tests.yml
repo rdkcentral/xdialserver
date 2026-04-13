@@ -225,6 +225,8 @@ jobs:
             '*/install/usr/include/*' \
             '*/googletest/*' \
             '*/entservices-testframework/*' \
+            '*/conftest.c' \
+            '*/confdefs.h' \
             '*/tests/*' \
             '*/mocks/*' \
             '*/stubs/*' \
