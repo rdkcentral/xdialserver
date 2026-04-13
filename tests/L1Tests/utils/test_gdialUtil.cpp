@@ -167,6 +167,18 @@ TEST_F(GDialUtilHashTableTest, FromStr_NullTableReturnsFalse) {
     EXPECT_FALSE(gdial_util_str_str_hashtable_from_string("k v\r\n", 6, nullptr));
 }
 
+TEST_F(GDialUtilHashTableTest, FromStr_ParsesMultiplePairs) {
+    const gchar *str = "k1 v1\r\nk2 v2\r\n";
+    EXPECT_TRUE(gdial_util_str_str_hashtable_from_string(str, strlen(str), ht1));
+    EXPECT_STREQ((gchar *)g_hash_table_lookup(ht1, "k1"), "v1");
+    EXPECT_STREQ((gchar *)g_hash_table_lookup(ht1, "k2"), "v2");
+}
+
+TEST_F(GDialUtilHashTableTest, FromStr_ZeroLengthNoEntries) {
+    EXPECT_TRUE(gdial_util_str_str_hashtable_from_string("k v\r\n", 0, ht1));
+    EXPECT_EQ(g_hash_table_size(ht1), (guint)0);
+}
+
 /* ================================================================== */
 /* gdial_util_str_str_hashtable_to_xml_string                          */
 /* ================================================================== */
@@ -184,6 +196,14 @@ TEST_F(GDialUtilHashTableTest, ToXml_ContainsAttrEqualsValue) {
 TEST_F(GDialUtilHashTableTest, ToXml_NullTableReturnsNull) {
     gsize len = 0;
     EXPECT_EQ(gdial_util_str_str_hashtable_to_xml_string(nullptr, &len), nullptr);
+}
+
+TEST_F(GDialUtilHashTableTest, ToXml_NullLengthPointerAllowed) {
+    g_hash_table_insert(ht1, g_strdup("k"), g_strdup("v"));
+    gchar *s = gdial_util_str_str_hashtable_to_xml_string(ht1, nullptr);
+    ASSERT_NE(s, nullptr);
+    EXPECT_NE(g_strstr_len(s, -1, "k=\"v\""), nullptr);
+    g_free(s);
 }
 
 /* ================================================================== */
@@ -244,6 +264,18 @@ TEST_F(GDialUtilHashTableTest, Equal_DifferentSizeNotEqual) {
     EXPECT_FALSE(gdial_util_str_str_hashtable_equal(ht1, ht2));
 }
 
+TEST_F(GDialUtilHashTableTest, Equal_NullValuesAreEqual) {
+    g_hash_table_insert(ht1, g_strdup("k"), nullptr);
+    g_hash_table_insert(ht2, g_strdup("k"), nullptr);
+    EXPECT_TRUE(gdial_util_str_str_hashtable_equal(ht1, ht2));
+}
+
+TEST_F(GDialUtilHashTableTest, Equal_OneNullValueNotEqual) {
+    g_hash_table_insert(ht1, g_strdup("k"), nullptr);
+    g_hash_table_insert(ht2, g_strdup("k"), g_strdup("v"));
+    EXPECT_FALSE(gdial_util_str_str_hashtable_equal(ht1, ht2));
+}
+
 TEST_F(GDialUtilHashTableTest, Equal_NullRightNotEqual) {
     EXPECT_FALSE(gdial_util_str_str_hashtable_equal(ht1, nullptr));
 }
@@ -278,5 +310,24 @@ TEST_F(GDialUtilHashTableTest, Merge_NullSrcReturnsDstUnchanged) {
     GHashTable *result = gdial_util_str_str_hashtable_merge(ht1, nullptr);
     EXPECT_EQ(result, ht1);
     EXPECT_EQ(g_hash_table_size(ht1), (guint)1);
+}
+
+TEST_F(GDialUtilHashTableTest, Merge_NullDstReturnsNull) {
+    g_hash_table_insert(ht2, g_strdup("k"), g_strdup("v"));
+    GHashTable *result = gdial_util_str_str_hashtable_merge(nullptr, ht2);
+    EXPECT_EQ(result, nullptr);
+}
+
+TEST_F(GDialUtilHashTableTest, Merge_OverwritesExistingKey) {
+    GHashTable *src = g_hash_table_new(g_str_hash, g_str_equal);
+
+    g_hash_table_insert(ht1, g_strdup("k"), g_strdup("old"));
+    g_hash_table_insert(src, g_strdup("k"), g_strdup("new"));
+
+    GHashTable *result = gdial_util_str_str_hashtable_merge(ht1, src);
+    EXPECT_EQ(result, ht1);
+    EXPECT_STREQ((gchar *)g_hash_table_lookup(ht1, "k"), "new");
+
+    g_hash_table_destroy(src);
 }
 

@@ -56,6 +56,7 @@ noinst_PROGRAMS = run_L1Tests
 run_L1Tests_SOURCES = \
 	test_main.cpp \
 	server/test_gdialServer.cpp \
+	server/test_gdialserver_ut.cpp \
 	server/test_gdialRest.cpp \
 	server/test_gdialShield.cpp \
 	server/test_gdialSsdp.cpp \
