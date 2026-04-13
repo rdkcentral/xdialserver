@@ -55,11 +55,12 @@ run_L1Tests_SOURCES = \
 	test_main.cpp \
 	server/test_gdialServer.cpp \
 	plat/test_gdialPlat.cpp \
+	plat/test_gdialPlatUtil.cpp \
 	utils/test_gdialUtil.cpp \
-	stubs/xdialserver_test_stubs.cpp \
 	plat/gdial_plat_stubs.cpp \
 	$(top_srcdir)/server/gdial-util.c \
 	$(top_srcdir)/server/gdial-app.c \
+	$(top_srcdir)/server/plat/gdial-plat-util.c \
 	$(top_srcdir)/server/plat/gdial_app_registry.c
 
 run_L1Tests_LDADD = -lgtest -lgmock $(GLIB_LIBS) $(GIO_LIBS) $(XML2_LIBS) -luuid
