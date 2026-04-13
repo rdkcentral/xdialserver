@@ -39,6 +39,7 @@ AM_CPPFLAGS = -I$(top_srcdir)/tests/L1Tests/stubs \
 	      -DGDIAL_STATIC=extern \
 	      -DGDIAL_STATIC_INLINE=extern \
 	      -D_GNU_SOURCE \
+	      -DHAVE_GSSDP_VERSION_1_2_OR_NEWER \
 	      $(GLIB_CFLAGS) \
 	      $(GIO_CFLAGS) \
 	      $(GSSDP_CFLAGS) \

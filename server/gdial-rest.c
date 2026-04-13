@@ -1014,7 +1014,7 @@ static void gdial_rest_server_dispose(GObject *object) {
   g_object_unref(priv->soup_instance);
   g_object_unref(priv->local_soup_instance);
   while (priv->registered_apps) {
-    priv->registered_apps = gdial_rest_server_registered_apps_clear(object, priv->registered_apps, priv->registered_apps);
+    priv->registered_apps = gdial_rest_server_registered_apps_clear(GDIAL_REST_SERVER(object), priv->registered_apps, priv->registered_apps);
   }
   G_OBJECT_CLASS (gdial_rest_server_parent_class)->dispose (object);
 }
