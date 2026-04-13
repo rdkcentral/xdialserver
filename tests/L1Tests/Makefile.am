@@ -56,6 +56,7 @@ run_L1Tests_SOURCES = \
 	test_main.cpp \
 	server/test_gdialServer.cpp \
 	server/test_gdialRest.cpp \
+	server/test_gdialShield.cpp \
 	plat/test_gdialPlat.cpp \
 	plat/test_gdialPlatUtil.cpp \
 	utils/test_gdialUtil.cpp \
@@ -63,6 +64,7 @@ run_L1Tests_SOURCES = \
 	$(top_srcdir)/server/gdial-util.c \
 	$(top_srcdir)/server/gdial-app.c \
 	$(top_srcdir)/server/gdial-rest.c \
+	$(top_srcdir)/server/gdial-shield.c \
 	$(top_srcdir)/server/plat/gdial-plat-util.c \
 	$(top_srcdir)/server/plat/gdial_app_registry.c
 
