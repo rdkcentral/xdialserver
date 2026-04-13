@@ -205,28 +205,15 @@ jobs:
       - name: Generate coverage
         if: ${{ !env.ACT }}
         run: |
-          # Baseline capture: include all instrumented files even before tests run.
-          lcov -c --initial \
-            -o baseline.info \
-            -d "$GITHUB_WORKSPACE/xdialserver"
-
-          # Runtime capture: collect executed lines from test run.
           lcov -c \
-            -o run.info \
+            -o coverage.info \
             -d "$GITHUB_WORKSPACE/xdialserver"
-
-          # Merge baseline + runtime so zero-hit files are still present.
-          lcov -a baseline.info \
-            -a run.info \
-            -o coverage.info
 
           lcov -r coverage.info \
             '/usr/include/*' \
             '*/install/usr/include/*' \
             '*/googletest/*' \
             '*/entservices-testframework/*' \
-            '*/conftest.c' \
-            '*/confdefs.h' \
             '*/tests/*' \
             '*/mocks/*' \
             '*/stubs/*' \
