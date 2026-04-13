@@ -57,6 +57,7 @@ run_L1Tests_SOURCES = \
 	server/test_gdialServer.cpp \
 	server/test_gdialRest.cpp \
 	server/test_gdialShield.cpp \
+	server/test_gdialSsdp.cpp \
 	plat/test_gdialPlat.cpp \
 	plat/test_gdialPlatUtil.cpp \
 	utils/test_gdialUtil.cpp \
@@ -65,10 +66,11 @@ run_L1Tests_SOURCES = \
 	$(top_srcdir)/server/gdial-app.c \
 	$(top_srcdir)/server/gdial-rest.c \
 	$(top_srcdir)/server/gdial-shield.c \
+	$(top_srcdir)/server/gdial-ssdp.c \
 	$(top_srcdir)/server/plat/gdial-plat-util.c \
 	$(top_srcdir)/server/plat/gdial_app_registry.c
 
-run_L1Tests_LDADD = -lgtest -lgmock $(GLIB_LIBS) $(GIO_LIBS) $(SOUP_LIBS) $(XML2_LIBS) -luuid
+run_L1Tests_LDADD = -lgtest -lgmock $(GLIB_LIBS) $(GIO_LIBS) $(SOUP_LIBS) $(GSSDP_LIBS) $(XML2_LIBS) -luuid
 
 # Run tests on 'make check'
 TESTS = run_L1Tests
