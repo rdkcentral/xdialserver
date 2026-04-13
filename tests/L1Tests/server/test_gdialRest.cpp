@@ -25,6 +25,8 @@ extern "C" {
 #include <glib.h>
 #include <libsoup/soup.h>
 #include "gdial-rest.h"
+#include "gdial-rest-builder.h"
+#include "gdial-app.h"
 }
 
 class GDialRestServerTest : public ::testing::Test {
@@ -119,6 +121,28 @@ TEST_F(GDialRestServerTest, FindRegistryByUuidMatchesRegisteredAppUri) {
     EXPECT_EQ(by_uuid, by_name);
 }
 
+TEST_F(GDialRestServerTest, FindRegistryByUuid_UnknownUuidReturnsNull) {
+    ASSERT_TRUE(gdial_rest_server_register_app(
+        server, "Netflix", nullptr, nullptr, TRUE, FALSE, nullptr));
+
+    GDialAppRegistry *by_uuid =
+        gdial_rest_server_find_app_registry_by_uuid(server, "not-a-real-uuid");
+    EXPECT_EQ(by_uuid, nullptr);
+}
+
+TEST_F(GDialRestServerTest, FindRegistry_MatchesByPrefix) {
+    GList *prefixes = make_list1("YouTube");
+    ASSERT_TRUE(gdial_rest_server_register_app(
+        server, "YouTube", prefixes, nullptr, TRUE, FALSE, nullptr));
+
+    GDialAppRegistry *registry =
+        gdial_rest_server_find_app_registry(server, "YouTubeTV");
+    ASSERT_NE(registry, nullptr);
+    EXPECT_STREQ(registry->name, "YouTube");
+
+    g_list_free(prefixes);
+}
+
 TEST_F(GDialRestServerTest, AllowedOrigin_NonYouTubeBehavior) {
     GList *allowed_origins = make_list1(".example.com");
     ASSERT_TRUE(gdial_rest_server_register_app(
@@ -144,4 +168,68 @@ TEST_F(GDialRestServerTest, AllowedOrigin_YouTubeRequiresSpecificOriginRules) {
     EXPECT_TRUE(gdial_rest_server_is_allowed_origin(server, "package:youtube", "YouTube"));
 
     g_list_free(allowed_origins);
+}
+
+TEST_F(GDialRestServerTest, RegisterAppRegistryAndUnregisterAllApps) {
+    GDialAppRegistry *registry =
+        gdial_app_registry_new("Netflix", nullptr, nullptr, TRUE, FALSE, nullptr);
+    ASSERT_NE(registry, nullptr);
+
+    ASSERT_TRUE(gdial_rest_server_register_app_registry(server, registry));
+    EXPECT_TRUE(gdial_rest_server_is_app_registered(server, "Netflix"));
+
+    GDialApp *app = gdial_app_new("Netflix");
+    ASSERT_NE(app, nullptr);
+    EXPECT_EQ(gdial_app_start(app, nullptr, nullptr, nullptr, nullptr), GDIAL_APP_ERROR_NONE);
+    g_object_unref(app);
+
+    EXPECT_TRUE(gdial_rest_server_unregister_all_apps(server));
+    EXPECT_FALSE(gdial_rest_server_is_app_registered(server, "Netflix"));
+}
+
+TEST_F(GDialRestServerTest, EnablePropertyCanBeToggled) {
+    g_object_set(server, "enable", TRUE, NULL);
+    g_object_set(server, "enable", FALSE, NULL);
+    SUCCEED();
+}
+
+TEST(GDialRestBuilderTest, BuildRunningResponseIncludesLinkAndOptions) {
+    void *builder = GET_APP_response_builder_new("Netflix");
+    ASSERT_NE(builder, nullptr);
+
+    GET_APP_response_builder_set_option(builder, "allowStop", "true");
+    GET_APP_response_builder_set_state(builder, GDIAL_APP_STATE_RUNNING);
+    GET_APP_response_builder_set_link_href(builder, "run?q=1");
+    GET_APP_response_builder_set_installable(builder, "http://example/install");
+    GET_APP_response_builder_set_additionalData(builder, "k=v");
+
+    gsize len = 0;
+    gchar *xml = GET_APP_response_builder_build(builder, &len);
+    ASSERT_NE(xml, nullptr);
+    EXPECT_GT(len, 0u);
+    EXPECT_NE(strstr(xml, "<name>Netflix</name>"), nullptr);
+    EXPECT_NE(strstr(xml, "allowStop=\"true\""), nullptr);
+    EXPECT_NE(strstr(xml, "<state>running</state>"), nullptr);
+    EXPECT_NE(strstr(xml, "<link rel=\"run\""), nullptr);
+
+    g_free(xml);
+    GET_APP_response_builder_destroy(builder);
+}
+
+TEST(GDialRestBuilderTest, BuildStoppedResponseOmitsLink) {
+    void *builder = GET_APP_response_builder_new("Netflix");
+    ASSERT_NE(builder, nullptr);
+
+    GET_APP_response_builder_set_state(builder, GDIAL_APP_STATE_STOPPED);
+    GET_APP_response_builder_set_link_href(builder, NULL);
+
+    gsize len = 0;
+    gchar *xml = GET_APP_response_builder_build(builder, &len);
+    ASSERT_NE(xml, nullptr);
+    EXPECT_GT(len, 0u);
+    EXPECT_NE(strstr(xml, "<state>stopped</state>"), nullptr);
+    EXPECT_EQ(strstr(xml, "<link rel=\"run\""), nullptr);
+
+    g_free(xml);
+    GET_APP_response_builder_destroy(builder);
 }
