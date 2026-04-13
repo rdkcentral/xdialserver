@@ -41,6 +41,7 @@ void gdial_plat_stub_set_errors(
 
 class GDialRestServerTest : public ::testing::Test {
 protected:
+    const char *rest_route_id = "apps123";
     SoupServer *rest_server = nullptr;
     SoupServer *local_rest_server = nullptr;
     GDialRestServer *server = nullptr;
@@ -68,7 +69,7 @@ protected:
         ASSERT_NE(rest_uris, nullptr);
         SoupURI *rest_uri = (SoupURI *)rest_uris->data;
         guint rest_port = soup_uri_get_port(rest_uri);
-        rest_base = std::string("http://127.0.0.1:") + std::to_string(rest_port) + "/apps";
+        rest_base = std::string("http://127.0.0.1:") + std::to_string(rest_port) + "/" + rest_route_id;
         g_slist_free_full(rest_uris, (GDestroyNotify)soup_uri_free);
 
         GSList *local_uris = soup_server_get_uris(local_rest_server);
@@ -95,7 +96,7 @@ protected:
             NULL);
         ASSERT_NE(session, nullptr);
 
-        server = gdial_rest_server_new(rest_server, local_rest_server, (gchar *)"apps");
+        server = gdial_rest_server_new(rest_server, local_rest_server, (gchar *)rest_route_id);
         ASSERT_NE(server, nullptr);
         g_object_set(server, "enable", TRUE, NULL);
     }
