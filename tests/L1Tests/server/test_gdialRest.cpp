@@ -360,7 +360,7 @@ TEST_F(GDialRestServerTest, HttpPostOnAppPathCreatesInstance) {
     EXPECT_EQ(msg->status_code, SOUP_STATUS_CREATED);
     const char *location = soup_message_headers_get_one(msg->response_headers, "Location");
     ASSERT_NE(location, nullptr);
-    EXPECT_NE(strstr(location, "/apps/Netflix/run"), nullptr);
+    EXPECT_NE(strstr(location, "/Netflix/run"), nullptr);
     g_object_unref(msg);
 }
 
