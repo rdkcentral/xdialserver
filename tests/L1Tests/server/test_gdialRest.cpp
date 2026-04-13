@@ -45,6 +45,8 @@ protected:
     SoupServer *local_rest_server = nullptr;
     GDialRestServer *server = nullptr;
     SoupSession *session = nullptr;
+    GMainLoop *main_loop = nullptr;
+    GThread *main_loop_thread = nullptr;
     std::string rest_base;
     std::string local_base;
 
@@ -76,18 +78,26 @@ protected:
         local_base = std::string("http://127.0.0.1:") + std::to_string(local_port);
         g_slist_free_full(local_uris, (GDestroyNotify)soup_uri_free);
 
-        session = soup_session_new();
+        main_loop = g_main_loop_new(nullptr, FALSE);
+        ASSERT_NE(main_loop, nullptr);
+        main_loop_thread = g_thread_new(
+            "gdial-rest-test-loop",
+            [](gpointer data) -> gpointer {
+                g_main_loop_run((GMainLoop *)data);
+                return nullptr;
+            },
+            main_loop);
+        ASSERT_NE(main_loop_thread, nullptr);
+
+        session = soup_session_new_with_options(
+            SOUP_SESSION_TIMEOUT, 5,
+            SOUP_SESSION_IDLE_TIMEOUT, 5,
+            NULL);
         ASSERT_NE(session, nullptr);
 
         server = gdial_rest_server_new(rest_server, local_rest_server, (gchar *)"apps");
         ASSERT_NE(server, nullptr);
         g_object_set(server, "enable", TRUE, NULL);
-
-        /* gdial_rest_server_new takes refs on both servers. */
-        g_object_unref(rest_server);
-        g_object_unref(local_rest_server);
-        rest_server = nullptr;
-        local_rest_server = nullptr;
     }
 
     void TearDown() override {
@@ -96,9 +106,30 @@ protected:
             session = nullptr;
         }
 
+        if (main_loop) {
+            g_main_loop_quit(main_loop);
+        }
+        if (main_loop_thread) {
+            g_thread_join(main_loop_thread);
+            main_loop_thread = nullptr;
+        }
+        if (main_loop) {
+            g_main_loop_unref(main_loop);
+            main_loop = nullptr;
+        }
+
         if (server) {
             g_object_unref(server);
             server = nullptr;
+        }
+
+        if (rest_server) {
+            g_object_unref(rest_server);
+            rest_server = nullptr;
+        }
+        if (local_rest_server) {
+            g_object_unref(local_rest_server);
+            local_rest_server = nullptr;
         }
 
         gdial_plat_stub_reset_behavior();
