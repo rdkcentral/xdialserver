@@ -102,6 +102,10 @@ protected:
     }
 
     void TearDown() override {
+        if (server) {
+            gdial_rest_server_unregister_all_apps(server);
+        }
+
         if (session) {
             g_object_unref(session);
             session = nullptr;
@@ -325,6 +329,8 @@ TEST_F(GDialRestServerTest, RegisterAppRegistry_DuplicateRejected) {
 
     /* registry2 is not owned by server because registration failed. */
     gdial_app_regstry_dispose(registry2);
+
+    EXPECT_TRUE(gdial_rest_server_unregister_app(server, "Netflix"));
 }
 
 TEST_F(GDialRestServerTest, UnregisterUnknownAppReturnsFalse) {
