@@ -48,7 +48,6 @@ static void ping_handler(
 
 class GDialShieldTest : public ::testing::Test {
 protected:
-    GMainContext *main_context = nullptr;
     SoupServer *server = nullptr;
     SoupSession *session = nullptr;
     GMainLoop *main_loop = nullptr;
@@ -57,10 +56,7 @@ protected:
     std::string base_url;
 
     void SetUp() override {
-        main_context = g_main_context_new();
-        ASSERT_NE(main_context, nullptr);
-
-        server = soup_server_new(SOUP_SERVER_ASYNC_CONTEXT, main_context, nullptr);
+        server = soup_server_new(nullptr, nullptr);
         ASSERT_NE(server, nullptr);
 
         GError *error = nullptr;
@@ -76,7 +72,7 @@ protected:
 
         soup_server_add_handler(server, "/ping", ping_handler, nullptr, nullptr);
 
-        main_loop = g_main_loop_new(main_context, FALSE);
+        main_loop = g_main_loop_new(nullptr, FALSE);
         ASSERT_NE(main_loop, nullptr);
         main_loop_thread = g_thread_new(
             "gdial-shield-test-loop",
@@ -120,11 +116,6 @@ protected:
         if (main_loop) {
             g_main_loop_unref(main_loop);
             main_loop = nullptr;
-        }
-
-        if (main_context) {
-            g_main_context_unref(main_context);
-            main_context = nullptr;
         }
 
         if (server) {
