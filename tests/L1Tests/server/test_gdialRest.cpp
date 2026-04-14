@@ -42,6 +42,7 @@ void gdial_plat_stub_set_errors(
 class GDialRestServerTest : public ::testing::Test {
 protected:
     const char *rest_route_id = "apps123";
+    GMainContext *main_context = nullptr;
     SoupServer *rest_server = nullptr;
     SoupServer *local_rest_server = nullptr;
     GDialRestServer *server = nullptr;
@@ -54,8 +55,11 @@ protected:
     void SetUp() override {
         gdial_plat_stub_reset_behavior();
 
-        rest_server = soup_server_new(nullptr, nullptr);
-        local_rest_server = soup_server_new(nullptr, nullptr);
+        main_context = g_main_context_new();
+        ASSERT_NE(main_context, nullptr);
+
+        rest_server = soup_server_new(SOUP_SERVER_ASYNC_CONTEXT, main_context, nullptr);
+        local_rest_server = soup_server_new(SOUP_SERVER_ASYNC_CONTEXT, main_context, nullptr);
         ASSERT_NE(rest_server, nullptr);
         ASSERT_NE(local_rest_server, nullptr);
 
@@ -79,7 +83,7 @@ protected:
         local_base = std::string("http://127.0.0.1:") + std::to_string(local_port);
         g_slist_free_full(local_uris, (GDestroyNotify)soup_uri_free);
 
-        main_loop = g_main_loop_new(nullptr, FALSE);
+        main_loop = g_main_loop_new(main_context, FALSE);
         ASSERT_NE(main_loop, nullptr);
         main_loop_thread = g_thread_new(
             "gdial-rest-test-loop",
@@ -96,6 +100,7 @@ protected:
         ASSERT_TRUE(g_main_loop_is_running(main_loop));
 
         session = soup_session_new_with_options(
+            SOUP_SESSION_ASYNC_CONTEXT, main_context,
             SOUP_SESSION_TIMEOUT, 5,
             SOUP_SESSION_IDLE_TIMEOUT, 5,
             NULL);
@@ -126,6 +131,11 @@ protected:
         if (main_loop) {
             g_main_loop_unref(main_loop);
             main_loop = nullptr;
+        }
+
+        if (main_context) {
+            g_main_context_unref(main_context);
+            main_context = nullptr;
         }
 
         if (server) {
