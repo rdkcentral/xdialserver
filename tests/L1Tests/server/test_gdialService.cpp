@@ -62,6 +62,7 @@ struct StubState {
 /* ================================================================== */
 
 static gdialServiceImpl *s_impl_instance = nullptr;
+static gdialService *s_service_instance = nullptr;
 
 gdialServiceImpl* gdialServiceImpl::getInstance(void) {
     if (!s_impl_instance) {
@@ -106,6 +107,141 @@ void gdialServiceImpl::onApplicationHideRequest(std::string, std::string) {}
 void gdialServiceImpl::onApplicationResumeRequest(std::string, std::string) {}
 void gdialServiceImpl::onApplicationStateRequest(std::string, std::string) {}
 void gdialServiceImpl::updatePowerState(std::string) {}
+
+/* ================================================================== */
+/* gdialService lightweight implementation for unit tests             */
+/* ================================================================== */
+
+gdialService* gdialService::getInstance(
+    GDialNotifier* observer,
+    const std::vector<std::string>& gdial_args,
+    const std::string& actualprocessName)
+{
+    (void)gdial_args;
+    (void)actualprocessName;
+
+    if (!s_service_instance) {
+        s_service_instance = new gdialService();
+    }
+
+    gdialServiceImpl* impl = gdialServiceImpl::getInstance();
+    if (impl) {
+        impl->setService(observer);
+    }
+    return s_service_instance;
+}
+
+void gdialService::destroyInstance() {
+    if (s_service_instance) {
+        gdialServiceImpl::destroyInstance();
+        delete s_service_instance;
+        s_service_instance = nullptr;
+    }
+}
+
+GDIAL_SERVICE_ERROR_CODES gdialService::ApplicationStateChanged(
+    std::string applicationName,
+    std::string appState,
+    std::string applicationId,
+    std::string error)
+{
+    gdialServiceImpl* impl = gdialServiceImpl::getInstance();
+    if (s_service_instance && impl) {
+        RequestHandlerPayload payload = {};
+        payload.event = APP_STATE_CHANGED;
+        payload.appNameOrfriendlyname = std::move(applicationName);
+        payload.appIdOractivation = std::move(applicationId);
+        payload.state = std::move(appState);
+        payload.error = std::move(error);
+        payload.data_param = nullptr;
+        payload.user_param1 = false;
+        impl->sendRequest(payload);
+    }
+    return GDIAL_SERVICE_ERROR_NONE;
+}
+
+GDIAL_SERVICE_ERROR_CODES gdialService::ActivationChanged(
+    std::string activation,
+    std::string friendlyname)
+{
+    gdialServiceImpl* impl = gdialServiceImpl::getInstance();
+    if (s_service_instance && impl) {
+        RequestHandlerPayload payload = {};
+        payload.event = ACTIVATION_CHANGED;
+        payload.appNameOrfriendlyname = std::move(friendlyname);
+        payload.appIdOractivation = std::move(activation);
+        payload.data_param = nullptr;
+        payload.user_param1 = false;
+        impl->sendRequest(payload);
+    }
+    return GDIAL_SERVICE_ERROR_NONE;
+}
+
+GDIAL_SERVICE_ERROR_CODES gdialService::FriendlyNameChanged(std::string friendlyname) {
+    gdialServiceImpl* impl = gdialServiceImpl::getInstance();
+    if (s_service_instance && impl) {
+        RequestHandlerPayload payload = {};
+        payload.event = FRIENDLYNAME_CHANGED;
+        payload.appNameOrfriendlyname = std::move(friendlyname);
+        payload.data_param = nullptr;
+        payload.user_param1 = false;
+        impl->sendRequest(payload);
+    }
+    return GDIAL_SERVICE_ERROR_NONE;
+}
+
+std::string gdialService::getProtocolVersion(void) {
+    return "2.2";
+}
+
+GDIAL_SERVICE_ERROR_CODES gdialService::RegisterApplications(RegisterAppEntryList* appConfigList) {
+    gdialServiceImpl* impl = gdialServiceImpl::getInstance();
+    if (s_service_instance && impl) {
+        RequestHandlerPayload payload = {};
+        payload.event = REGISTER_APPLICATIONS;
+        payload.data_param = appConfigList;
+        payload.user_param1 = false;
+        impl->sendRequest(payload);
+    }
+    return GDIAL_SERVICE_ERROR_NONE;
+}
+
+void gdialService::setNetworkStandbyMode(bool nwStandbymode) {
+    gdialServiceImpl* impl = gdialServiceImpl::getInstance();
+    if (s_service_instance && impl) {
+        RequestHandlerPayload payload = {};
+        payload.event = UPDATE_NW_STANDBY;
+        payload.user_param1 = nwStandbymode;
+        payload.data_param = nullptr;
+        impl->sendRequest(payload);
+    }
+}
+
+GDIAL_SERVICE_ERROR_CODES gdialService::setManufacturerName(std::string manufacturer) {
+    gdialServiceImpl* impl = gdialServiceImpl::getInstance();
+    if (s_service_instance && impl) {
+        RequestHandlerPayload payload = {};
+        payload.event = UPDATE_MANUFACTURER_NAME;
+        payload.manufacturer = std::move(manufacturer);
+        payload.data_param = nullptr;
+        payload.user_param1 = false;
+        impl->sendRequest(payload);
+    }
+    return GDIAL_SERVICE_ERROR_NONE;
+}
+
+GDIAL_SERVICE_ERROR_CODES gdialService::setModelName(std::string model) {
+    gdialServiceImpl* impl = gdialServiceImpl::getInstance();
+    if (s_service_instance && impl) {
+        RequestHandlerPayload payload = {};
+        payload.event = UPDATE_MODEL_NAME;
+        payload.model = std::move(model);
+        payload.data_param = nullptr;
+        payload.user_param1 = false;
+        impl->sendRequest(payload);
+    }
+    return GDIAL_SERVICE_ERROR_NONE;
+}
 
 /* ================================================================== */
 /* Minimal GDialNotifier implementation for tests                     */

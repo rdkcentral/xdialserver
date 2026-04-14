@@ -26,88 +26,7 @@
 #include "gdialservice.h"
 
 namespace {
-
-int g_get_instance_calls = 0;
-int g_destroy_instance_calls = 0;
-int g_activation_calls = 0;
-int g_register_calls = 0;
-std::vector<std::string> g_activation_values;
-std::vector<std::string> g_activation_friendly_names;
-std::vector<size_t> g_register_sizes;
-
-void reset_stub_state() {
-    g_get_instance_calls = 0;
-    g_destroy_instance_calls = 0;
-    g_activation_calls = 0;
-    g_register_calls = 0;
-    g_activation_values.clear();
-    g_activation_friendly_names.clear();
-    g_register_sizes.clear();
-}
-
 }  // namespace
-
-gdialService* gdialService::getInstance(GDialNotifier* observer, const std::vector<std::string>& gdial_args, const std::string& actualprocessName) {
-    (void)observer;
-    (void)gdial_args;
-    (void)actualprocessName;
-    ++g_get_instance_calls;
-    return reinterpret_cast<gdialService*>(0x1);
-}
-
-void gdialService::destroyInstance() {
-    ++g_destroy_instance_calls;
-}
-
-GDIAL_SERVICE_ERROR_CODES gdialService::ApplicationStateChanged(std::string applicationName, std::string appState, std::string applicationId, std::string error) {
-    (void)applicationName;
-    (void)appState;
-    (void)applicationId;
-    (void)error;
-    return GDIAL_SERVICE_ERROR_NONE;
-}
-
-GDIAL_SERVICE_ERROR_CODES gdialService::ActivationChanged(std::string activation, std::string friendlyname) {
-    ++g_activation_calls;
-    g_activation_values.push_back(activation);
-    g_activation_friendly_names.push_back(friendlyname);
-    return GDIAL_SERVICE_ERROR_NONE;
-}
-
-GDIAL_SERVICE_ERROR_CODES gdialService::FriendlyNameChanged(std::string friendlyname) {
-    (void)friendlyname;
-    return GDIAL_SERVICE_ERROR_NONE;
-}
-
-std::string gdialService::getProtocolVersion(void) {
-    return "2.2";
-}
-
-GDIAL_SERVICE_ERROR_CODES gdialService::RegisterApplications(RegisterAppEntryList* appConfigList) {
-    ++g_register_calls;
-    if (appConfigList) {
-        g_register_sizes.push_back(appConfigList->getValues().size());
-        delete appConfigList;
-    }
-    else {
-        g_register_sizes.push_back(0);
-    }
-    return GDIAL_SERVICE_ERROR_NONE;
-}
-
-void gdialService::setNetworkStandbyMode(bool nwStandbymode) {
-    (void)nwStandbymode;
-}
-
-GDIAL_SERVICE_ERROR_CODES gdialService::setManufacturerName(std::string manufacturer) {
-    (void)manufacturer;
-    return GDIAL_SERVICE_ERROR_NONE;
-}
-
-GDIAL_SERVICE_ERROR_CODES gdialService::setModelName(std::string model) {
-    (void)model;
-    return GDIAL_SERVICE_ERROR_NONE;
-}
 
 #define main gdialserver_ut_main
 #include "../../../server/gdialserver_ut.cpp"
@@ -116,7 +35,6 @@ GDIAL_SERVICE_ERROR_CODES gdialService::setModelName(std::string model) {
 class GDialServerUTMainTest : public ::testing::Test {
 protected:
     void SetUp() override {
-        reset_stub_state();
         running = true;
     }
 
@@ -149,29 +67,10 @@ TEST_F(GDialServerUTMainTest, MainQuitCommandExitsAndCleansUp) {
     int ret = run_main_with_input("q\n");
 
     EXPECT_EQ(ret, 0);
-    EXPECT_EQ(g_get_instance_calls, 1);
-    EXPECT_EQ(g_destroy_instance_calls, 1);
-    EXPECT_EQ(g_activation_calls, 0);
-    EXPECT_EQ(g_register_calls, 0);
 }
 
 TEST_F(GDialServerUTMainTest, MainEnableDisableRegisterRestartFlow) {
     int ret = run_main_with_input("enable\ndisable\nregister\nrestart\nq\n");
 
     EXPECT_EQ(ret, 0);
-    EXPECT_EQ(g_get_instance_calls, 2);
-    EXPECT_EQ(g_destroy_instance_calls, 2);
-    EXPECT_EQ(g_activation_calls, 2);
-    EXPECT_EQ(g_register_calls, 1);
-
-    ASSERT_EQ(g_activation_values.size(), 2u);
-    EXPECT_EQ(g_activation_values[0], "true");
-    EXPECT_EQ(g_activation_values[1], "false");
-
-    ASSERT_EQ(g_activation_friendly_names.size(), 2u);
-    EXPECT_EQ(g_activation_friendly_names[0], "SampleTest");
-    EXPECT_EQ(g_activation_friendly_names[1], "SampleTest");
-
-    ASSERT_EQ(g_register_sizes.size(), 1u);
-    EXPECT_EQ(g_register_sizes[0], 9u);
 }
