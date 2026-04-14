@@ -92,7 +92,7 @@ protected:
         }
         ASSERT_TRUE(g_main_loop_is_running(main_loop));
 
-        session = soup_session_new_with_options(
+        session = soup_session_async_new_with_options(
             SOUP_SESSION_ASYNC_CONTEXT, main_context,
             SOUP_SESSION_TIMEOUT, 5,
             SOUP_SESSION_IDLE_TIMEOUT, 5,

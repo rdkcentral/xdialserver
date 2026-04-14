@@ -153,8 +153,8 @@ TEST_F(GDialServerUTMainTest, MainEnableDisableRegisterRestartFlow) {
     int ret = run_main_with_input("enable\ndisable\nregister\nrestart\nq\n");
 
     EXPECT_EQ(ret, 0);
-    EXPECT_EQ(g_get_instance_calls, 2);
-    EXPECT_EQ(g_destroy_instance_calls, 2);
+    EXPECT_EQ(g_get_instance_calls, 3);
+    EXPECT_EQ(g_destroy_instance_calls, 3);
     EXPECT_EQ(g_activation_calls, 2);
     EXPECT_EQ(g_register_calls, 1);
 }
