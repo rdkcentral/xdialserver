@@ -41,9 +41,7 @@
 #include "gdialserviceimpl.h"
 #include "gdialservicecommon.h"
 
-extern "C" {
 #include "gdial-plat-util.h"
-}
 
 /* ================================================================== */
 /* Minimal notifier                                                    */
