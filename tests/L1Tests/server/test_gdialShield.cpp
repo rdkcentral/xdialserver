@@ -83,6 +83,11 @@ protected:
             main_loop);
         ASSERT_NE(main_loop_thread, nullptr);
 
+        for (int i = 0; i < 200 && !g_main_loop_is_running(main_loop); ++i) {
+            g_usleep(1000);
+        }
+        ASSERT_TRUE(g_main_loop_is_running(main_loop));
+
         session = soup_session_new_with_options(
             SOUP_SESSION_TIMEOUT, 5,
             SOUP_SESSION_IDLE_TIMEOUT, 5,
