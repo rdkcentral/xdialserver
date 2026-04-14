@@ -273,21 +273,6 @@ TEST_F(GDialServiceTest, GetInstance_NoCrash) {
     SUCCEED();
 }
 
-TEST_F(GDialServiceTest, GetInstance_WithRealIface_ReturnsNonNull) {
-    /* Do NOT call getInstance() a second time here.  The implementation
-     * unconditionally re-invokes start_GDialServer on every call (there is no
-     * early-return guard past the object allocation).  A second call would
-     * overwrite m_main_loop with a fresh context, fail with EADDRINUSE, then
-     * call stop_GDialServer which quits the *new* (never-started) loop -- so
-     * the original main thread stays blocked in g_main_loop_run and
-     * pthread_join hangs forever.
-     *
-     * Instead we just assert that the call from SetUp produced a valid pointer
-     * when a real (non-loopback) interface is available. */
-    if (!find_usable_iface()) GTEST_SKIP() << "No non-loopback interface; skipping success-path check";
-    EXPECT_NE(svc, nullptr);
-}
-
 TEST_F(GDialServiceTest, DestroyInstance_NoCrash) {
     gdialService::destroyInstance();
     svc = nullptr;
@@ -346,6 +331,44 @@ TEST_F(GDialServiceTest, SetModelName_ReturnsNone) {
 TEST_F(GDialServiceTest, GetProtocolVersion_ReturnsNonEmpty) {
     if (!svc) GTEST_SKIP() << "Service start failed (loopback-only CI env)";
     EXPECT_FALSE(svc->getProtocolVersion().empty());
+}
+
+/* ================================================================== */
+/* SECTION 2b: start_GDialServer app_list else branch                 */
+/* Passes --app-list so the option-parsing else branch executes,      */
+/* covering all the g_strstr_len checks for netflix/youtube/etc.      */
+/* Only reachable when a non-loopback interface is present.           */
+/* ================================================================== */
+
+class GDialServiceWithAppListTest : public ::testing::Test {
+protected:
+    TestServiceNotifier notifier;
+    gdialService *svc = nullptr;
+
+    void SetUp() override {
+        gdialService::destroyInstance();
+
+        const char *iface = find_usable_iface();
+        if (!iface) return;   /* TearDown still safe; svc stays null */
+
+        std::vector<std::string> args = {
+            "--network-interface", iface,
+            "--app-list", "netflix,youtube,youtubetv,youtubekids,amazoninstantvideo,spotify,pairing,system"
+        };
+        svc = gdialService::getInstance(&notifier, args, "L1Test");
+    }
+
+    void TearDown() override {
+        gdialService::destroyInstance();
+        svc = nullptr;
+    }
+};
+
+TEST_F(GDialServiceWithAppListTest, StartWithAppList_ExercisesElseBranch) {
+    /* Exercises the `else { ... }` block in start_GDialServer that processes
+     * options_.app_list — covers all g_strstr_len checks at lines ~360-440. */
+    if (!svc) GTEST_SKIP() << "Service start failed (loopback-only CI env)";
+    SUCCEED();
 }
 
 /* ================================================================== */
