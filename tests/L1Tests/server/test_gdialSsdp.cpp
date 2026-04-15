@@ -122,32 +122,63 @@ TEST_F(GDialSsdpTest, SsdpHttpCallback_GetDdXmlReturnsOkAndHeaders) {
 
     std::string base = BuildServerBaseUrl(server);
     ASSERT_FALSE(base.empty());
-
     std::string url = base + uuid + "/dd.xml";
-    SoupSession *session = soup_session_new_with_options(
-        SOUP_SESSION_USE_THREAD_CONTEXT, TRUE,
-        SOUP_SESSION_TIMEOUT, 5,
-        nullptr);
-    ASSERT_NE(session, nullptr);
 
+    /*
+     * Use async queue_message + g_main_loop_run so that both the outbound
+     * client I/O and the SoupServer's inbound dispatch are handled by the
+     * same g_main_context_default() iteration.  Blocking send_message
+     * deadlocks because the server needs the context iterated while the
+     * test thread is blocked on the socket waiting for a response.
+     */
+    struct Ctx {
+        GMainLoop *loop;
+        guint      status = 0;
+        std::string app_url;
+        std::string body;
+    } ctx;
+    ctx.loop = g_main_loop_new(nullptr, FALSE);
+
+    /* Safety watchdog — quits the loop if no response arrives in 5 s. */
+    GSource *watchdog = g_timeout_source_new_seconds(5);
+    g_source_set_callback(watchdog,
+        [](gpointer d) -> gboolean {
+            g_main_loop_quit(static_cast<GMainLoop *>(d));
+            return G_SOURCE_REMOVE;
+        }, ctx.loop, nullptr);
+    g_source_attach(watchdog, nullptr);
+    g_source_unref(watchdog);
+
+    SoupSession *session = soup_session_new_with_options(
+        SOUP_SESSION_TIMEOUT, (guint)5, nullptr);
+    ASSERT_NE(session, nullptr);
     SoupMessage *msg = soup_message_new("GET", url.c_str());
     ASSERT_NE(msg, nullptr);
 
-    guint status = soup_session_send_message(session, msg);
-    EXPECT_EQ(status, (guint)SOUP_STATUS_OK);
+    /* queue_message transfers ownership of msg to the session. */
+    soup_session_queue_message(session, msg,
+        [](SoupSession *, SoupMessage *m, gpointer d) {
+            auto *c = static_cast<Ctx *>(d);
+            c->status = m->status_code;
+            const char *au = soup_message_headers_get_one(
+                m->response_headers, "Application-URL");
+            c->app_url = au ? au : "";
+            if (m->response_body && m->response_body->data)
+                c->body.assign(m->response_body->data,
+                               (std::string::size_type)m->response_body->length);
+            g_main_loop_quit(c->loop);
+        }, &ctx);
 
-    const char *app_url = soup_message_headers_get_one(msg->response_headers, "Application-URL");
-    ASSERT_NE(app_url, nullptr);
-
-    ASSERT_NE(msg->response_body, nullptr);
-    ASSERT_NE(msg->response_body->data, nullptr);
-    std::string body(msg->response_body->data, msg->response_body->length);
-    EXPECT_NE(body.find("<friendlyName>L1Friendly</friendlyName>"), std::string::npos);
-    EXPECT_NE(body.find("<manufacturer>L1Maker</manufacturer>"), std::string::npos);
-    EXPECT_NE(body.find("<modelName>L1Model</modelName>"), std::string::npos);
-
-    g_object_unref(msg);
+    g_main_loop_run(ctx.loop);
+    g_main_loop_unref(ctx.loop);
     g_object_unref(session);
+
+    EXPECT_EQ(ctx.status, (guint)SOUP_STATUS_OK);
+    EXPECT_FALSE(ctx.app_url.empty());
+    EXPECT_NE(ctx.body.find("<friendlyName>L1Friendly</friendlyName>"), std::string::npos);
+    EXPECT_NE(ctx.body.find("<manufacturer>L1Maker</manufacturer>"), std::string::npos);
+    EXPECT_NE(ctx.body.find("<modelName>L1Model</modelName>"), std::string::npos);
+
     gdial_ssdp_destroy();
 }
 
@@ -168,22 +199,42 @@ TEST_F(GDialSsdpTest, SsdpHttpCallback_NonGetReturnsBadRequest) {
 
     std::string base = BuildServerBaseUrl(server);
     ASSERT_FALSE(base.empty());
-
     std::string url = base + uuid + "/dd.xml";
-    SoupSession *session = soup_session_new_with_options(
-        SOUP_SESSION_USE_THREAD_CONTEXT, TRUE,
-        SOUP_SESSION_TIMEOUT, 5,
-        nullptr);
-    ASSERT_NE(session, nullptr);
 
+    struct Ctx {
+        GMainLoop *loop;
+        guint      status = 0;
+    } ctx;
+    ctx.loop = g_main_loop_new(nullptr, FALSE);
+
+    GSource *watchdog = g_timeout_source_new_seconds(5);
+    g_source_set_callback(watchdog,
+        [](gpointer d) -> gboolean {
+            g_main_loop_quit(static_cast<GMainLoop *>(d));
+            return G_SOURCE_REMOVE;
+        }, ctx.loop, nullptr);
+    g_source_attach(watchdog, nullptr);
+    g_source_unref(watchdog);
+
+    SoupSession *session = soup_session_new_with_options(
+        SOUP_SESSION_TIMEOUT, (guint)5, nullptr);
+    ASSERT_NE(session, nullptr);
     SoupMessage *msg = soup_message_new("POST", url.c_str());
     ASSERT_NE(msg, nullptr);
 
-    guint status = soup_session_send_message(session, msg);
-    EXPECT_EQ(status, (guint)SOUP_STATUS_BAD_REQUEST);
+    soup_session_queue_message(session, msg,
+        [](SoupSession *, SoupMessage *m, gpointer d) {
+            auto *c = static_cast<Ctx *>(d);
+            c->status = m->status_code;
+            g_main_loop_quit(c->loop);
+        }, &ctx);
 
-    g_object_unref(msg);
+    g_main_loop_run(ctx.loop);
+    g_main_loop_unref(ctx.loop);
     g_object_unref(session);
+
+    EXPECT_EQ(ctx.status, (guint)SOUP_STATUS_BAD_REQUEST);
+
     gdial_ssdp_destroy();
 }
 
