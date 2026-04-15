@@ -137,10 +137,10 @@ TEST_F(GDialAppLifecycleTest, New_InitialStateIsStopped) {
     EXPECT_EQ(GDIAL_APP_GET_STATE(app), GDIAL_APP_STATE_STOPPED);
 }
 
-TEST_F(GDialAppLifecycleTest, New_InitialInstanceIdIsNone) {
+TEST_F(GDialAppLifecycleTest, New_InitialInstanceIdIsZero) {
     app = gdial_app_new("Netflix");
     ASSERT_NE(app, nullptr);
-    EXPECT_EQ(app->instance_id, GDIAL_APP_INSTANCE_NONE);
+    EXPECT_EQ(app->instance_id, 0);
 }
 
 TEST_F(GDialAppLifecycleTest, State_UnstartedAppReturnsStopped) {
@@ -191,7 +191,7 @@ TEST_F(GDialAppExtendedTest, StartHideResumeStop_ReturnsNone) {
 }
 
 TEST_F(GDialAppExtendedTest, Start_AssignsInstanceId) {
-    EXPECT_EQ(app->instance_id, GDIAL_APP_INSTANCE_NONE);
+    EXPECT_EQ(app->instance_id, 0);
     EXPECT_EQ(gdial_app_start(app, nullptr, nullptr, nullptr, nullptr), GDIAL_APP_ERROR_NONE);
     EXPECT_NE(app->instance_id, GDIAL_APP_INSTANCE_NONE);
 }
