@@ -20,7 +20,6 @@
 # Include paths:
 #   - tests/L1Tests/stubs        : shadow headers that redirect to test stubs
 #   - tests/L1Tests/mocks        : shared mock implementations
-#   - tests/mocks/xdialserver    : xdialserver-specific mocks
 #   - server/include              : xdialserver public API headers
 #   - server                      : xdialserver implementation headers
 #   - server/plat                 : platform-specific headers
@@ -32,7 +31,6 @@
 
 AM_CPPFLAGS = -I$(top_srcdir)/tests/L1Tests/stubs \
 	      -I$(top_srcdir)/tests/L1Tests/mocks \
-	      -I$(top_srcdir)/tests/mocks/xdialserver \
 	      -I$(top_srcdir)/server/include \
 	      -I$(top_srcdir)/server \
 	      -I$(top_srcdir)/server/plat \
