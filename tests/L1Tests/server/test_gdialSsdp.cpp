@@ -125,8 +125,8 @@ TEST_F(GDialSsdpTest, SsdpHttpCallback_GetDdXmlReturnsOkAndHeaders) {
 
     std::string url = base + uuid + "/dd.xml";
     SoupSession *session = soup_session_new_with_options(
-        SOUP_SESSION_TIMEOUT, 2,
-        SOUP_SESSION_IDLE_TIMEOUT, 2,
+        SOUP_SESSION_USE_THREAD_CONTEXT, TRUE,
+        SOUP_SESSION_TIMEOUT, 5,
         nullptr);
     ASSERT_NE(session, nullptr);
 
@@ -171,8 +171,8 @@ TEST_F(GDialSsdpTest, SsdpHttpCallback_NonGetReturnsBadRequest) {
 
     std::string url = base + uuid + "/dd.xml";
     SoupSession *session = soup_session_new_with_options(
-        SOUP_SESSION_TIMEOUT, 2,
-        SOUP_SESSION_IDLE_TIMEOUT, 2,
+        SOUP_SESSION_USE_THREAD_CONTEXT, TRUE,
+        SOUP_SESSION_TIMEOUT, 5,
         nullptr);
     ASSERT_NE(session, nullptr);
 
