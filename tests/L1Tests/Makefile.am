@@ -53,6 +53,13 @@ AM_LDFLAGS = -pthread
 # ---------- Test binary ----------
 noinst_PROGRAMS = run_L1Tests
 
+# New test checklist:
+#  1) Add new test_*.cpp to run_L1Tests_SOURCES below.
+#  2) Keep tests in the matching folder (server/, plat/, utils/).
+#  3) If new stubs are required, add them under tests/L1Tests/stubs and/or
+#     tests/L1Tests/mocks, and ensure CI wrapper generation covers them.
+#  4) For modules with static/global state, add explicit fixture cleanup to
+#     avoid cross-test contamination in the single-process run_L1Tests binary.
 run_L1Tests_SOURCES = \
 	test_main.cpp \
 	server/test_gdialServer.cpp \

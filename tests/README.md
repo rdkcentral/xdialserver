@@ -1,130 +1,134 @@
 # Tests
 
-## L1 Tests (Unit Tests)
+This folder contains the xdialserver test harness and all unit-level (L1) tests.
 
-The L1 tests are unit tests built with Google Test (gtest) framework for xdialserver components.
+## What Is Here
 
-### Structure
+Current top-level layout:
 
-The test suite is organized by component to promote modularity and maintainability:
+- tests/L1Tests: L1 test sources and build recipe
+- tests/mocks: shared mock code used by tests
+- tests/Makefile.am: autotools entry for test subdirectories
+- tests/README.md: this guide
 
-```
-tests/
-├── L1Tests/
-│   ├── server/                     # REST/DIAL protocol tests
-│   │   ├── test_gdialServer.cpp    # Test cases
-│   │   ├── gdial_rest_stubs.h      # Stub declarations
-│   │   └── gdial_rest_stubs.cpp    # Stub implementations
-│   ├── plat/                       # Platform-specific tests
-│   │   ├── test_gdialPlat.cpp      # Test cases
-│   │   ├── gdial_plat_stubs.h      # Stub declarations
-│   │   └── gdial_plat_stubs.cpp    # Stub implementations
-│   ├── utils/                      # Utility function tests
-│   │   ├── test_gdialUtil.cpp      # Test cases
-│   │   ├── gdial_util_stubs.h      # Stub declarations
-│   │   └── gdial_util_stubs.cpp    # Stub implementations
-│   ├── stubs/                      # Shared test stubs
-│   │   ├── xdialserver_test_stubs.h    # Combined stub interface
-│   │   └── xdialserver_test_stubs.cpp  # Combined stub implementations
-│   ├── mocks/                      # Shared mock implementations
-│   │   ├── IarmBusMock.h           # IARM bus mock
-│   │   └── IarmBusMock.cpp         # IARM bus mock implementation
-│   ├── test_main.cpp               # Test runner entry point
-│   └── Makefile.am                 # Autotools build configuration
-├── mocks/xdialserver/              # xdialserver-specific shared mocks
-├── Makefile.am
-└── README.md
-```
+Inside tests/L1Tests:
 
-### Building Locally
+- tests/L1Tests/server: server-layer tests (REST, SSDP, shield, service, app lifecycle)
+- tests/L1Tests/plat: platform integration tests for plat APIs and gdial.cpp adapter paths
+- tests/L1Tests/utils: utility tests
+- tests/L1Tests/stubs: shadow headers and test-specific C/C++ shim headers
+- tests/L1Tests/mocks: C mocks compiled into run_L1Tests
+- tests/L1Tests/tests: legacy unit file coverage entry points
+- tests/L1Tests/test_main.cpp: gtest main
+- tests/L1Tests/Makefile.am: source list and compile/link flags
 
-Prerequisites:
-- autoconf, automake, libtool, pkg-config
-- Build tools: gcc, g++, make, cmake
-- Google Test: libgtest-dev, libgmock-dev
-- GLib/GIO: libglib2.0-dev
-- DIAL/SSDP: libgssdp-1.2-dev (or compatible gssdp dev package), libsoup2.4-dev (or libsoup-3.0-dev)
-- XML: libxml2-dev
-- Other: uuid-dev, libdbus-1-dev, valgrind, lcov
+## How The L1 System Works
 
-Optional (for full platform support, not required for basic tests):
-- WPEFramework: libwpeframework-dev
-- IARM Bus: libiarmbus-dev
+The L1 test binary is a single executable:
 
-Install on Ubuntu 22.04:
+- run_L1Tests
 
-```bash
-sudo apt update
-sudo apt install -y \
-    autoconf automake libtool pkg-config \
-    libgtest-dev libgmock-dev \
-    build-essential g++ cmake \
-    libglib2.0-dev \
-    libgssdp-1.2-dev libsoup2.4-dev libxml2-dev \
-    uuid-dev libdbus-1-dev \
-    valgrind lcov
-```
+It links:
 
-Build steps:
+- test files from tests/L1Tests
+- selected real implementation files from server and server/plat
+- test stubs and mocks that replace external dependencies
 
-```bash
-# Generate configure script
-autoreconf -if
+Key behavior:
 
-# Configure with L1 tests enabled
-./configure --enable-l1tests
+1. Real source + selective stubbing
+- We compile real modules for behavior coverage, but override dependencies below those modules.
+- Example: a real server/plat module can be tested while its OS/backend calls are stubbed.
 
-# Build tests
-make -C tests/L1Tests
+2. Include shadowing for external frameworks
+- tests/L1Tests/stubs is first on the include path.
+- CI generates wrapper headers there so build-time includes resolve to local stub content instead of requiring full external frameworks.
 
-# Run tests
-./tests/L1Tests/run_L1Tests
-```
+3. One process, shared globals
+- Most L1 tests run in the same process, so static/global state in C modules can leak between tests unless explicitly reset.
+- Tests that touch module-level caches must clean up in TearDown.
 
-### Adding New Tests
+## Build And Run Locally
 
-1. **Choose a component** — Add test cases to the appropriate subdirectory:
-   - `server/` for REST/DIAL protocol tests
-   - `plat/` for platform-specific component tests
-   - `utils/` for utility function tests
+Typical local flow:
 
-2. **Create test file** — Add a new test cpp file with the pattern `test_*.cpp`
-   ```cpp
-   #include <gtest/gtest.h>
-   
-   class MyComponentTest : public ::testing::Test {
-       protected:
-           void SetUp() override { /* Initialize */ }
-           void TearDown() override { /* Cleanup */ }
-   };
-   
-   TEST_F(MyComponentTest, MyTestCase) {
-       EXPECT_TRUE(true);
-   }
-   ```
+1. Generate autotools files
+- autoreconf -if
 
-3. **Add stubs if needed** — Create component-specific stub headers and implementations
-   - `component_stubs.h` — Stub declarations
-   - `component_stubs.cpp` — Stub implementations
+2. Configure with L1 enabled
+- ./configure --enable-l1tests
 
-4. **Update Makefile.am** — Add your test source files to the `run_L1Tests_SOURCES` list
+3. Build
+- make -C tests/L1Tests
 
-### Test Organization
+4. Run
+- ./tests/L1Tests/run_L1Tests
 
-Tests follow the same component structure as the source code:
+Optional single-test execution:
 
-| Component | Location | Tests |
-|-----------|----------|-------|
-| REST/DIAL | `server/` | `test_gdialServer.cpp` |
-| Platform | `plat/` | `test_gdialPlat.cpp` |
-| Utilities | `utils/` | `test_gdialUtil.cpp` |
-| Shared Stubs | `stubs/` | `xdialserver_test_stubs.*` |
-| IARM/Mocks | `mocks/` | `IarmBusMock.*` |
+- ./tests/L1Tests/run_L1Tests --gtest_filter=GDialSsdpTest.*
+- ./tests/L1Tests/run_L1Tests --gtest_filter=GDialPlatAppTest.*
 
-### GitHub Actions CI
+## CI Workflow Summary
 
-Tests are automatically built and run on:
-- Push to `develop` and `main` branches
-- Pull requests to `develop` and `main` branches
+The workflow in .github/workflows/L1-tests.yml does the following:
 
-See [.github/workflows/L1-tests.yml](../.github/workflows/L1-tests.yml) for workflow details.
+1. Installs dependencies and builds googletest
+2. Generates stub wrapper headers under tests/L1Tests/stubs
+3. Builds run_L1Tests using autotools
+4. Runs tests normally and under valgrind
+5. Publishes test results, valgrind log, and coverage artifacts
+
+## Adding Or Modifying Tests Safely
+
+When adding tests:
+
+1. Place file in the matching area
+- server logic: tests/L1Tests/server
+- platform logic: tests/L1Tests/plat
+- utility helpers: tests/L1Tests/utils
+
+2. Register file in tests/L1Tests/Makefile.am
+- Add it to run_L1Tests_SOURCES or it will not compile in CI.
+
+3. Isolate global state
+- If module under test uses static/global variables, reset via module destroy/reset APIs in TearDown.
+- Do not rely on test execution order.
+
+4. Prefer deterministic async tests
+- For GLib/libsoup event paths, avoid timing-sensitive sleeps when possible.
+- Use explicit loop-driven completion or cancel/remove handles in tests to avoid race-driven flakes.
+
+5. Keep assertions aligned with implementation contracts
+- Validate against current API behavior and constants from headers.
+- If a behavior changed intentionally, update tests and document the expected contract in the test name.
+
+## Known Pitfalls (Important)
+
+1. Static cache/state in SSDP tests
+- server/gdial-ssdp.c caches dd.xml response and keeps process-global name/model overrides.
+- If a test sets manufacturer/model through setter APIs, later tests may observe those values unless reset or overridden.
+
+2. Async source lifecycle in platform app tests
+- server/plat/gdial-plat-app.c async calls use GLib timeout sources.
+- Running timer callbacks near teardown can trigger use-after-free races if test cleanup is not deterministic.
+- Prefer cancel/remove flow tests over race-prone timer execution unless explicitly testing callback timing.
+
+3. Header dependency visibility in C++ tests
+- Some C headers expose GLib types such as gboolean.
+- In C++ test translation units, include glib.h before such headers when needed to avoid type-resolution build breaks.
+
+## Quick Troubleshooting
+
+If CI fails but local passes:
+
+1. Re-run only the failing fixture with gtest_filter.
+2. Run under valgrind locally if available.
+3. Check for shared static state and missing teardown cleanup.
+4. Verify test source is included in tests/L1Tests/Makefile.am.
+5. Check .github/workflows/L1-tests.yml for CI-only generated stubs that local build may not have.
+
+## Maintainer Notes
+
+- Keep this document updated whenever structure or test harness behavior changes.
+- When introducing new shared stubs or wrappers, document where they are generated and why.
