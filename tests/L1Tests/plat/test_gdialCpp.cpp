@@ -83,11 +83,23 @@ namespace {
 
 static int g_power_cb_calls = 0;
 static std::string g_last_power_state;
+static int g_manufacturer_cb_calls = 0;
+static int g_model_cb_calls = 0;
 
 static void test_power_cb(const char *state)
 {
     ++g_power_cb_calls;
     g_last_power_state = state ? state : "";
+}
+
+static void test_manufacturer_cb(const char *)
+{
+    ++g_manufacturer_cb_calls;
+}
+
+static void test_model_cb(const char *)
+{
+    ++g_model_cb_calls;
 }
 
 class DummyNotifier : public GDialNotifier {
@@ -115,12 +127,18 @@ protected:
         ctx = g_main_context_new();
         g_power_cb_calls = 0;
         g_last_power_state.clear();
+        g_manufacturer_cb_calls = 0;
+        g_model_cb_calls = 0;
         gdail_plat_dev_register_powerstate_cb(test_power_cb);
+        gdial_cpp_test_register_manufacturername_cb(nullptr);
+        gdial_cpp_test_register_modelname_cb(nullptr);
     }
 
     void TearDown() override
     {
         gdail_plat_dev_register_powerstate_cb(nullptr);
+        gdial_cpp_test_register_manufacturername_cb(nullptr);
+        gdial_cpp_test_register_modelname_cb(nullptr);
         gdial_cpp_test_term();
         if (ctx) {
             g_main_context_unref(ctx);
@@ -147,9 +165,9 @@ TEST_F(GDialCppTest, ParseQuery_ValidKeyValuePairs)
 
 TEST_F(GDialCppTest, ParseQuery_InvalidEscapeFallsBackToRaw)
 {
-    std::map<std::string, std::string> out = gdial_cpp_test_parse_query("k=100%bad");
+    std::map<std::string, std::string> out = gdial_cpp_test_parse_query("k=100%");
     ASSERT_EQ(out.size(), 1u);
-    EXPECT_EQ(out["k"], "100%bad");
+    EXPECT_EQ(out["k"], "100%");
 }
 
 TEST_F(GDialCppTest, InitAndTerm_Idempotent)
@@ -184,21 +202,26 @@ TEST_F(GDialCppTest, OsServiceNotification_AfterInitReturnsNone)
 
 TEST_F(GDialCppTest, OsUpdateManufacturerName_NullAndUninitializedReturnInternal)
 {
-    EXPECT_EQ(gdial_cpp_test_os_application_update_manufacturer_name(nullptr), GDIAL_APP_ERROR_INTERNAL);
-    EXPECT_EQ(gdial_cpp_test_os_application_update_manufacturer_name("Acme"), GDIAL_APP_ERROR_INTERNAL);
+    EXPECT_EQ(gdial_cpp_test_os_application_update_manufacturer_name(nullptr), GDIAL_CAST_ERROR_INTERNAL);
+    EXPECT_EQ(gdial_cpp_test_os_application_update_manufacturer_name("Acme"), GDIAL_CAST_ERROR_INTERNAL);
 }
 
 TEST_F(GDialCppTest, OsUpdateModelName_NullAndUninitializedReturnInternal)
 {
-    EXPECT_EQ(gdial_cpp_test_os_application_update_model_name(nullptr), GDIAL_APP_ERROR_INTERNAL);
-    EXPECT_EQ(gdial_cpp_test_os_application_update_model_name("ModelX"), GDIAL_APP_ERROR_INTERNAL);
+    EXPECT_EQ(gdial_cpp_test_os_application_update_model_name(nullptr), GDIAL_CAST_ERROR_INTERNAL);
+    EXPECT_EQ(gdial_cpp_test_os_application_update_model_name("ModelX"), GDIAL_CAST_ERROR_INTERNAL);
 }
 
 TEST_F(GDialCppTest, OsUpdateManufacturerAndModel_AfterInitReturnNone)
 {
     ASSERT_TRUE(gdial_cpp_test_init(ctx));
-    EXPECT_EQ(gdial_cpp_test_os_application_update_manufacturer_name("Acme"), GDIAL_APP_ERROR_NONE);
-    EXPECT_EQ(gdial_cpp_test_os_application_update_model_name("ModelX"), GDIAL_APP_ERROR_NONE);
+    gdial_cpp_test_register_manufacturername_cb(test_manufacturer_cb);
+    gdial_cpp_test_register_modelname_cb(test_model_cb);
+
+    EXPECT_EQ(gdial_cpp_test_os_application_update_manufacturer_name("Acme"), GDIAL_CAST_ERROR_NONE);
+    EXPECT_EQ(gdial_cpp_test_os_application_update_model_name("ModelX"), GDIAL_CAST_ERROR_NONE);
+    EXPECT_EQ(g_manufacturer_cb_calls, 1);
+    EXPECT_EQ(g_model_cb_calls, 1);
 }
 
 TEST_F(GDialCppTest, OsApplicationStart_SystemSleepTriggersPowerOff)
