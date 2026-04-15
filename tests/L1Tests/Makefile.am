@@ -95,5 +95,3 @@ TESTS = run_L1Tests
 
 # Clean up test artifacts
 CLEANFILES = *.log *.trs
-
-SUBDIRS = mocks

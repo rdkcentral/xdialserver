@@ -67,7 +67,6 @@ AC_CONFIG_FILES([
     Makefile
     tests/Makefile
     tests/L1Tests/Makefile
-    tests/L1Tests/mocks/Makefile
 ])
 
 AC_OUTPUT

@@ -137,16 +137,15 @@ jobs:
       #     touch proc/readproc.h
 
       - name: Generate stub headers
-        # All stub content lives in tests/L1Tests/stubs/xdialserver_test_stubs.h
-        # (committed to the repo).  The individual shadow headers that source
-        # files #include are generated here as thin wrappers so they never
-        # need to be committed.  Truly empty stubs are created with touch.
+        # Individual shadow headers that source files #include are generated
+        # here as thin wrappers so they never need to be committed.
+        # Truly empty stubs are created with touch.
         # C++ shim definitions for gdial.cpp live in
         # tests/L1Tests/stubs/gdial_cpp_test_stubs.hpp and are included by
         # lightweight wrappers generated here.
         run: |
           STUBS="$GITHUB_WORKSPACE/xdialserver/tests/L1Tests/stubs"
-          WRAPPER='#pragma once\n#include "xdialserver_test_stubs.h"'
+          WRAPPER='#pragma once'
           CPP_WRAPPER='#pragma once\n#include "gdial_cpp_test_stubs.hpp"'
 
           # Create stubs directory if it doesn't exist

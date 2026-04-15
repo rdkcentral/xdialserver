@@ -42,7 +42,7 @@ Key behavior:
 
 2. Include shadowing for external frameworks
 - tests/L1Tests/stubs is first on the include path.
-- CI generates wrapper headers there so build-time includes resolve to local stub content instead of requiring full external frameworks.
+- CI generates lightweight wrapper headers there so build-time includes resolve without requiring full external frameworks.
 
 3. One process, shared globals
 - Most L1 tests run in the same process, so static/global state in C modules can leak between tests unless explicitly reset.
