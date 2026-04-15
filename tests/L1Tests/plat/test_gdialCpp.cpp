@@ -25,6 +25,7 @@
 #include <vector>
 
 extern "C" {
+#include <glib.h>
 #include "gdial-plat-dev.h"
 }
 
