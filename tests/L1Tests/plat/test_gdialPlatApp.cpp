@@ -56,25 +56,52 @@ static void drain_default_context()
 {
     GMainContext *def = g_main_context_default();
     const gint64 deadline = g_get_monotonic_time() + 500000;  /* 500 ms */
+    int quiet_polls = 0;
 
-    /* Aggressively drain all sources until nothing remains pending and no new
-     * timers appear after a settling period. Use g_main_context_iteration with
-     * may_block=TRUE to actually wait for sources (not just check), then sleep
-     * to catch any newly-scheduled cascade timers. */
-    bool had_activity = true;
-    while (had_activity && g_get_monotonic_time() < deadline)
+    /*
+     * A single "no pending sources" check is not enough: async callbacks can
+     * schedule a new 1 ms timeout that is not ready yet. Require several quiet
+     * polls (with sleeps) before concluding the default context is drained.
+     */
+    while (g_get_monotonic_time() < deadline)
     {
-        had_activity = false;
-        /* Dispatch all currently-ready sources */
-        while (g_main_context_iteration(def, FALSE))
+        bool had_activity = false;
+
+        while (g_main_context_pending(def))
         {
+            g_main_context_iteration(def, FALSE);
             had_activity = true;
         }
+
         if (had_activity)
         {
-            /* A cascade timer may have been just scheduled; wait for it */
-            g_usleep(10000);  /* 10 ms—longer than 1 ms timer interval */
+            quiet_polls = 0;
+            continue;
         }
+
+        g_usleep(10000);  /* 10 ms > 1 ms timer; let newly-added timers mature */
+
+        while (g_main_context_pending(def))
+        {
+            g_main_context_iteration(def, FALSE);
+            had_activity = true;
+        }
+
+        if (had_activity)
+        {
+            quiet_polls = 0;
+            continue;
+        }
+
+        if (++quiet_polls >= 3)
+        {
+            break;
+        }
+    }
+
+    while (g_main_context_pending(def))
+    {
+        g_main_context_iteration(def, FALSE);
     }
 }
 
