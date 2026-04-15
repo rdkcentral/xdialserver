@@ -120,6 +120,12 @@ TEST_F(GDialSsdpTest, SsdpHttpCallback_GetDdXmlReturnsOkAndHeaders) {
     const char *uuid = "uuid_ut";
     ASSERT_EQ(gdial_ssdp_new(server, &opt, uuid), 0);
 
+    /* Override the process-global app_manufacturer_name / app_model_name that
+     * may have been set by earlier Setters tests.  The HTTP callback checks
+     * these statics first and only falls back to gdial_options_ when NULL. */
+    gdial_ssdp_set_manufacturername("L1Maker");
+    gdial_ssdp_set_modelname("L1Model");
+
     std::string base = BuildServerBaseUrl(server);
     ASSERT_FALSE(base.empty());
     std::string url = base + uuid + "/dd.xml";
