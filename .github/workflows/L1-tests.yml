@@ -140,11 +140,14 @@ jobs:
         # All stub content lives in tests/L1Tests/stubs/xdialserver_test_stubs.h
         # (committed to the repo).  The individual shadow headers that source
         # files #include are generated here as thin wrappers so they never
-        # need to be committed.  Truly empty stubs (IARM, WPEFramework) are
-        # created with touch.
+        # need to be committed.  Truly empty stubs are created with touch.
+        # C++ shim definitions for gdial.cpp live in
+        # tests/L1Tests/stubs/gdial_cpp_test_stubs.hpp and are included by
+        # lightweight wrappers generated here.
         run: |
           STUBS="$GITHUB_WORKSPACE/xdialserver/tests/L1Tests/stubs"
           WRAPPER='#pragma once\n#include "xdialserver_test_stubs.h"'
+          CPP_WRAPPER='#pragma once\n#include "gdial_cpp_test_stubs.hpp"'
 
           # Create stubs directory if it doesn't exist
           mkdir -p "$STUBS"
@@ -162,6 +165,19 @@ jobs:
             "$STUBS/libIARMBus.h" \
             "$STUBS/libIBusDaemon.h" \
             "$STUBS/libIARMUtil.h"
+
+          # gdial.cpp wrappers: keep source definitions in a committed mock
+          # file and generate only include shims here.
+          mkdir -p "$STUBS/com" "$STUBS/json" "$STUBS/securityagent"
+          for f in core.h plugins.h securityagent/SecurityTokenUtil.h; do
+            printf "$CPP_WRAPPER\n" > "$STUBS/$f"
+          done
+
+          # Truly empty stubs for unused headers.
+          touch \
+            "$STUBS/com/Ids.h" \
+            "$STUBS/json/JsonData_Netflix.h" \
+            "$STUBS/json/JsonData_StateControl.h"
 
       - name: Build xdialserver L1 tests
         run: |
