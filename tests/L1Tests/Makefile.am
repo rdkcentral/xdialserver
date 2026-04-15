@@ -75,7 +75,6 @@ run_L1Tests_SOURCES = \
 	plat/test_gdialPlatDev.cpp \
 	plat/test_gdialPlatUtil.cpp \
 	utils/test_gdialUtil.cpp \
-	plat/gdial_plat_stubs.cpp \
 	plat/gdial_os_stubs.cpp \
 	$(top_srcdir)/server/gdialservice.cpp \
 	$(top_srcdir)/server/gdial-util.c \

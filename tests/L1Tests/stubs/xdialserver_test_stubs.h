@@ -27,9 +27,8 @@
  * needed to test xdialserver components in isolation.
  *
  * Include paths:
- * - tests/L1Tests/server/gdial_rest_stubs.h
- * - tests/L1Tests/plat/gdial_plat_stubs.h
- * - tests/L1Tests/utils/gdial_util_stubs.h
+ * - CI-generated wrapper headers in tests/L1Tests/stubs/ that include this file
+ * - tests/L1Tests/stubs/gdial_cpp_test_stubs.hpp (C++ shim types for gdial.cpp)
  * - tests/L1Tests/mocks/IarmBusMock.h
  */
 
