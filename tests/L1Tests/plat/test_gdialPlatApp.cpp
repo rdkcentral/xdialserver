@@ -52,6 +52,25 @@ extern "C" {
 #include "gdial-app.h"   /* GDIAL_APP_INSTANCE_NONE, GDialAppState, GDialAppError */
 }
 
+static void drain_default_context(gint64 timeout_us = 200000)
+{
+    GMainContext *def = g_main_context_default();
+    const gint64 deadline = g_get_monotonic_time() + timeout_us;
+
+    /* Drain all ready sources repeatedly; on busy CI runners, 1 ms timers may
+     * not become ready immediately, so we allow a short settling window. */
+    do {
+        while (g_main_context_pending(def)) {
+            g_main_context_iteration(def, FALSE);
+        }
+        g_usleep(1000);
+    } while (g_get_monotonic_time() < deadline && g_main_context_pending(def));
+
+    while (g_main_context_pending(def)) {
+        g_main_context_iteration(def, FALSE);
+    }
+}
+
 /* ================================================================== */
 /* SECTION 1: Null-guard tests — no gdial_plat_init required          */
 /* g_return_val_if_fail returns the fail value and emits a GLib       */
@@ -214,19 +233,18 @@ protected:
     GMainContext *ctx_ = nullptr;
 
     void SetUp() override {
+        /* Defensive reset in case a prior test left global state behind. */
+        gdial_plat_term();
         ctx_ = g_main_context_new();
         gdial_plat_init(ctx_);
     }
 
     void TearDown() override {
-        /* Drain default context so any pending 1 ms timers fire before term,
-         * keeping the async-context hash table empty at teardown time. */
-        GMainContext *def = g_main_context_default();
-        g_usleep(3000);  /* 3 ms — ensures 1 ms timeouts have expired */
-        while (g_main_context_pending(def)) {
-            g_main_context_iteration(def, FALSE);
-        }
+        /* Drain before term so destroy notifiers run while internals are valid. */
+        drain_default_context();
         gdial_plat_term();
+        /* Drain again to flush any trailing ready sources after teardown. */
+        drain_default_context();
         g_main_context_unref(ctx_);
         ctx_ = nullptr;
     }
@@ -360,11 +378,7 @@ static void test_state_cb(gint /*instance_id*/, GDialAppState state, gpointer /*
 
 static void pump_default(void)
 {
-    GMainContext *def = g_main_context_default();
-    g_usleep(3000);  /* let 1 ms timers expire */
-    while (g_main_context_pending(def)) {
-        g_main_context_iteration(def, FALSE);
-    }
+    drain_default_context();
 }
 
 class GDialPlatAppAsyncTest : public GDialPlatAppTest {
