@@ -179,7 +179,6 @@ static void gdial_app_init(GDialApp *self) {
   GDialAppPrivate *priv = gdial_app_get_instance_private(self);
   priv->payload = NULL;
   priv->state_cb_data = NULL;
-  self->instance_id = GDIAL_APP_INSTANCE_NONE;
   application_instances_ = g_list_prepend(application_instances_, self);
 }
 

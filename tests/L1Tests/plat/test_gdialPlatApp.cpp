@@ -55,33 +55,26 @@ extern "C" {
 static void drain_default_context()
 {
     GMainContext *def = g_main_context_default();
-    /* 2-second safety cap prevents infinite loops in pathological cases. */
-    const gint64 deadline = g_get_monotonic_time() + 2000000;
-    bool had_activity;
+    const gint64 deadline = g_get_monotonic_time() + 500000;  /* 500 ms */
 
-    /*
-     * Each pass drains all currently-ready sources.  If anything fired, a
-     * callback may have just scheduled a new 1 ms timer, so sleep 10 ms
-     * (>> 1 ms timer resolution) before re-checking.  This guarantees any
-     * cascaded timer is pending on the next pass.
-     *
-     * The loop exits when a full pass dispatches nothing (all timers have
-     * fired and no new ones were created) or the deadline is reached.
-     */
-    do {
+    /* Aggressively drain all sources until nothing remains pending and no new
+     * timers appear after a settling period. Use g_main_context_iteration with
+     * may_block=TRUE to actually wait for sources (not just check), then sleep
+     * to catch any newly-scheduled cascade timers. */
+    bool had_activity = true;
+    while (had_activity && g_get_monotonic_time() < deadline)
+    {
         had_activity = false;
-        while (g_main_context_pending(def)) {
-            g_main_context_iteration(def, FALSE);
+        /* Dispatch all currently-ready sources */
+        while (g_main_context_iteration(def, FALSE))
+        {
             had_activity = true;
         }
-        if (had_activity) {
-            g_usleep(10000); /* 10 ms — long enough for any new 1 ms timer */
+        if (had_activity)
+        {
+            /* A cascade timer may have been just scheduled; wait for it */
+            g_usleep(10000);  /* 10 ms—longer than 1 ms timer interval */
         }
-    } while (had_activity && g_get_monotonic_time() < deadline);
-
-    /* Final mop-up in case a timer fired during the last sleep. */
-    while (g_main_context_pending(def)) {
-        g_main_context_iteration(def, FALSE);
     }
 }
 
