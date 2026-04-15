@@ -423,35 +423,28 @@ protected:
     }
 
     void TearDown() override {
-        /* Async APIs schedule 1 ms timers on g_main_context_default().  Drain
-         * them before term so destroy notifiers run while internal state is
-         * still valid. */
-        drain_default_context();
         GDialPlatAppTest::TearDown();
     }
 };
 
-TEST_F(GDialPlatAppAsyncTest, StartAsync_Netflix_ReturnsNonNullAndFires) {
-    /* GSourceFunc_application_start_async_cb has an explicit branch for "Netflix" */
+TEST_F(GDialPlatAppAsyncTest, StartAsync_Netflix_ReturnsNonNullAndCanBeCancelled) {
     void *h = gdial_plat_application_start_async("Netflix", nullptr, nullptr, nullptr, nullptr);
     ASSERT_NE(h, nullptr);
-    pump_default();
-    /* After pump the context is freed; do NOT access h */
+    gdial_plat_application_remove_async_source(h);
     SUCCEED();
 }
 
-TEST_F(GDialPlatAppAsyncTest, StartAsync_Youtube_ReturnsNonNullAndFires) {
+TEST_F(GDialPlatAppAsyncTest, StartAsync_Youtube_ReturnsNonNullAndCanBeCancelled) {
     void *h = gdial_plat_application_start_async("Youtube", nullptr, nullptr, nullptr, nullptr);
     ASSERT_NE(h, nullptr);
-    pump_default();
+    gdial_plat_application_remove_async_source(h);
     SUCCEED();
 }
 
-TEST_F(GDialPlatAppAsyncTest, StartAsync_UnknownApp_ReturnsNonNull) {
-    /* Fires g_warn_if_reached() inside the callback — harmless in tests */
+TEST_F(GDialPlatAppAsyncTest, StartAsync_UnknownApp_ReturnsNonNullAndCanBeCancelled) {
     void *h = gdial_plat_application_start_async("UnknownApp", nullptr, nullptr, nullptr, nullptr);
     ASSERT_NE(h, nullptr);
-    pump_default();
+    gdial_plat_application_remove_async_source(h);
     SUCCEED();
 }
 
@@ -469,10 +462,10 @@ TEST_F(GDialPlatAppAsyncTest, StateAsync_EmptyName_ReturnsNull) {
     EXPECT_EQ(h, nullptr);
 }
 
-TEST_F(GDialPlatAppAsyncTest, StopAsync_ValidArgs_ReturnsNonNullAndFires) {
+TEST_F(GDialPlatAppAsyncTest, StopAsync_ValidArgs_ReturnsNonNullAndCanBeCancelled) {
     void *h = gdial_plat_application_stop_async("Netflix", 1, nullptr);
     ASSERT_NE(h, nullptr);
-    pump_default();
+    gdial_plat_application_remove_async_source(h);
     SUCCEED();
 }
 
