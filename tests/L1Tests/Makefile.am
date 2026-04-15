@@ -64,6 +64,7 @@ run_L1Tests_SOURCES = \
 	mocks/gssdp_mock.c \
 	plat/test_gdialPlat.cpp \
 	plat/test_gdialPlatApp.cpp \
+	plat/test_gdialPlatDev.cpp \
 	plat/test_gdialPlatUtil.cpp \
 	utils/test_gdialUtil.cpp \
 	plat/gdial_plat_stubs.cpp \
@@ -75,6 +76,7 @@ run_L1Tests_SOURCES = \
 	$(top_srcdir)/server/gdial-shield.c \
 	$(top_srcdir)/server/gdial-ssdp.c \
 	$(top_srcdir)/server/plat/gdial-plat-app.c \
+	$(top_srcdir)/server/plat/gdial-plat-dev.c \
 	$(top_srcdir)/server/plat/gdial-plat-util.c \
 	$(top_srcdir)/server/plat/gdial_app_registry.c
 

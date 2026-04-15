@@ -19,28 +19,17 @@
 
 /**
  * @file gdial_plat_stubs.cpp
- * @brief Stub implementations for the platform device layer.
+ * @brief Placeholder stub translation unit.
  *
  * gdial-plat-app.c is now compiled directly into the test binary, providing
  * the real gdial_plat_application_* and gdial_plat_init/term implementations.
  * gdial_os_stubs.cpp provides the gdial_os_* and gdial_init/term/register_*
  * stubs that gdial-plat-app.c delegates into.
  *
- * This file contains only the device-layer stubs (gdial_plat_dev_* and
- * gdail_plat_dev_*) which are not covered by gdial-plat-app.c.
+ * gdial-plat-dev.c is also compiled directly into the L1 test binary, so this
+ * file intentionally exports no symbols to avoid duplicate definitions.
  */
 
 #include <glib.h>
-#include "gdial-plat-dev.h"
 
-/* ------------------------------------------------------------------ */
-/* Device / power-state operations                                     */
-/* ------------------------------------------------------------------ */
-
-bool gdial_plat_dev_set_power_state_on(void)  { return true; }
-bool gdial_plat_dev_set_power_state_off(void) { return true; }
-bool gdial_plat_dev_toggle_power_state(void)  { return true; }
-void gdial_plat_dev_nwstandby_mode_change(gboolean NetworkStandbyMode) { (void)NetworkStandbyMode; }
-void gdail_plat_dev_register_nwstandbymode_cb(gdial_plat_dev_nwstandbymode_cb cb) { (void)cb; }
-void gdail_plat_dev_register_powerstate_cb(gdial_plat_dev_powerstate_cb cb)       { (void)cb; }
 
