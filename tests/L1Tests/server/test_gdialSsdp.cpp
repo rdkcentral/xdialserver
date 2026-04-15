@@ -19,6 +19,8 @@
 
 #include <gtest/gtest.h>
 
+#include <string>
+
 extern "C" {
 #include <glib.h>
 #include <libsoup/soup.h>
@@ -32,6 +34,23 @@ namespace {
 class GDialSsdpTest : public ::testing::Test {
 protected:
     SoupServer *server = nullptr;
+
+    static std::string BuildServerBaseUrl(SoupServer *srv) {
+        GSList *uris = soup_server_get_uris(srv);
+        if (!uris) return "";
+        SoupURI *uri = static_cast<SoupURI *>(uris->data);
+        if (!uri) {
+            g_slist_free(uris);
+            return "";
+        }
+
+        char *uri_str = soup_uri_to_string(uri, FALSE);
+        std::string base = uri_str ? uri_str : "";
+        g_free(uri_str);
+        soup_uri_free(uri);
+        g_slist_free(uris);
+        return base;
+    }
 
     void SetUp() override {
         server = soup_server_new(nullptr, nullptr);
@@ -84,6 +103,88 @@ TEST_F(GDialSsdpTest, NetworkStandbyHandler_NoInit_NoCrash) {
     gdial_ssdp_networkstandbymode_handler(true);
     gdial_ssdp_networkstandbymode_handler(false);
     SUCCEED();
+}
+
+TEST_F(GDialSsdpTest, SsdpHttpCallback_GetDdXmlReturnsOkAndHeaders) {
+    GError *error = nullptr;
+    ASSERT_TRUE(soup_server_listen_local(server, 0, SOUP_SERVER_LISTEN_IPV4_ONLY, &error));
+    ASSERT_EQ(error, nullptr);
+
+    GDialOptions opt = {};
+    opt.iface_name = g_strdup("lo");
+    opt.friendly_name = g_strdup("L1Friendly");
+    opt.manufacturer = g_strdup("L1Maker");
+    opt.model_name = g_strdup("L1Model");
+    opt.uuid = g_strdup("12345678-abcd-abcd-1234-123456789abc");
+
+    const char *uuid = "uuid_ut";
+    ASSERT_EQ(gdial_ssdp_new(server, &opt, uuid), 0);
+
+    std::string base = BuildServerBaseUrl(server);
+    ASSERT_FALSE(base.empty());
+
+    std::string url = base + uuid + "/dd.xml";
+    SoupSession *session = soup_session_new_with_options(
+        SOUP_SESSION_TIMEOUT, 2,
+        SOUP_SESSION_IDLE_TIMEOUT, 2,
+        nullptr);
+    ASSERT_NE(session, nullptr);
+
+    SoupMessage *msg = soup_message_new("GET", url.c_str());
+    ASSERT_NE(msg, nullptr);
+
+    guint status = soup_session_send_message(session, msg);
+    EXPECT_EQ(status, (guint)SOUP_STATUS_OK);
+
+    const char *app_url = soup_message_headers_get_one(msg->response_headers, "Application-URL");
+    ASSERT_NE(app_url, nullptr);
+
+    ASSERT_NE(msg->response_body, nullptr);
+    ASSERT_NE(msg->response_body->data, nullptr);
+    std::string body(msg->response_body->data, msg->response_body->length);
+    EXPECT_NE(body.find("<friendlyName>L1Friendly</friendlyName>"), std::string::npos);
+    EXPECT_NE(body.find("<manufacturer>L1Maker</manufacturer>"), std::string::npos);
+    EXPECT_NE(body.find("<modelName>L1Model</modelName>"), std::string::npos);
+
+    g_object_unref(msg);
+    g_object_unref(session);
+    gdial_ssdp_destroy();
+}
+
+TEST_F(GDialSsdpTest, SsdpHttpCallback_NonGetReturnsBadRequest) {
+    GError *error = nullptr;
+    ASSERT_TRUE(soup_server_listen_local(server, 0, SOUP_SERVER_LISTEN_IPV4_ONLY, &error));
+    ASSERT_EQ(error, nullptr);
+
+    GDialOptions opt = {};
+    opt.iface_name = g_strdup("lo");
+    opt.friendly_name = g_strdup("L1Friendly");
+    opt.manufacturer = g_strdup("L1Maker");
+    opt.model_name = g_strdup("L1Model");
+    opt.uuid = g_strdup("12345678-abcd-abcd-1234-123456789abc");
+
+    const char *uuid = "uuid_ut";
+    ASSERT_EQ(gdial_ssdp_new(server, &opt, uuid), 0);
+
+    std::string base = BuildServerBaseUrl(server);
+    ASSERT_FALSE(base.empty());
+
+    std::string url = base + uuid + "/dd.xml";
+    SoupSession *session = soup_session_new_with_options(
+        SOUP_SESSION_TIMEOUT, 2,
+        SOUP_SESSION_IDLE_TIMEOUT, 2,
+        nullptr);
+    ASSERT_NE(session, nullptr);
+
+    SoupMessage *msg = soup_message_new("POST", url.c_str());
+    ASSERT_NE(msg, nullptr);
+
+    guint status = soup_session_send_message(session, msg);
+    EXPECT_EQ(status, (guint)SOUP_STATUS_BAD_REQUEST);
+
+    g_object_unref(msg);
+    g_object_unref(session);
+    gdial_ssdp_destroy();
 }
 
 }  // namespace
