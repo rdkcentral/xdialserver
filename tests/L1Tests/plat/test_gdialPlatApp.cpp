@@ -272,11 +272,10 @@ protected:
     }
 
     void TearDown() override {
-        /* Drain ALL timers (including cascaded 1 ms sources) before term.
-         * Do NOT drain after term: gdial_plat_term() frees the async contexts
-         * that timer callbacks still reference, so draining after term causes
-         * use-after-free → segfault. */
-        drain_default_context();
+        /* Keep base fixture teardown minimal for sync tests.  Draining the
+         * process-global default context here can execute unrelated stale
+         * timers from other tests and crash before this suite progresses.
+         * Async fixture teardown performs the explicit drain. */
         gdial_plat_term();
         g_main_context_unref(ctx_);
         ctx_ = nullptr;
@@ -422,7 +421,14 @@ protected:
         GDialPlatAppTest::SetUp();
         gdial_plat_application_set_state_cb(test_state_cb, nullptr);
     }
-    /* TearDown is inherited from GDialPlatAppTest; it pumps then calls term. */
+
+    void TearDown() override {
+        /* Async APIs schedule 1 ms timers on g_main_context_default().  Drain
+         * them before term so destroy notifiers run while internal state is
+         * still valid. */
+        drain_default_context();
+        GDialPlatAppTest::TearDown();
+    }
 };
 
 TEST_F(GDialPlatAppAsyncTest, StartAsync_Netflix_ReturnsNonNullAndFires) {
