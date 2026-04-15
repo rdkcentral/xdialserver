@@ -233,8 +233,6 @@ protected:
     GMainContext *ctx_ = nullptr;
 
     void SetUp() override {
-        /* Defensive reset in case a prior test left global state behind. */
-        gdial_plat_term();
         ctx_ = g_main_context_new();
         gdial_plat_init(ctx_);
     }
