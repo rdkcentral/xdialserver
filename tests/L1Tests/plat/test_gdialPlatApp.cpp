@@ -52,20 +52,34 @@ extern "C" {
 #include "gdial-app.h"   /* GDIAL_APP_INSTANCE_NONE, GDialAppState, GDialAppError */
 }
 
-static void drain_default_context(gint64 timeout_us = 200000)
+static void drain_default_context()
 {
     GMainContext *def = g_main_context_default();
-    const gint64 deadline = g_get_monotonic_time() + timeout_us;
+    /* 2-second safety cap prevents infinite loops in pathological cases. */
+    const gint64 deadline = g_get_monotonic_time() + 2000000;
+    bool had_activity;
 
-    /* Drain all ready sources repeatedly; on busy CI runners, 1 ms timers may
-     * not become ready immediately, so we allow a short settling window. */
+    /*
+     * Each pass drains all currently-ready sources.  If anything fired, a
+     * callback may have just scheduled a new 1 ms timer, so sleep 10 ms
+     * (>> 1 ms timer resolution) before re-checking.  This guarantees any
+     * cascaded timer is pending on the next pass.
+     *
+     * The loop exits when a full pass dispatches nothing (all timers have
+     * fired and no new ones were created) or the deadline is reached.
+     */
     do {
+        had_activity = false;
         while (g_main_context_pending(def)) {
             g_main_context_iteration(def, FALSE);
+            had_activity = true;
         }
-        g_usleep(1000);
-    } while (g_get_monotonic_time() < deadline && g_main_context_pending(def));
+        if (had_activity) {
+            g_usleep(10000); /* 10 ms — long enough for any new 1 ms timer */
+        }
+    } while (had_activity && g_get_monotonic_time() < deadline);
 
+    /* Final mop-up in case a timer fired during the last sleep. */
     while (g_main_context_pending(def)) {
         g_main_context_iteration(def, FALSE);
     }
@@ -238,11 +252,12 @@ protected:
     }
 
     void TearDown() override {
-        /* Drain before term so destroy notifiers run while internals are valid. */
+        /* Drain ALL timers (including cascaded 1 ms sources) before term.
+         * Do NOT drain after term: gdial_plat_term() frees the async contexts
+         * that timer callbacks still reference, so draining after term causes
+         * use-after-free → segfault. */
         drain_default_context();
         gdial_plat_term();
-        /* Drain again to flush any trailing ready sources after teardown. */
-        drain_default_context();
         g_main_context_unref(ctx_);
         ctx_ = nullptr;
     }
