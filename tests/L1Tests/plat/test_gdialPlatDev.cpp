@@ -134,7 +134,7 @@ TEST_F(GDialPlatDevTest, RegisterPowerCallback_NullClearsCallback)
 
 TEST_F(GDialPlatDevTest, NwStandbyModeChange_WithoutCallback_NoCrash)
 {
-    gdial_plat_dev_nwstandby_mode_change(TRUE);
+    gdial_plat_dev_nwstandby_mode_change(true);
     EXPECT_EQ(g_nw_cb_calls, 0);
 }
 
@@ -142,11 +142,11 @@ TEST_F(GDialPlatDevTest, NwStandbyModeChange_InvokesRegisteredCallback)
 {
     gdail_plat_dev_register_nwstandbymode_cb(nwstandby_cb);
 
-    gdial_plat_dev_nwstandby_mode_change(TRUE);
+    gdial_plat_dev_nwstandby_mode_change(true);
     ASSERT_EQ(g_nw_cb_calls, 1);
     EXPECT_TRUE(g_last_nw_mode);
 
-    gdial_plat_dev_nwstandby_mode_change(FALSE);
+    gdial_plat_dev_nwstandby_mode_change(false);
     ASSERT_EQ(g_nw_cb_calls, 2);
     EXPECT_FALSE(g_last_nw_mode);
 }
@@ -154,10 +154,10 @@ TEST_F(GDialPlatDevTest, NwStandbyModeChange_InvokesRegisteredCallback)
 TEST_F(GDialPlatDevTest, RegisterNwStandbyCallback_NullClearsCallback)
 {
     gdail_plat_dev_register_nwstandbymode_cb(nwstandby_cb);
-    gdial_plat_dev_nwstandby_mode_change(TRUE);
+    gdial_plat_dev_nwstandby_mode_change(true);
     EXPECT_EQ(g_nw_cb_calls, 1);
 
     gdail_plat_dev_register_nwstandbymode_cb(nullptr);
-    gdial_plat_dev_nwstandby_mode_change(TRUE);
+    gdial_plat_dev_nwstandby_mode_change(true);
     EXPECT_EQ(g_nw_cb_calls, 1);
 }

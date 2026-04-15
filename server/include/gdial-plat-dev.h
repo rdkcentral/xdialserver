@@ -21,6 +21,7 @@
 #define GDIAL_PLAT_DEV_H_
 
 #include <stdbool.h>
+#include <glib.h>
 
 #ifdef __cplusplus
 extern "C" {
