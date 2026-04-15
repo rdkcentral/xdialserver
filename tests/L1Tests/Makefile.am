@@ -79,6 +79,7 @@ run_L1Tests_SOURCES = \
 	$(top_srcdir)/server/plat/gdial-plat-app.c \
 	$(top_srcdir)/server/plat/gdial-plat-dev.c \
 	$(top_srcdir)/server/plat/gdial-plat-util.c \
+	$(top_srcdir)/server/plat/gdialappcache.cpp \
 	$(top_srcdir)/server/plat/gdial_app_registry.c
 
 run_L1Tests_LDADD = -lgtest -lgmock $(GLIB_LIBS) $(GIO_LIBS) $(SOUP_LIBS) $(XML2_LIBS) -luuid
