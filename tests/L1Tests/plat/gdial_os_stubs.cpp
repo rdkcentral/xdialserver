@@ -99,11 +99,10 @@ static GList *build_app_registry_list(const RegisterAppEntryList *app_list)
     return g_app_list;
 }
 
-static void free_app_registry_list(GList *g_app_list)
+static void free_app_registry_list_nodes(GList *g_app_list)
 {
-    for (GList *node = g_app_list; node; node = node->next) {
-        gdial_app_regstry_dispose((GDialAppRegistry *)node->data);
-    }
+    // Ownership of GDialAppRegistry entries is transferred to callback consumers
+    // (same semantics as production gdial.cpp). Only free the list nodes here.
     g_list_free(g_app_list);
 }
 
@@ -221,7 +220,7 @@ int gdial_os_application_register_applications(void *p)
         const RegisterAppEntryList *app_config_list = static_cast<RegisterAppEntryList *>(p);
         GList *g_app_list = build_app_registry_list(app_config_list);
         s_registerapps_cb(g_app_list);
-        free_app_registry_list(g_app_list);
+        free_app_registry_list_nodes(g_app_list);
     }
     return 0;
 }
