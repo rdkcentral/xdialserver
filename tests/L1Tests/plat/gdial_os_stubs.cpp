@@ -37,8 +37,10 @@
 #include <glib.h>
 
 #include "gdial-app.h"      /* GDialAppState, GDialAppError */
+#include "gdial_app_registry.h"
 #include "gdial-os-app.h"
 #include "gdial-plat-app.h" /* hide_async / resume_async declarations */
+#include "gdialservicecommon.h"
 #include "gdial.hpp"
 
 /* ------------------------------------------------------------------ */
@@ -51,6 +53,59 @@ static int           s_hide_err   = 0;
 static int           s_resume_err = 0;
 static int           s_stop_err   = 0;
 static int           s_state_err  = 0;
+static gdial_registerapps_cb s_registerapps_cb = nullptr;
+
+static GDialAppRegistry *create_registry_from_entry(const RegisterAppEntry *entry)
+{
+    if (!entry || entry->Names.empty()) {
+        return nullptr;
+    }
+
+    GList *app_prefixes = nullptr;
+    GList *allowed_origins = nullptr;
+    GHashTable *properties = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_free);
+    const char *allow_stop = entry->allowStop ? "true" : "false";
+
+    if (!entry->prefixes.empty()) {
+        app_prefixes = g_list_prepend(app_prefixes, g_strdup(entry->prefixes.c_str()));
+    }
+    if (!entry->cors.empty()) {
+        allowed_origins = g_list_prepend(allowed_origins, g_strdup(entry->cors.c_str()));
+    }
+    g_hash_table_insert(properties, g_strdup("allowStop"), g_strdup(allow_stop));
+
+    return gdial_app_registry_new(
+        entry->Names.c_str(),
+        app_prefixes,
+        properties,
+        TRUE,
+        TRUE,
+        allowed_origins);
+}
+
+static GList *build_app_registry_list(const RegisterAppEntryList *app_list)
+{
+    if (!app_list) {
+        return nullptr;
+    }
+
+    GList *g_app_list = nullptr;
+    for (const RegisterAppEntry *entry : app_list->getValues()) {
+        GDialAppRegistry *registry = create_registry_from_entry(entry);
+        if (registry) {
+            g_app_list = g_list_append(g_app_list, registry);
+        }
+    }
+    return g_app_list;
+}
+
+static void free_app_registry_list(GList *g_app_list)
+{
+    for (GList *node = g_app_list; node; node = node->next) {
+        gdial_app_regstry_dispose((GDialAppRegistry *)node->data);
+    }
+    g_list_free(g_app_list);
+}
 
 extern "C" void gdial_plat_stub_reset_behavior(void)
 {
@@ -60,6 +115,7 @@ extern "C" void gdial_plat_stub_reset_behavior(void)
     s_resume_err = 0;
     s_stop_err   = 0;
     s_state_err  = 0;
+    s_registerapps_cb = nullptr;
 }
 
 extern "C" void gdial_plat_stub_set_app_state(GDialAppState state)
@@ -90,7 +146,7 @@ void gdial_term(void) {}
 
 void gdial_register_activation_cb(gdial_activation_cb cb)             { (void)cb; }
 void gdial_register_friendlyname_cb(gdial_friendlyname_cb cb)         { (void)cb; }
-void gdial_register_registerapps_cb(gdial_registerapps_cb cb)         { (void)cb; }
+void gdial_register_registerapps_cb(gdial_registerapps_cb cb)         { s_registerapps_cb = cb; }
 void gdial_register_manufacturername_cb(gdial_manufacturername_cb cb) { (void)cb; }
 void gdial_register_modelname_cb(gdial_manufacturername_cb cb)        { (void)cb; }
 
@@ -161,7 +217,12 @@ const char *gdial_os_application_get_protocol_version(void)
 
 int gdial_os_application_register_applications(void *p)
 {
-    (void)p;
+    if (s_registerapps_cb && p) {
+        const RegisterAppEntryList *app_config_list = static_cast<RegisterAppEntryList *>(p);
+        GList *g_app_list = build_app_registry_list(app_config_list);
+        s_registerapps_cb(g_app_list);
+        free_app_registry_list(g_app_list);
+    }
     return 0;
 }
 
