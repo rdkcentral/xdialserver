@@ -411,23 +411,31 @@ TEST(AppResponseEventsEnumTest, InvalidStateIsLast) {
 
 /* ------------------------------------------------------------------ */
 /* SECTION 4: server_register_application coverage                    */
+/*                                                                     */
+/* Note: server_register_application is a static callback registered  */
+/* during service startup. It's invoked via the callback chain:       */
+/*   sendRequest(REGISTER_APPLICATIONS) ->                            */
+/*   gdial_plat_application_register_applications() ->                */
+/*   [stub invokes callback with GList*] ->                           */
+/*   server_register_application()                                    */
+/*                                                                     */
+/* The actual callback invocation with proper GList* construction is  */
+/* tested in test_gdialCpp.cpp via GDialCastObject::registerApps().   */
+/* These tests verify the service layer handles REGISTER_APPLICATIONS */
+/* events without crashing.                                           */
 /* ------------------------------------------------------------------ */
 
-// Forward declaration of test helper from gdial_os_stubs.cpp
-extern "C" gboolean gdial_plat_stub_registerapps_cb_was_called(void);
-
-TEST_F(GDialServiceImplTest, RegisterApplications_WithNullList_Callback_NoCrash) {
+TEST_F(GDialServiceImplTest, RegisterApplications_WithNullList_NoCrash) {
     gdialServiceImpl *impl = gdialServiceImpl::getInstance();
     RequestHandlerPayload p = {};
     p.event = REGISTER_APPLICATIONS;
     p.data_param = nullptr;
-    // Calling with nullptr app list should not crash
-    // Exercises the null-check path in server_register_application
+    // Verify service handles null app list without crash
     impl->sendRequest(p);
     SUCCEED();
 }
 
-TEST_F(GDialServiceImplTest, RegisterApplications_WithAppList_Callback_NoCrash) {
+TEST_F(GDialServiceImplTest, RegisterApplications_WithAppList_NoCrash) {
     gdialServiceImpl *impl = gdialServiceImpl::getInstance();
     RegisterAppEntryList *list = new RegisterAppEntryList;
     RegisterAppEntry *entry = new RegisterAppEntry;
@@ -440,17 +448,16 @@ TEST_F(GDialServiceImplTest, RegisterApplications_WithAppList_Callback_NoCrash) 
     RequestHandlerPayload p = {};
     p.event = REGISTER_APPLICATIONS;
     p.data_param = list;
-    // Calling with populated app list exercises the list iteration path
-    // in server_register_application
+    // Verify service handles populated app list without crash
     impl->sendRequest(p);
     SUCCEED();
 }
 
-TEST_F(GDialServiceImplTest, RegisterApplications_MultipleEntries_Callback_NoCrash) {
+TEST_F(GDialServiceImplTest, RegisterApplications_MultipleEntries_NoCrash) {
     gdialServiceImpl *impl = gdialServiceImpl::getInstance();
     RegisterAppEntryList *list = new RegisterAppEntryList;
     
-    // Add multiple app entries to exercise the loop
+    // Add multiple app entries
     for (int i = 0; i < 3; ++i) {
         RegisterAppEntry *entry = new RegisterAppEntry;
         entry->Names = "App" + std::to_string(i);
@@ -463,15 +470,7 @@ TEST_F(GDialServiceImplTest, RegisterApplications_MultipleEntries_Callback_NoCra
     RequestHandlerPayload p = {};
     p.event = REGISTER_APPLICATIONS;
     p.data_param = list;
-    // Multiple entries exercise the full while-loop in
-    // server_register_application's list iteration
+    // Verify service handles multiple entries without crash
     impl->sendRequest(p);
     SUCCEED();
-}
-
-TEST_F(GDialServiceImplTest, RegisterApplications_CallbackIsRegistered) {
-    // Verify that the registerapps callback was properly registered
-    // This exercises the gdail_plat_register_registerapps_cb call
-    // in start_GDialServer
-    EXPECT_TRUE(gdial_plat_stub_registerapps_cb_was_called());
 }
