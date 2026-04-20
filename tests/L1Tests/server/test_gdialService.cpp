@@ -408,3 +408,70 @@ TEST(AppRequestEventsEnumTest, InvalidRequestIsLast) {
 TEST(AppResponseEventsEnumTest, InvalidStateIsLast) {
     EXPECT_GT(APP_INVALID_STATE, APP_RESUME_REQUEST);
 }
+
+/* ------------------------------------------------------------------ */
+/* SECTION 4: server_register_application coverage                    */
+/* ------------------------------------------------------------------ */
+
+// Forward declaration of test helper from gdial_os_stubs.cpp
+extern "C" gboolean gdial_plat_stub_registerapps_cb_was_called(void);
+
+TEST_F(GDialServiceImplTest, RegisterApplications_WithNullList_Callback_NoCrash) {
+    gdialServiceImpl *impl = gdialServiceImpl::getInstance();
+    RequestHandlerPayload p = {};
+    p.event = REGISTER_APPLICATIONS;
+    p.data_param = nullptr;
+    // Calling with nullptr app list should not crash
+    // Exercises the null-check path in server_register_application
+    impl->sendRequest(p);
+    SUCCEED();
+}
+
+TEST_F(GDialServiceImplTest, RegisterApplications_WithAppList_Callback_NoCrash) {
+    gdialServiceImpl *impl = gdialServiceImpl::getInstance();
+    RegisterAppEntryList *list = new RegisterAppEntryList;
+    RegisterAppEntry *entry = new RegisterAppEntry;
+    entry->Names = "TestApp";
+    entry->prefixes = "com.test";
+    entry->cors = ".test.com";
+    entry->allowStop = true;
+    list->pushBack(entry);
+    
+    RequestHandlerPayload p = {};
+    p.event = REGISTER_APPLICATIONS;
+    p.data_param = list;
+    // Calling with populated app list exercises the list iteration path
+    // in server_register_application
+    impl->sendRequest(p);
+    SUCCEED();
+}
+
+TEST_F(GDialServiceImplTest, RegisterApplications_MultipleEntries_Callback_NoCrash) {
+    gdialServiceImpl *impl = gdialServiceImpl::getInstance();
+    RegisterAppEntryList *list = new RegisterAppEntryList;
+    
+    // Add multiple app entries to exercise the loop
+    for (int i = 0; i < 3; ++i) {
+        RegisterAppEntry *entry = new RegisterAppEntry;
+        entry->Names = "App" + std::to_string(i);
+        entry->prefixes = "com.test" + std::to_string(i);
+        entry->cors = ".test.com";
+        entry->allowStop = (i % 2 == 0);
+        list->pushBack(entry);
+    }
+    
+    RequestHandlerPayload p = {};
+    p.event = REGISTER_APPLICATIONS;
+    p.data_param = list;
+    // Multiple entries exercise the full while-loop in
+    // server_register_application's list iteration
+    impl->sendRequest(p);
+    SUCCEED();
+}
+
+TEST_F(GDialServiceImplTest, RegisterApplications_CallbackIsRegistered) {
+    // Verify that the registerapps callback was properly registered
+    // This exercises the gdail_plat_register_registerapps_cb call
+    // in start_GDialServer
+    EXPECT_TRUE(gdial_plat_stub_registerapps_cb_was_called());
+}

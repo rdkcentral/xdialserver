@@ -51,6 +51,7 @@ static int           s_hide_err   = 0;
 static int           s_resume_err = 0;
 static int           s_stop_err   = 0;
 static int           s_state_err  = 0;
+static gdial_registerapps_cb s_registerapps_cb = nullptr;
 
 extern "C" void gdial_plat_stub_reset_behavior(void)
 {
@@ -60,6 +61,7 @@ extern "C" void gdial_plat_stub_reset_behavior(void)
     s_resume_err = 0;
     s_stop_err   = 0;
     s_state_err  = 0;
+    s_registerapps_cb = nullptr;
 }
 
 extern "C" void gdial_plat_stub_set_app_state(GDialAppState state)
@@ -90,7 +92,7 @@ void gdial_term(void) {}
 
 void gdial_register_activation_cb(gdial_activation_cb cb)             { (void)cb; }
 void gdial_register_friendlyname_cb(gdial_friendlyname_cb cb)         { (void)cb; }
-void gdial_register_registerapps_cb(gdial_registerapps_cb cb)         { (void)cb; }
+void gdial_register_registerapps_cb(gdial_registerapps_cb cb)         { s_registerapps_cb = cb; }
 void gdial_register_manufacturername_cb(gdial_manufacturername_cb cb) { (void)cb; }
 void gdial_register_modelname_cb(gdial_manufacturername_cb cb)        { (void)cb; }
 
@@ -161,7 +163,9 @@ const char *gdial_os_application_get_protocol_version(void)
 
 int gdial_os_application_register_applications(void *p)
 {
-    (void)p;
+    if (s_registerapps_cb && p) {
+        s_registerapps_cb(p);
+    }
     return 0;
 }
 
@@ -186,6 +190,15 @@ int gdial_os_application_service_notification(gboolean req, void *notifier)
 {
     (void)req; (void)notifier;
     return 0;
+}
+
+/* ------------------------------------------------------------------ */
+/* Test helpers for callback verification                              */
+/* ------------------------------------------------------------------ */
+
+extern "C" gboolean gdial_plat_stub_registerapps_cb_was_called(void)
+{
+    return (s_registerapps_cb != nullptr) ? TRUE : FALSE;
 }
 
 /* ------------------------------------------------------------------ */
