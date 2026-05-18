@@ -26,6 +26,8 @@ AC_PROG_RANLIB
 AM_PROG_AR
 
 # Check for pkg-config
+PKG_PROG_PKG_CONFIG
+
 PKG_CHECK_MODULES([GLIB], [glib-2.0])
 PKG_CHECK_MODULES([GIO], [gio-2.0])
 
