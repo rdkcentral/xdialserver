@@ -26,8 +26,6 @@ AC_PROG_RANLIB
 AM_PROG_AR
 
 # Check for pkg-config
-PKG_PROG_PKG_CONFIG
-
 PKG_CHECK_MODULES([GLIB], [glib-2.0])
 PKG_CHECK_MODULES([GIO], [gio-2.0])
 
@@ -44,9 +42,9 @@ AM_CONDITIONAL([GSSDP_1_6], [test "x$gssdp_version" = "x1.6"])
 AM_CONDITIONAL([GSSDP_1_2], [test "x$gssdp_version" = "x1.2"])
 AM_CONDITIONAL([GSSDP_1_0], [test "x$gssdp_version" = "x1.0"])
 
-[PKG_CHECK_MODULES([SOUP], [libsoup-3.0],
+PKG_CHECK_MODULES([SOUP], [libsoup-3.0],
         [libsoup_version="3.0"],
-        PKG_CHECK_MODULES([SOUP], [libsoup-2.4],
+        [PKG_CHECK_MODULES([SOUP], [libsoup-2.4],
             [libsoup_version="2.4"],
             [AC_MSG_WARN([libsoup library not found])])])
 
