@@ -37,10 +37,13 @@ PKG_CHECK_MODULES([GSSDP], [gssdp-1.2],
         [AC_MSG_WARN([gssdp library not found])])])
 
 PKG_CHECK_MODULES([SOUP], [libsoup-2.4],
-    [],
+    [libsoup_version="2.4"],
     [PKG_CHECK_MODULES([SOUP], [libsoup-3.0],
-        [],
+        [libsoup_version="3.0"],
         [AC_MSG_WARN([libsoup library not found])])])
+
+AM_CONDITIONAL([LIBSOUP_2_4], [test "x$libsoup_version" = "x2.4"])
+AM_CONDITIONAL([LIBSOUP_3_0], [test "x$libsoup_version" = "x3.0"])
 
 PKG_CHECK_MODULES([XML2], [libxml-2.0])
 
