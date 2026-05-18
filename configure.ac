@@ -30,17 +30,23 @@ PKG_CHECK_MODULES([GLIB], [glib-2.0])
 PKG_CHECK_MODULES([GIO], [gio-2.0])
 
 # Check for DIAL protocol dependencies
-PKG_CHECK_MODULES([GSSDP], [gssdp-1.2],
-    [],
-    [PKG_CHECK_MODULES([GSSDP], [gssdp-1.0],
-        [],
-        [AC_MSG_WARN([gssdp library not found])])])
+PKG_CHECK_MODULES([GSSDP], [gssdp-1.6],
+    [gssdp_version="1.6"],
+    [PKG_CHECK_MODULES([GSSDP], [gssdp-1.2],
+        [gssdp_version="1.2"],
+        [PKG_CHECK_MODULES([GSSDP], [gssdp-1.0],
+            [gssdp_version="1.0"],
+            [AC_MSG_WARN([gssdp library not found])])])])
 
-PKG_CHECK_MODULES([SOUP], [libsoup-2.4],
-    [libsoup_version="2.4"],
-    [PKG_CHECK_MODULES([SOUP], [libsoup-3.0],
+AM_CONDITIONAL([GSSDP_1_6], [test "x$gssdp_version" = "x1.6"])
+AM_CONDITIONAL([GSSDP_1_2], [test "x$gssdp_version" = "x1.2"])
+AM_CONDITIONAL([GSSDP_1_0], [test "x$gssdp_version" = "x1.0"])
+
+[PKG_CHECK_MODULES([SOUP], [libsoup-3.0],
         [libsoup_version="3.0"],
-        [AC_MSG_WARN([libsoup library not found])])])
+        PKG_CHECK_MODULES([SOUP], [libsoup-2.4],
+            [libsoup_version="2.4"],
+            [AC_MSG_WARN([libsoup library not found])])])
 
 AM_CONDITIONAL([LIBSOUP_2_4], [test "x$libsoup_version" = "x2.4"])
 AM_CONDITIONAL([LIBSOUP_3_0], [test "x$libsoup_version" = "x3.0"])
