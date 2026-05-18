@@ -78,14 +78,25 @@ run_L1Tests_SOURCES = \
 	$(top_srcdir)/server/gdialservice.cpp \
 	$(top_srcdir)/server/gdial-util.c \
 	$(top_srcdir)/server/gdial-app.c \
-	$(top_srcdir)/server/gdial-rest.c \
-	$(top_srcdir)/server/gdial-shield.c \
-	$(top_srcdir)/server/gdial-ssdp.c \
 	$(top_srcdir)/server/plat/gdial-plat-app.c \
 	$(top_srcdir)/server/plat/gdial-plat-dev.c \
 	$(top_srcdir)/server/plat/gdial-plat-util.c \
 	$(top_srcdir)/server/plat/gdialappcache.cpp \
 	$(top_srcdir)/server/plat/gdial_app_registry.c
+
+if LIBSOUP_2_4
+run_L1Tests_SOURCES += \
+	$(top_srcdir)/server/libsoup/2.4/gdial-rest.c \
+	$(top_srcdir)/server/libsoup/2.4/gdial-shield.c \
+	$(top_srcdir)/server/libsoup/2.4/gdial-ssdp.c
+endif
+
+if LIBSOUP_3_0
+run_L1Tests_SOURCES += \
+	$(top_srcdir)/server/libsoup/3.0/gdial-rest.c \
+	$(top_srcdir)/server/libsoup/3.0/gdial-shield.c \
+	$(top_srcdir)/server/libsoup/3.0/gdial-ssdp.c
+endif
 
 run_L1Tests_LDADD = -lgtest -lgmock $(GLIB_LIBS) $(GIO_LIBS) $(SOUP_LIBS) $(XML2_LIBS) -luuid
 
