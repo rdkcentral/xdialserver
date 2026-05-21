@@ -125,12 +125,12 @@ TEST_F(GDialAppRegistryTest, IsAllowedOrigin_NullRegistryReturnsFalse) {
                      nullptr, "http://example.com"));
 }
 
-TEST_F(GDialAppRegistryTest, IsAllowedOrigin_EmptyAllowListPermitsAll) {
-    /* No allowed_origins → all origins are accepted */
+TEST_F(GDialAppRegistryTest, IsAllowedOrigin_EmptyAllowListDeniesAll) {
+    /* No allowed_origins -> fail closed */
     registry = gdial_app_registry_new("App", nullptr, nullptr,
                                       TRUE, FALSE, nullptr);
     ASSERT_NE(registry, nullptr);
-    EXPECT_TRUE(gdial_app_registry_is_allowed_origin(
+    EXPECT_FALSE(gdial_app_registry_is_allowed_origin(
                     registry, "http://any.origin.com"));
 }
 

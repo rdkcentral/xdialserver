@@ -242,7 +242,8 @@ GDIAL_STATIC GDialAppRegistry *gdial_rest_server_find_app_registry_by_uuid(GDial
   }
 
 GDIAL_STATIC gboolean gdial_rest_server_is_allowed_youtube_origin(GDialRestServer *self, const gchar *header_origin, const gchar *app_name) {
-  if (self == NULL) return FALSE;
+  if (self == NULL || app_name == NULL) return FALSE;
+  if (header_origin == NULL || !strlen(header_origin)) return FALSE;
 
   gboolean is_allowed = FALSE;
   /* YouTube DIAL requirements overwrite the standard DIAL requirements for cors validation
@@ -255,7 +256,7 @@ GDIAL_STATIC gboolean gdial_rest_server_is_allowed_youtube_origin(GDialRestServe
   const gchar *uri_scheme = origin_uri ? soup_uri_get_scheme(origin_uri) : NULL;
 
   if (origin_uri && uri_scheme &&
-    ( uri_scheme == SOUP_URI_SCHEME_HTTPS )) {
+    !g_strcmp0(uri_scheme, SOUP_URI_SCHEME_HTTPS)) {
     GDialAppRegistry *app_registry = gdial_rest_server_find_app_registry(self, app_name);
     if (app_registry) {
       is_allowed = gdial_app_registry_is_allowed_origin (app_registry, header_origin);
@@ -277,10 +278,9 @@ GDIAL_STATIC gboolean gdial_rest_server_is_allowed_youtube_origin(GDialRestServe
 }
 
 GDIAL_STATIC gboolean gdial_rest_server_is_allowed_origin(GDialRestServer *self, const gchar *header_origin, const gchar *app_name) {
-  if (self == NULL) return FALSE;
+  if (self == NULL || app_name == NULL) return FALSE;
   if (g_str_has_prefix(app_name,"YouTube")) return gdial_rest_server_is_allowed_youtube_origin(self,header_origin,app_name);
-  if (header_origin == NULL) return TRUE;
-  if (!g_strcmp0(header_origin, "")) return TRUE;
+  if (header_origin == NULL || !strlen(header_origin)) return FALSE;
 
   gboolean is_allowed = FALSE;
 
@@ -288,16 +288,13 @@ GDIAL_STATIC gboolean gdial_rest_server_is_allowed_origin(GDialRestServer *self,
   const gchar *uri_scheme = origin_uri ? soup_uri_get_scheme(origin_uri) : NULL;
 
   if (origin_uri && uri_scheme &&
-    (!g_strcmp0(uri_scheme, "package") || !g_strcmp0(uri_scheme, SOUP_URI_SCHEME_HTTPS))) {
+    !g_strcmp0(uri_scheme, SOUP_URI_SCHEME_HTTPS)) {
     GDialAppRegistry *app_registry = gdial_rest_server_find_app_registry(self, app_name);
     if (app_registry) {
       is_allowed = gdial_app_registry_is_allowed_origin (app_registry, header_origin);
     }
     else {
     }
-  }
-  else {
-    is_allowed = TRUE;
   }
   if (origin_uri) soup_uri_free(origin_uri);
 

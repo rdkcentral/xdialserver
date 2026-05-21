@@ -282,11 +282,11 @@ TEST_F(GDialRestServerTest, AllowedOrigin_NonYouTubeBehavior) {
     ASSERT_TRUE(gdial_rest_server_register_app(
         server, "Netflix", nullptr, nullptr, TRUE, FALSE, allowed_origins));
 
-    EXPECT_TRUE(gdial_rest_server_is_allowed_origin(server, nullptr, "Netflix"));
-    EXPECT_TRUE(gdial_rest_server_is_allowed_origin(server, "", "Netflix"));
+    EXPECT_FALSE(gdial_rest_server_is_allowed_origin(server, nullptr, "Netflix"));
+    EXPECT_FALSE(gdial_rest_server_is_allowed_origin(server, "", "Netflix"));
     EXPECT_TRUE(gdial_rest_server_is_allowed_origin(server, "https://www.example.com", "Netflix"));
     EXPECT_FALSE(gdial_rest_server_is_allowed_origin(server, "https://evil.org", "Netflix"));
-    EXPECT_TRUE(gdial_rest_server_is_allowed_origin(server, "http://evil.org", "Netflix"));
+    EXPECT_FALSE(gdial_rest_server_is_allowed_origin(server, "http://www.example.com", "Netflix"));
 
     g_list_free(allowed_origins);
 }
@@ -349,43 +349,68 @@ TEST_F(GDialRestServerTest, EnablePropertyCanBeToggled) {
 }
 
 TEST_F(GDialRestServerTest, HttpOptionsOnAppPathReturnsNoContent) {
+    GList *allowed_origins = make_list1(".example.com");
     ASSERT_TRUE(gdial_rest_server_register_app(
-        server, "Netflix", nullptr, nullptr, TRUE, FALSE, nullptr));
+        server, "Netflix", nullptr, nullptr, TRUE, FALSE, allowed_origins));
 
-    SoupMessage *msg = send_rest("OPTIONS", "/Netflix");
+    SoupMessage *msg = send_rest("OPTIONS", "/Netflix", "https://www.example.com");
     ASSERT_NE(msg, nullptr);
     EXPECT_EQ(msg->status_code, SOUP_STATUS_NO_CONTENT);
     EXPECT_STREQ(
         soup_message_headers_get_one(msg->response_headers, "Access-Control-Allow-Methods"),
         "GET, POST, OPTIONS");
+    EXPECT_STREQ(
+        soup_message_headers_get_one(msg->response_headers, "Access-Control-Allow-Origin"),
+        "https://www.example.com");
     g_object_unref(msg);
+    g_list_free(allowed_origins);
 }
 
 TEST_F(GDialRestServerTest, HttpPostOnAppPathCreatesInstance) {
+    GList *allowed_origins = make_list1(".example.com");
     ASSERT_TRUE(gdial_rest_server_register_app(
-        server, "Netflix", nullptr, nullptr, TRUE, FALSE, nullptr));
+        server, "Netflix", nullptr, nullptr, TRUE, FALSE, allowed_origins));
     gdial_plat_stub_set_app_state(GDIAL_APP_STATE_RUNNING);
 
-    SoupMessage *msg = send_rest("POST", "/Netflix", nullptr, "k=v");
+    SoupMessage *msg = send_rest("POST", "/Netflix", "https://www.example.com", "k=v");
     ASSERT_NE(msg, nullptr);
     EXPECT_EQ(msg->status_code, SOUP_STATUS_CREATED);
     const char *location = soup_message_headers_get_one(msg->response_headers, "Location");
     ASSERT_NE(location, nullptr);
     EXPECT_NE(strstr(location, "/Netflix/run"), nullptr);
     g_object_unref(msg);
+    g_list_free(allowed_origins);
 }
 
 TEST_F(GDialRestServerTest, HttpGetOnAppPathReturnsXml) {
+    GList *allowed_origins = make_list1(".example.com");
     ASSERT_TRUE(gdial_rest_server_register_app(
-        server, "Netflix", nullptr, nullptr, TRUE, FALSE, nullptr));
+        server, "Netflix", nullptr, nullptr, TRUE, FALSE, allowed_origins));
 
-    SoupMessage *msg = send_rest("GET", "/Netflix");
+    SoupMessage *msg = send_rest("GET", "/Netflix", "https://www.example.com");
     ASSERT_NE(msg, nullptr);
     EXPECT_EQ(msg->status_code, SOUP_STATUS_OK);
     ASSERT_NE(msg->response_body, nullptr);
     ASSERT_NE(msg->response_body->data, nullptr);
     EXPECT_NE(strstr(msg->response_body->data, "<service"), nullptr);
     g_object_unref(msg);
+    g_list_free(allowed_origins);
+}
+
+TEST_F(GDialRestServerTest, HttpPostOnAppPathWithoutOriginReturnsForbidden) {
+    GList *allowed_origins = make_list1(".example.com");
+    ASSERT_TRUE(gdial_rest_server_register_app(
+        server, "Netflix", nullptr, nullptr, TRUE, FALSE, allowed_origins));
+
+    SoupMessage *msg = send_rest("POST", "/Netflix", nullptr, "k=v");
+    ASSERT_NE(msg, nullptr);
+    EXPECT_EQ(msg->status_code, SOUP_STATUS_FORBIDDEN);
+    EXPECT_EQ(
+        soup_message_headers_get_one(msg->response_headers, "Access-Control-Allow-Origin"),
+        nullptr);
+
+    g_object_unref(msg);
+    g_list_free(allowed_origins);
 }
 
 TEST_F(GDialRestServerTest, HttpPostHidePathRunsHandlePostHide) {
@@ -416,8 +441,9 @@ TEST_F(GDialRestServerTest, HttpPostHidePathRunsHandlePostHide) {
 }
 
 TEST_F(GDialRestServerTest, HttpDeleteOnRunPathRunsHandleDelete) {
+    GList *allowed_origins = make_list1(".example.com");
     ASSERT_TRUE(gdial_rest_server_register_app(
-        server, "Netflix", nullptr, nullptr, TRUE, FALSE, nullptr));
+        server, "Netflix", nullptr, nullptr, TRUE, FALSE, allowed_origins));
     gdial_plat_stub_set_app_state(GDIAL_APP_STATE_RUNNING);
 
     GDialApp *app = gdial_app_new("Netflix");
@@ -425,10 +451,11 @@ TEST_F(GDialRestServerTest, HttpDeleteOnRunPathRunsHandleDelete) {
     app->instance_id = 1;
     app->state = GDIAL_APP_STATE_RUNNING;
 
-    SoupMessage *msg = send_rest("DELETE", "/Netflix/run");
+    SoupMessage *msg = send_rest("DELETE", "/Netflix/run", "https://www.example.com");
     ASSERT_NE(msg, nullptr);
     EXPECT_EQ(msg->status_code, SOUP_STATUS_OK);
     g_object_unref(msg);
+    g_list_free(allowed_origins);
 }
 
 TEST_F(GDialRestServerTest, LocalPostDialDataPathReturnsOk) {
