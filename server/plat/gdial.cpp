@@ -534,8 +534,15 @@ int gdial_os_application_start(const char *app_name, const char *payload, const 
         }
         else if (parsed_query["action"] == "togglepower") {
             const char *system_key = getenv("SYSTEM_SLEEP_REQUEST_KEY");
+            GDIAL_LOGINFO("system app togglepower request: key_in_query[%s] system_key_configured[%s]",
+                          parsed_query["key"].empty() ? "no" : "yes",
+                          system_key ? "yes" : "no");
+            if (!system_key) {
+                GDIAL_LOGWARNING("SYSTEM_SLEEP_REQUEST_KEY is not set; togglepower key validation is bypassed");
+            }
             if (system_key && parsed_query["key"] != system_key) {
                 GDIAL_LOGINFO("system app request to toggle the power state, key comparison failed: user provided '%s'", parsed_query["key"].c_str());
+                GDIAL_LOGINFO("togglepower request rejected with GDIAL_APP_ERROR_INTERNAL due to key mismatch");
                 GDIAL_LOGTRACE("Exiting ...");
                 return GDIAL_APP_ERROR_INTERNAL;
             }
