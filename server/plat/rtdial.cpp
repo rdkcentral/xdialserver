@@ -495,8 +495,15 @@ int gdial_os_application_start(const char *app_name, const char *payload, const 
         }
         else if (parsed_query["action"] == "togglepower") {
             const char *system_key = getenv("SYSTEM_SLEEP_REQUEST_KEY");
+            printf("RTDIAL: system togglepower request: key_in_query[%s] system_key_configured[%s]\n",
+                   parsed_query["key"].empty() ? "no" : "yes",
+                   system_key ? "yes" : "no");
+            if (!system_key) {
+                printf("RTDIAL: SYSTEM_SLEEP_REQUEST_KEY is not set; togglepower key validation is bypassed\n");
+            }
             if (system_key && parsed_query["key"] != system_key) {
                 printf("RTDIAL: system app request to toggle the power state, key comparison failed: user provided '%s'\n", parsed_query["key"].c_str());
+                printf("RTDIAL: togglepower request rejected with GDIAL_APP_ERROR_INTERNAL due to key mismatch\n");
                 return GDIAL_APP_ERROR_INTERNAL;
             }
             printf("RTDIAL: system app request to toggle the power state \n");
