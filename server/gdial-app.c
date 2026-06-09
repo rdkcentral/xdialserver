@@ -509,7 +509,7 @@ GDIAL_STATIC gboolean gdial_app_remove_additional_dial_data_file(const gchar *ap
 gchar * gdial_app_state_response_new(GDialApp *app, const gchar *dial_ver, const gchar *client_dial_version, const gchar *xmlns, int *len)
 {
   GDialAppState state = app->state;
-  if(compare_versions(client_dial_version, "2.1") < 0) {
+  if(client_dial_version != NULL && compare_versions(client_dial_version, "2.1") < 0) {
       GDIAL_LOGINFO("gdial_app_state_response_new client: %s less than 2.1", (client_dial_version != NULL) ? client_dial_version : "-- none --");
       state = (state == GDIAL_APP_STATE_HIDE) ? GDIAL_APP_STATE_STOPPED : state;
   }
