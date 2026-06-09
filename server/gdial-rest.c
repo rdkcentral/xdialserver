@@ -429,7 +429,6 @@ static void gdial_rest_server_handle_POST(GDialRestServer *gdial_rest_server, So
   guint listening_port = soup_address_get_port(soup_message_get_address(msg));
   gdial_rest_server_http_return_if_fail(listening_port != 0, msg, SOUP_STATUS_INTERNAL_SERVER_ERROR);
 
-  GDIAL_LOGERROR("Starting the app with payload %.*s", (int)msg->request_body->length, msg->request_body->data);
   GDialApp *app = gdial_app_find_instance_by_name(app_registry->name);
   gboolean new_app_instance = FALSE;
   gboolean first_instance_created = FALSE;
@@ -478,16 +477,18 @@ static void gdial_rest_server_handle_POST(GDialRestServer *gdial_rest_server, So
     }
     const gchar *payload = msg->request_body->data;
     gchar *payload_safe = NULL;
-    if (payload && strlen(payload)) {
-      if (g_str_has_prefix(app->name, "YouTube")) {
+    if (payload && msg->request_body->length > 0) {
+      if (g_str_has_prefix(app->name, "YouTube") || g_str_has_prefix(app->name, "Netflix")) {
         /* temporary disabling encoding payload for YouTube till cloud side changed*/
-        payload_safe = g_strdup(payload);
+        payload_safe = g_strndup(payload, msg->request_body->length);
       }
       else {
-        char *tmp = soup_uri_encode(payload, "=&");
+        gchar *tmp_payload = g_strndup(payload, msg->request_body->length);
+        char *tmp = soup_uri_encode(tmp_payload, "=&");
         // note that we later g_free(payload_safe) which doesn't necessarily work with malloc'ed memory (seems to depend on glib version)
         payload_safe = g_strdup(tmp);
         free(tmp);
+        g_free(tmp_payload);
       }
     }
     start_error = gdial_app_start(app, payload_safe, query_str_safe, additional_data_url_safe, gdial_rest_server);
