@@ -522,8 +522,13 @@ int gdial_os_application_start(const char *app_name, const char *payload, const 
         auto parsed_query{parse_query(query_string)};
         if (parsed_query["action"] == "sleep") {
             const char *system_key = getenv("SYSTEM_SLEEP_REQUEST_KEY");
-            if (system_key && parsed_query["key"] != system_key) {
-                GDIAL_LOGINFO("system app request to change device to sleep mode, key comparison failed: user provided '%s'", parsed_query["key"].c_str());
+            if ((NULL == system_key) || (system_key && parsed_query["key"] != system_key)) {
+				if (NULL == system_key) {
+					GDIAL_LOGINFO("SYSTEM_SLEEP_REQUEST_KEY is not configured, So ignoring system app request to change device to sleep mode");
+				}
+				else {
+					GDIAL_LOGINFO("system app request to change device to sleep mode, key comparison failed: user provided '%s'", parsed_query["key"].c_str());
+				}
                 GDIAL_LOGTRACE("Exiting ...");
                 return GDIAL_APP_ERROR_INTERNAL;
             }
@@ -534,8 +539,13 @@ int gdial_os_application_start(const char *app_name, const char *payload, const 
         }
         else if (parsed_query["action"] == "togglepower") {
             const char *system_key = getenv("SYSTEM_SLEEP_REQUEST_KEY");
-            if (system_key && parsed_query["key"] != system_key) {
-                GDIAL_LOGINFO("system app request to toggle the power state, key comparison failed: user provided '%s'", parsed_query["key"].c_str());
+            if ((NULL == system_key) || (system_key && parsed_query["key"] != system_key)) {
+				if (NULL == system_key) {
+					GDIAL_LOGINFO("SYSTEM_SLEEP_REQUEST_KEY is not configured, So ignoring system app request to toggle the power state");
+				}
+				else {
+					GDIAL_LOGINFO("system app request to toggle the power state, key comparison failed: user provided '%s'", parsed_query["key"].c_str());
+				}
                 GDIAL_LOGTRACE("Exiting ...");
                 return GDIAL_APP_ERROR_INTERNAL;
             }
