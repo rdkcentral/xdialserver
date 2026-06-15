@@ -310,8 +310,9 @@ TEST_F(GDialCppTest, OsUpdateManufacturerAndModel_AfterInitReturnNone)
 TEST_F(GDialCppTest, OsApplicationStart_SystemSleepTriggersPowerOff)
 {
     ASSERT_TRUE(gdial_cpp_test_init(ctx));
+    setenv("SYSTEM_SLEEP_REQUEST_KEY", "testkey", 1);
     int instance_id = 0;
-    EXPECT_EQ(gdial_cpp_test_os_application_start("system", "", "action=sleep", "", &instance_id), GDIAL_APP_ERROR_NONE);
+    EXPECT_EQ(gdial_cpp_test_os_application_start("system", "", "action=sleep&key=testkey", "", &instance_id), GDIAL_APP_ERROR_NONE);
     EXPECT_EQ(g_power_cb_calls, 1);
     EXPECT_EQ(g_last_power_state, "STANDBY");
 }
@@ -319,8 +320,9 @@ TEST_F(GDialCppTest, OsApplicationStart_SystemSleepTriggersPowerOff)
 TEST_F(GDialCppTest, OsApplicationStart_SystemTogglePowerTriggersToggle)
 {
     ASSERT_TRUE(gdial_cpp_test_init(ctx));
+    setenv("SYSTEM_SLEEP_REQUEST_KEY", "testkey", 1);
     int instance_id = 0;
-    EXPECT_EQ(gdial_cpp_test_os_application_start("system", "", "action=togglepower", "", &instance_id), GDIAL_APP_ERROR_NONE);
+    EXPECT_EQ(gdial_cpp_test_os_application_start("system", "", "action=togglepower&key=testkey", "", &instance_id), GDIAL_APP_ERROR_NONE);
     EXPECT_EQ(g_power_cb_calls, 1);
     EXPECT_EQ(g_last_power_state, "TOGGLE");
 }
@@ -330,6 +332,26 @@ TEST_F(GDialCppTest, OsApplicationState_SystemReturnsHide)
     GDialAppState state = GDIAL_APP_STATE_MAX;
     EXPECT_EQ(gdial_cpp_test_os_application_state("system", 1, &state), GDIAL_APP_ERROR_NONE);
     EXPECT_EQ(state, GDIAL_APP_STATE_HIDE);
+}
+
+TEST_F(GDialCppTest, OsApplicationStart_SystemSleepWithNullKeyReturnsInternal)
+{
+    ASSERT_TRUE(gdial_cpp_test_init(ctx));
+    /* SYSTEM_SLEEP_REQUEST_KEY is unset (NULL) — request must be rejected. */
+    int instance_id = 0;
+    EXPECT_EQ(gdial_cpp_test_os_application_start("system", "", "action=sleep", "", &instance_id),
+              GDIAL_APP_ERROR_INTERNAL);
+    EXPECT_EQ(g_power_cb_calls, 0);
+}
+
+TEST_F(GDialCppTest, OsApplicationStart_SystemTogglePowerWithNullKeyReturnsInternal)
+{
+    ASSERT_TRUE(gdial_cpp_test_init(ctx));
+    /* SYSTEM_SLEEP_REQUEST_KEY is unset (NULL) — request must be rejected. */
+    int instance_id = 0;
+    EXPECT_EQ(gdial_cpp_test_os_application_start("system", "", "action=togglepower", "", &instance_id),
+              GDIAL_APP_ERROR_INTERNAL);
+    EXPECT_EQ(g_power_cb_calls, 0);
 }
 
 TEST_F(GDialCppTest, OsApplicationStart_SystemSleepWithWrongKeyReturnsInternal)
