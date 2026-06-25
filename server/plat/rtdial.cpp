@@ -485,8 +485,13 @@ int gdial_os_application_start(const char *app_name, const char *payload, const 
         auto parsed_query{parse_query(query_string)};
         if (parsed_query["action"] == "sleep") {
             const char *system_key = getenv("SYSTEM_SLEEP_REQUEST_KEY");
-            if (system_key && parsed_query["key"] != system_key) {
-                printf("RTDIAL: system app request to change device to sleep mode, key comparison failed: user provided '%s'\n", parsed_query["key"].c_str());
+            if ((NULL == system_key) || (parsed_query["key"] != system_key)) {
+                if (system_key) {
+                    printf("RTDIAL: system app request to change device to sleep mode, key comparison failed: user provided '%s', expected '%s'\n", parsed_query["key"].c_str(), system_key);
+                }
+                else {
+                    printf("RTDIAL: system app request to change device to sleep mode, SYSTEM_SLEEP_REQUEST_KEY not set\n");
+                }
                 return GDIAL_APP_ERROR_INTERNAL;
             }
             printf("RTDIAL: system app request to change device to sleep mode\n");
@@ -495,8 +500,13 @@ int gdial_os_application_start(const char *app_name, const char *payload, const 
         }
         else if (parsed_query["action"] == "togglepower") {
             const char *system_key = getenv("SYSTEM_SLEEP_REQUEST_KEY");
-            if (system_key && parsed_query["key"] != system_key) {
-                printf("RTDIAL: system app request to toggle the power state, key comparison failed: user provided '%s'\n", parsed_query["key"].c_str());
+            if ((NULL == system_key) || (parsed_query["key"] != system_key)) {
+                if (system_key) {
+                    printf("RTDIAL: system app request to toggle the power state, key comparison failed: user provided '%s', expected '%s'\n", parsed_query["key"].c_str(), system_key);
+                }
+                else {
+                    printf("RTDIAL: system app request to toggle the power state, SYSTEM_SLEEP_REQUEST_KEY not set\n");
+                }
                 return GDIAL_APP_ERROR_INTERNAL;
             }
             printf("RTDIAL: system app request to toggle the power state \n");
