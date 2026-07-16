@@ -37,12 +37,23 @@ AM_CPPFLAGS = -I$(top_srcdir)/tests/L1Tests/stubs \
 	      -DGDIAL_STATIC=extern \
 	      -DGDIAL_STATIC_INLINE=extern \
 	      -D_GNU_SOURCE \
-	      -DHAVE_GSSDP_VERSION_1_2_OR_NEWER \
 	      $(GLIB_CFLAGS) \
 	      $(GIO_CFLAGS) \
 	      $(GSSDP_CFLAGS) \
 	      $(SOUP_CFLAGS) \
 	      $(XML2_CFLAGS)
+
+if LIBSOUP_3_0
+AM_CPPFLAGS += -DHAVE_LIBSOUP_VERSION_3
+endif
+
+if GSSDP_1_6
+AM_CPPFLAGS += -DHAVE_GSSDP_VERSION_1_6_OR_NEWER
+endif
+
+if GSSDP_1_2
+AM_CPPFLAGS += -DHAVE_GSSDP_VERSION_1_2_OR_NEWER
+endif
 
 AM_CXXFLAGS = -Wall -std=c++14 -g
 
@@ -78,14 +89,25 @@ run_L1Tests_SOURCES = \
 	$(top_srcdir)/server/gdialservice.cpp \
 	$(top_srcdir)/server/gdial-util.c \
 	$(top_srcdir)/server/gdial-app.c \
-	$(top_srcdir)/server/gdial-rest.c \
-	$(top_srcdir)/server/gdial-shield.c \
-	$(top_srcdir)/server/gdial-ssdp.c \
 	$(top_srcdir)/server/plat/gdial-plat-app.c \
 	$(top_srcdir)/server/plat/gdial-plat-dev.c \
 	$(top_srcdir)/server/plat/gdial-plat-util.c \
 	$(top_srcdir)/server/plat/gdialappcache.cpp \
 	$(top_srcdir)/server/plat/gdial_app_registry.c
+
+if LIBSOUP_2_4
+run_L1Tests_SOURCES += \
+	$(top_srcdir)/server/libsoup/2.4/gdial-rest.c \
+	$(top_srcdir)/server/libsoup/2.4/gdial-shield.c \
+	$(top_srcdir)/server/libsoup/2.4/gdial-ssdp.c
+endif
+
+if LIBSOUP_3_0
+run_L1Tests_SOURCES += \
+	$(top_srcdir)/server/libsoup/3.0/gdial-rest.c \
+	$(top_srcdir)/server/libsoup/3.0/gdial-shield.c \
+	$(top_srcdir)/server/libsoup/3.0/gdial-ssdp.c
+endif
 
 run_L1Tests_LDADD = -lgtest -lgmock $(GLIB_LIBS) $(GIO_LIBS) $(SOUP_LIBS) $(XML2_LIBS) -luuid
 
