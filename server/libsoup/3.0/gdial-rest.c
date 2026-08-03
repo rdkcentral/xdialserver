@@ -548,7 +548,8 @@ static void gdial_rest_server_handle_POST(GDialRestServer *gdial_rest_server, So
         GDIAL_LOGINFO("POST request payload = [%s]", request_body->data);
         gdial_app_set_launch_payload(app, request_body->data);
       }
-    }
+      }
+	}
     else {
       soup_server_message_set_status(msg, SOUP_STATUS_OK, NULL);
     }
