@@ -389,3 +389,4 @@ int gdial_ssdp_set_modelname(const gchar *model_name)
     pthread_mutex_unlock(&ssdpServerEventSync);
     return 0;
 }
+
