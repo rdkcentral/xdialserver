@@ -433,9 +433,10 @@ static void gdial_rest_server_handle_POST(GDialRestServer *gdial_rest_server, So
   guint listening_port = g_inet_socket_address_get_port(G_INET_SOCKET_ADDRESS(socket_addr));
   gdial_rest_server_http_return_if_fail(listening_port != 0, msg, SOUP_STATUS_INTERNAL_SERVER_ERROR);
 
-  // coverity fix : FORWARD_NULL - check for NULL request_body->data before using in log
+  // coverity fix : FORWARD_NULL - check for NULL request_body before accessing length and data
   const char *payload_str = (request_body && request_body->data) ? request_body->data : "";
-  GDIAL_LOGERROR("Starting the app with payload %.*s", (int)request_body->length, payload_str);
+  int payload_len = (request_body) ? (int)request_body->length : 0;
+  GDIAL_LOGERROR("Starting the app with payload %.*s", payload_len, payload_str);	
   GDialApp *app = gdial_app_find_instance_by_name(app_registry->name);
   gboolean new_app_instance = FALSE;
   gboolean first_instance_created = FALSE;
@@ -483,7 +484,8 @@ static void gdial_rest_server_handle_POST(GDialRestServer *gdial_rest_server, So
         query_str_safe = g_strdup(query_str);
       }
     }
-    const gchar *payload = request_body->data;
+    // coverity fix: REVERSE_INULL - check request_body for NULL before dereferencing
+    const gchar *payload = (request_body) ? request_body->data : NULL;
     gchar *payload_safe = NULL;
     if (payload && strlen(payload)) {
       if (g_str_has_prefix(app->name, "YouTube")) {
