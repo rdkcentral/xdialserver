@@ -505,19 +505,6 @@ static void gdial_rest_server_handle_POST(GDialRestServer *gdial_rest_server, So
     if (additional_data_url_safe) free(additional_data_url_safe);
     if (additional_data_url) g_free(additional_data_url);
   }
-  else {
-    /*
-     * start_error = NONE;
-     * app exist, and could be in hidden state, so resume;
-     */
-    // coverity fix : DEADCODE - check app for NULL before calling gdial_app_start
-    if (app) {
-      start_error = gdial_app_start(app, NULL, NULL, NULL, gdial_rest_server);
-    }
-    else {
-      start_error = GDIAL_APP_ERROR_NOT_IMPLEMENTED;
-    }
-  }
 
   /*
    * The app start could be asyn, thus app->state may not have changed
