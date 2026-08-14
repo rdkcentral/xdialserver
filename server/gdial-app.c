@@ -529,7 +529,6 @@ gchar * gdial_app_state_response_new(GDialApp *app, const gchar *dial_ver, const
   xmlNodePtr noptions = xmlNewChild(nservice, NULL, BAD_CAST "options", BAD_CAST NULL); {
     xmlNewProp(noptions, BAD_CAST "allowStop", BAD_CAST "true");
   }
-  // coverity fix : USE_AFTER_FREE - check for NULL before using state_str
   const gchar *state_str = gdial_app_state_to_string(state);
   if (state_str) {
     xmlNewChild(nservice, NULL, BAD_CAST "state", BAD_CAST state_str);
