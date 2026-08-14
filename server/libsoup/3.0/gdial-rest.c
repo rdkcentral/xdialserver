@@ -433,7 +433,6 @@ static void gdial_rest_server_handle_POST(GDialRestServer *gdial_rest_server, So
   guint listening_port = g_inet_socket_address_get_port(G_INET_SOCKET_ADDRESS(socket_addr));
   gdial_rest_server_http_return_if_fail(listening_port != 0, msg, SOUP_STATUS_INTERNAL_SERVER_ERROR);
 
-  // coverity fix : FORWARD_NULL - check for NULL request_body before accessing length and data
   const char *payload_str = (request_body && request_body->data) ? request_body->data : "";
   int payload_len = (request_body) ? (int)request_body->length : 0;
   GDIAL_LOGERROR("Starting the app with payload %.*s", payload_len, payload_str);	
@@ -465,7 +464,6 @@ static void gdial_rest_server_handle_POST(GDialRestServer *gdial_rest_server, So
     if (app_registry->use_additional_data) {
       additional_data_url = gdial_rest_server_new_additional_data_url(listening_port, app_registry->name, FALSE, app_registry->app_uri );
     }
-    // coverity fix : FORWARD_NULL - check for NULL before calling g_uri_escape_string
     gchar *additional_data_url_safe = additional_data_url ? g_uri_escape_string(additional_data_url, NULL, FALSE) : NULL;
     GDIAL_LOGINFO("additionalDataUrl = %s, %s", additional_data_url ? additional_data_url : "(null)", additional_data_url_safe ? additional_data_url_safe : "(null)");
     g_signal_connect_object(app, "state-changed", G_CALLBACK(gdial_rest_app_state_changed_cb), gdial_rest_server, 0);
@@ -484,7 +482,6 @@ static void gdial_rest_server_handle_POST(GDialRestServer *gdial_rest_server, So
         query_str_safe = g_strdup(query_str);
       }
     }
-    // coverity fix: REVERSE_INULL - check request_body for NULL before dereferencing
     const gchar *payload = (request_body) ? request_body->data : NULL;
     gchar *payload_safe = NULL;
     if (payload && strlen(payload)) {
@@ -513,7 +510,6 @@ static void gdial_rest_server_handle_POST(GDialRestServer *gdial_rest_server, So
    * created;
    */
   if (start_error == GDIAL_APP_ERROR_NONE) {
-    // coverity fix : REVERSE_INULL - check app for NULL before dereferencing app->name
     if (app) {
       soup_message_headers_replace(soup_server_message_get_response_headers(msg), "Content-Type", "text/plain; charset=utf-8");
       gdial_soup_message_headers_replace_va(soup_server_message_get_response_headers(msg), "Location", "http://%s:%d%s/%s/run",
@@ -544,7 +540,6 @@ static void gdial_rest_server_handle_POST(GDialRestServer *gdial_rest_server, So
     }
   }
   else {
-    // coverity fix : DEADCODE - check app for NULL before calling g_object_unref
     if (app) {
       g_object_unref(app);
       app = NULL;
