@@ -433,7 +433,9 @@ static void gdial_rest_server_handle_POST(GDialRestServer *gdial_rest_server, So
   guint listening_port = g_inet_socket_address_get_port(G_INET_SOCKET_ADDRESS(socket_addr));
   gdial_rest_server_http_return_if_fail(listening_port != 0, msg, SOUP_STATUS_INTERNAL_SERVER_ERROR);
 
-  GDIAL_LOGERROR("Starting the app with payload %.*s", (int)request_body->length, request_body->data);
+  const char *payload_str = (request_body && request_body->data) ? request_body->data : "";
+  int payload_len = (request_body) ? (int)request_body->length : 0;
+  GDIAL_LOGERROR("Starting the app with payload %.*s", payload_len, payload_str);	
   GDialApp *app = gdial_app_find_instance_by_name(app_registry->name);
   gboolean new_app_instance = FALSE;
   gboolean first_instance_created = FALSE;
@@ -462,8 +464,8 @@ static void gdial_rest_server_handle_POST(GDialRestServer *gdial_rest_server, So
     if (app_registry->use_additional_data) {
       additional_data_url = gdial_rest_server_new_additional_data_url(listening_port, app_registry->name, FALSE, app_registry->app_uri );
     }
-    gchar *additional_data_url_safe = g_uri_escape_string(additional_data_url, NULL, FALSE);
-    GDIAL_LOGINFO("additionalDataUrl = %s, %s", additional_data_url, additional_data_url_safe);
+    gchar *additional_data_url_safe = additional_data_url ? g_uri_escape_string(additional_data_url, NULL, FALSE) : NULL;
+    GDIAL_LOGINFO("additionalDataUrl = %s, %s", additional_data_url ? additional_data_url : "(null)", additional_data_url_safe ? additional_data_url_safe : "(null)");
     g_signal_connect_object(app, "state-changed", G_CALLBACK(gdial_rest_app_state_changed_cb), gdial_rest_server, 0);
     const gchar *query_str = g_uri_get_query(soup_server_message_get_uri(msg));
     gchar *query_str_safe = NULL;
@@ -480,7 +482,7 @@ static void gdial_rest_server_handle_POST(GDialRestServer *gdial_rest_server, So
         query_str_safe = g_strdup(query_str);
       }
     }
-    const gchar *payload = request_body->data;
+    const gchar *payload = (request_body) ? request_body->data : NULL;
     gchar *payload_safe = NULL;
     if (payload && strlen(payload)) {
       if (g_str_has_prefix(app->name, "YouTube")) {
@@ -497,15 +499,8 @@ static void gdial_rest_server_handle_POST(GDialRestServer *gdial_rest_server, So
     start_error = gdial_app_start(app, payload_safe, query_str_safe, additional_data_url_safe, gdial_rest_server);
     if (query_str_safe) g_free(query_str_safe);
     if (payload_safe) g_free(payload_safe);
-    free(additional_data_url_safe);
-    g_free(additional_data_url);
-  }
-  else {
-    /*
-     * start_error = NONE;
-     * app exist, and could be in hidden state, so resume;
-     */
-    start_error = gdial_app_start(app, NULL, NULL, NULL, gdial_rest_server);
+    if (additional_data_url_safe) free(additional_data_url_safe);
+    if (additional_data_url) g_free(additional_data_url);
   }
 
   /*
@@ -515,11 +510,12 @@ static void gdial_rest_server_handle_POST(GDialRestServer *gdial_rest_server, So
    * created;
    */
   if (start_error == GDIAL_APP_ERROR_NONE) {
-    soup_message_headers_replace(soup_server_message_get_response_headers(msg), "Content-Type", "text/plain; charset=utf-8");
-    gdial_soup_message_headers_replace_va(soup_server_message_get_response_headers(msg), "Location", "http://%s:%d%s/%s/run",
-      g_uri_get_host(soup_server_message_get_uri(msg)), listening_port, GDIAL_REST_HTTP_APPS_URI, app->name);
-    gdial_soup_message_headers_set_Allow_Origin(msg, TRUE);
-    if (new_app_instance) {
+    if (app) {
+      soup_message_headers_replace(soup_server_message_get_response_headers(msg), "Content-Type", "text/plain; charset=utf-8");
+      gdial_soup_message_headers_replace_va(soup_server_message_get_response_headers(msg), "Location", "http://%s:%d%s/%s/run",
+        g_uri_get_host(soup_server_message_get_uri(msg)), listening_port, GDIAL_REST_HTTP_APPS_URI, app->name);
+      gdial_soup_message_headers_set_Allow_Origin(msg, TRUE);
+      if (new_app_instance) {
       if (g_strcmp0(app->name, "system") != 0 && (first_instance_created || current_state == GDIAL_APP_STATE_HIDE)) {
         soup_server_message_set_status(msg, SOUP_STATUS_CREATED, NULL);
       }
@@ -537,15 +533,17 @@ static void gdial_rest_server_handle_POST(GDialRestServer *gdial_rest_server, So
         GDIAL_LOGINFO("POST request payload = [%s]", request_body->data);
         gdial_app_set_launch_payload(app, request_body->data);
       }
-    }
+      }
+	}
     else {
       soup_server_message_set_status(msg, SOUP_STATUS_OK, NULL);
     }
   }
   else {
-    g_object_unref(app);
-    // FIX(Copilot): Set app to NULL after unref to prevent use-after-free
-    app = NULL;
+    if (app) {
+      g_object_unref(app);
+      app = NULL;
+    }
     gdial_rest_server_http_return_if(start_error == GDIAL_APP_ERROR_FORBIDDEN, msg, SOUP_STATUS_FORBIDDEN);
     gdial_rest_server_http_return_if(start_error == GDIAL_APP_ERROR_UNAUTH, msg, SOUP_STATUS_UNAUTHORIZED);
     gdial_rest_server_http_return_if(TRUE, msg, SOUP_STATUS_SERVICE_UNAVAILABLE);
@@ -1333,7 +1331,7 @@ GDIAL_STATIC_INLINE void *GET_APP_response_builder_set_additionalData(void *buil
 
 GDIAL_STATIC_INLINE gchar *GET_APP_response_builder_build(void *builder, gsize *length) {
   GDialServerResponseBuilderGetApp * rbuilder = (GDialServerResponseBuilderGetApp *)builder;
-  GString *rbuf = g_string_new_len('\0', 128);
+  GString *rbuf = g_string_new_len(NULL, 128);
   if(rbuf == NULL){
     return NULL;
   }

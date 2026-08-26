@@ -60,9 +60,9 @@ do {\
   else {\
     GString *msg_buf = g_string_new("");\
     g_string_printf(msg_buf, "\r\nFailed Condition: [%s] - Error Message: "format, #expr, __VA_ARGS__);\
-    gchar *msg = g_string_free(msg_buf, FALSE);\
-    GDIAL_LOGWARNING("%s", msg); /*g_warn_message (G_LOG_DOMAIN, __FILE__, __LINE__, G_STRFUNC, msg);*/ \
-    g_free(msg);\
+    gchar *warn_msg_str = g_string_free(msg_buf, FALSE);\
+    GDIAL_LOGWARNING("%s", warn_msg_str); /*g_warn_message (G_LOG_DOMAIN, __FILE__, __LINE__, G_STRFUNC, warn_msg_str);*/ \
+    g_free(warn_msg_str);\
   }\
 } while (0)
 

@@ -250,6 +250,8 @@ int gdial_ssdp_new(SoupServer *ssdp_http_server, GDialOptions *options, const gc
   app_random_uuid = g_strdup(random_uuid);
   gchar *dail_ssdp_handler = g_strdup_printf("/%s/%s", random_uuid,"dd.xml");
   soup_server_add_handler(ssdp_http_server_, dail_ssdp_handler, ssdp_http_server_callback, NULL, NULL);
+  g_free(dail_ssdp_handler);
+  dail_ssdp_handler = NULL;
   ssdp_client_ = ssdp_client;
 
   return 0;
