@@ -219,6 +219,15 @@ GDialAppError gdial_app_start(GDialApp *app, const gchar *payload, const gchar *
     gdial_plat_application_state_async(app->name, app->instance_id, app);
     app_err = gdial_plat_application_state(app->name, app->instance_id, &app->state);
     g_warn_if_fail(app->state == GDIAL_APP_STATE_RUNNING);
+    /* FIX(Copilot): If app state query fails or returns non-RUNNING, mark as STARTING
+       to prevent premature deletion by GET handler during async startup window.
+       This ensures instances survive GET queries during the 1-2 second delay before
+       the actual app reaches RUNNING state (e.g., Spotify takes 1.4s vs YouTube 100ms) */
+    if (app->state != GDIAL_APP_STATE_RUNNING) {
+      app->state = GDIAL_APP_STATE_STARTING;
+      GDIAL_LOGINFO("gdial_app_start: app '%s' marked STARTING (state query returned %d)",
+                    app->name, app->state);
+    }
   }
   else {
     app->state = GDIAL_APP_STATE_STOPPED;
@@ -288,6 +297,7 @@ const gchar *gdial_app_state_to_string(GDialAppState state) {
   switch(state) {
     case GDIAL_APP_STATE_STOPPED: return "stopped";
     case GDIAL_APP_STATE_RUNNING: return "running";
+    case GDIAL_APP_STATE_STARTING: return "starting";  /* FIX(Copilot): Map STARTING to "starting" for DIAL response */
     case GDIAL_APP_STATE_HIDE:    return "hidden";
     case GDIAL_APP_STATE_MAX:
     default:

@@ -616,6 +616,11 @@ static void gdial_rest_server_handle_GET_app(GDialRestServer *gdial_rest_server,
   gchar *response_str = gdial_app_state_response_new(app, GDIAL_PROTOCOL_VERSION_STR, client_dial_version_str, GDIAL_PROTOCOL_XMLNS_SCHEMA, &response_len);
   #endif
   soup_message_set_response(msg, "text/xml; charset=utf-8", SOUP_MEMORY_TAKE, response_str, response_len);
+  /* FIX(Copilot): Only delete instances that are truly STOPPED, not STARTING.
+     STARTING instances need to survive GET queries during the async startup window
+     (e.g., Spotify takes 1.4+ seconds to reach RUNNING, YouTube takes ~100ms).
+     Deleting STARTING instances causes a vicious cycle of create/delete that
+     prevents state updates from reaching the DIAL controller. */
   if (app_state == GDIAL_APP_STATE_STOPPED) {
     GDIAL_LOGINFO("deleting app instance from state %d ", app_state);
     g_object_unref(app);

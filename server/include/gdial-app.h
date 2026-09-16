@@ -40,6 +40,7 @@ typedef enum {
   GDIAL_APP_STATE_STOPPED = 0,
   GDIAL_APP_STATE_HIDE,
   GDIAL_APP_STATE_RUNNING,
+  GDIAL_APP_STATE_STARTING,  /* FIX(Copilot): Added to prevent deletion of instances during async startup */
   GDIAL_APP_STATE_MAX
 } GDialAppState;
 
