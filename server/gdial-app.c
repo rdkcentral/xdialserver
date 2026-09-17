@@ -205,6 +205,7 @@ GDialApp *gdial_app_new(const gchar *app_name) {
   GDialApp *app = (GDialApp*)g_object_new(GDIAL_TYPE_APP, GDIAL_APP_NAME, app_name, NULL);  
   GDIAL_LOGINFO("After create has %d app %s instances created", g_list_length(application_instances_), app_name);
   gdial_app_refresh_additional_dial_data(app);
+  app->created_time = g_get_monotonic_time();  /* Record creation time to prevent premature deletion during startup */
   GDIAL_LOGTRACE("Exiting ...");
   return app;
 };

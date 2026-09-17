@@ -66,6 +66,7 @@ struct _GDialApp {
   GDialAppState state;
   gint instance_id;
   const gchar *instance_sid;
+  gint64 created_time;  /* Track creation time to prevent premature deletion during async startup */
 };
 
 GType gdial_app_get_type (void);

@@ -617,8 +617,16 @@ static void gdial_rest_server_handle_GET_app(GDialRestServer *gdial_rest_server,
   #endif
   soup_message_set_response(msg, "text/xml; charset=utf-8", SOUP_MEMORY_TAKE, response_str, response_len);
   if (app_state == GDIAL_APP_STATE_STOPPED) {
-    GDIAL_LOGINFO("deleting app instance from state %d ", app_state);
-    g_object_unref(app);
+    /* Don't delete instances during startup window (< 5 seconds) - allow callback to update state */
+    gint64 current_time = g_get_monotonic_time();
+    gint64 instance_age_ms = (current_time - app->created_time) / 1000;  /* Convert to milliseconds */
+    
+    if (instance_age_ms > 5000) {  /* Only delete if instance is older than 5 seconds */
+      GDIAL_LOGINFO("deleting app instance from state %d (age: %lld ms)", app_state, instance_age_ms);
+      g_object_unref(app);
+    } else {
+      GDIAL_LOGINFO("preserving app instance during startup window (age: %lld ms, state: %d)", instance_age_ms, app_state);
+    }
   }
   GDIAL_LOGTRACE("Exiting ...");
 }
