@@ -513,6 +513,23 @@ map<string,string> parse_query(const char* query_string) {
     return ret;
 }
 
+static bool is_authorized_system_action(const map<string,string>& parsed_query) {
+    const char *system_key = getenv("SYSTEM_SLEEP_REQUEST_KEY");
+    auto supplied = parsed_query.find("key");
+    if (!system_key || system_key[0] == '\0' || supplied == parsed_query.end()) {
+        return false;
+    }
+    const string expected(system_key);
+    if (expected.size() != supplied->second.size()) {
+        return false;
+    }
+    unsigned char difference = 0;
+    for (size_t i = 0; i < expected.size(); ++i) {
+        difference |= static_cast<unsigned char>(expected[i] ^ supplied->second[i]);
+    }
+    return difference == 0;
+}
+
 int gdial_os_application_start(const char *app_name, const char *payload, const char *query_string, const char *additional_data_url, int *instance_id) {
     GDIAL_LOGTRACE("Entering ...");
     GDIAL_LOGINFO("App launch req: appName[%s]  query[%s], payload[%s], additionalDataUrl [%s] instance[%p]",
@@ -521,9 +538,8 @@ int gdial_os_application_start(const char *app_name, const char *payload, const 
     if (strcmp(app_name,"system") == 0) {
         auto parsed_query{parse_query(query_string)};
         if (parsed_query["action"] == "sleep") {
-            const char *system_key = getenv("SYSTEM_SLEEP_REQUEST_KEY");
-            if (system_key && parsed_query["key"] != system_key) {
-                GDIAL_LOGINFO("system app request to change device to sleep mode, key comparison failed: user provided '%s'", parsed_query["key"].c_str());
+            if (!is_authorized_system_action(parsed_query)) {
+                GDIAL_LOGINFO("system app request to change device to sleep mode, authorization failed");
                 GDIAL_LOGTRACE("Exiting ...");
                 return GDIAL_APP_ERROR_INTERNAL;
             }
@@ -533,9 +549,8 @@ int gdial_os_application_start(const char *app_name, const char *payload, const 
             return GDIAL_APP_ERROR_NONE;
         }
         else if (parsed_query["action"] == "togglepower") {
-            const char *system_key = getenv("SYSTEM_SLEEP_REQUEST_KEY");
-            if (system_key && parsed_query["key"] != system_key) {
-                GDIAL_LOGINFO("system app request to toggle the power state, key comparison failed: user provided '%s'", parsed_query["key"].c_str());
+            if (!is_authorized_system_action(parsed_query)) {
+                GDIAL_LOGINFO("system app request to toggle the power state, authorization failed");
                 GDIAL_LOGTRACE("Exiting ...");
                 return GDIAL_APP_ERROR_INTERNAL;
             }
