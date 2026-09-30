@@ -28,17 +28,25 @@ cd ..
 
 rm -rf iarmbus ThunderTools Thunder entservices-apis entservices-testframework gssdp
 
+THUNDER_TOOLS_COMMIT_SHA="d5dd83c7c19c49c7f25c558c126500bd2d64f7a4"
+THUNDER_COMMIT_SHA="2c0fcc5529e7da734be558ca6efa05d934dcce31"
 
 git clone https://github.com/rdkcentral/iarmbus.git
 export IARMBUS_PATH=$GITHUB_WORKSPACE/iarmbus
 
-git clone --branch  R4.4.3 https://github.com/rdkcentral/ThunderTools.git
+git clone --branch R4_4-RDK https://github.com/rdkcentral/ThunderTools.git
+cd ThunderTools
+git checkout $THUNDER_TOOLS_COMMIT_SHA
+cd ..
 
-git clone --branch R4.4.1 https://github.com/rdkcentral/Thunder.git
+git clone --branch R4_4-RDK https://github.com/rdkcentral/Thunder.git
+cd Thunder
+git checkout $THUNDER_COMMIT_SHA
+cd ..
 
-git clone --branch main https://github.com/rdkcentral/entservices-apis.git
+git clone --branch develop https://github.com/rdkcentral/entservices-apis.git
 
-git clone https://$GITHUB_TOKEN@github.com/rdkcentral/entservices-testframework.git
+git clone --branch 2.0.0 https://github.com/rdkcentral/entservices-testframework.git
 
 git clone --branch gssdp-1.2.3 https://gitlab.gnome.org/GNOME/gssdp.git
 
@@ -60,7 +68,6 @@ cd -
 echo "======================================================================================"
 echo "buliding thunderTools"
 cd ThunderTools
-patch -p1 < $GITHUB_WORKSPACE/entservices-testframework/patches/00010-R4.4-Add-support-for-project-dir.patch
 cd -
 
 
@@ -79,10 +86,6 @@ echo "==========================================================================
 echo "buliding thunder"
 
 cd Thunder
-patch -p1 < $GITHUB_WORKSPACE/entservices-testframework/patches/Use_Legact_Alt_Based_On_ThunderTools_R4.4.3.patch
-patch -p1 < $GITHUB_WORKSPACE/entservices-testframework/patches/error_code_R4_4.patch
-patch -p1 < $GITHUB_WORKSPACE/entservices-testframework/patches/1004-Add-support-for-project-dir.patch
-patch -p1 < $GITHUB_WORKSPACE/entservices-testframework/patches/RDKEMW-733-Add-ENTOS-IDS.patch
 cd -
 
 cmake -G Ninja -S Thunder -B build/Thunder \
