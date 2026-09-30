@@ -90,20 +90,14 @@ std::string GDialAppStatusCache::SearchAppStatusInCache(const char* app_name)
     std::string state = "NOT_FOUND";
 
     std::string id = getAppCacheId(app_name);
-    if(doIdExist(id))
+    AppInfo appEntry("", "", "", "");
+    if(ObjectCache->findObject(id, appEntry))
     {
-        AppInfo* appEntry = ObjectCache->findObject(id);
-        // FIX(Copilot): Add NULL check for appEntry
-        if (appEntry) {
-            state = appEntry->appState;
-            GDIAL_LOGINFO("APPCache: App Name[%s] AppID[%s] Error[%s]",
-                appEntry->appName.c_str(),
-                appEntry->appId.c_str(),
-                appEntry->appError.c_str());
-        }
-        else {
-            GDIAL_LOGERROR("Cache entry exists but findObject returned NOT_FOUND");
-        }
+        state = appEntry.appState;
+        GDIAL_LOGINFO("APPCache: App Name[%s] AppID[%s] Error[%s]",
+            appEntry.appName.c_str(),
+            appEntry.appId.c_str(),
+            appEntry.appError.c_str());
     }
     GDIAL_LOGINFO("App State = %s ",state.c_str());
     GDIAL_LOGTRACE("Exiting ...");
