@@ -190,7 +190,10 @@ static void server_register_application(gpointer data)
         return;
     }
     RegisterApplicationsDispatch dispatch{data};
-    g_main_context_invoke(server_main_context, server_register_application_on_main, &dispatch);
+    GSource *source = g_idle_source_new();
+    g_source_set_callback(source, server_register_application_on_main, &dispatch, NULL);
+    g_source_attach(source, server_main_context);
+    g_source_unref(source);
     std::unique_lock<std::mutex> lock(dispatch.mutex);
     dispatch.condition.wait(lock, [&dispatch]{ return dispatch.complete; });
 }
