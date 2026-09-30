@@ -812,6 +812,10 @@ static void gdial_rest_http_server_apps_callback(SoupServer *server,
   for (i = 0; elements[i] != NULL; i++) {
     gsize ret;
     /* do not allow any element to be empty, stop on first one */
+    if (elements[i][0] == '\0') {
+      g_strfreev(elements);
+      gdial_rest_server_http_return_if_fail(FALSE, msg, SOUP_STATUS_NOT_IMPLEMENTED);
+    }
     if (j == 0) {
         ret = g_strlcpy(base, elements[i], sizeof(base));
         if (ret >= sizeof(base)) {
@@ -844,12 +848,8 @@ static void gdial_rest_http_server_apps_callback(SoupServer *server,
    */
   const gchar *copied_str[] = {base, app_name, instance, last_elem};
   i = 0; j = 0;
-  while (i < element_num && (unsigned int)i < sizeof(copied_str)/sizeof(copied_str[0])) {
+  while (elements[j] != NULL && i < element_num && (unsigned int)i < sizeof(copied_str)/sizeof(copied_str[0])) {
     bool flag = false;
-    if (strlen(elements[j]) == 0) {
-      j++;
-      continue;
-    }
     invalid_uri = invalid_uri || g_strcmp0(copied_str[i], elements[j]);
     gdial_rest_server_http_check_if_fail(!invalid_uri, msg, SOUP_STATUS_NOT_IMPLEMENTED, flag);
     if(flag){
