@@ -28,7 +28,7 @@
 #define _T(x) x
 #endif
 
-namespace WPEFramework {
+namespace Thunder {
 
 class JsonObject {
 public:
@@ -120,7 +120,7 @@ public:
 };
 
 } // namespace JSONRPC
-} // namespace WPEFramework
+} // namespace Thunder
 
 inline int GetSecurityToken(int, unsigned char *)
 {

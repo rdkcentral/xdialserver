@@ -571,7 +571,7 @@ int gdial_os_application_start(const char *app_name, const char *payload, const 
     return GDIAL_APP_ERROR_NONE;
 }
 
-using namespace WPEFramework;
+using namespace Thunder;
 JSONRPC::LinkType<Core::JSON::IElement> *netflixRemoteObject = NULL;
 JSONRPC::LinkType<Core::JSON::IElement> *controllerRemoteObject = NULL;
 #define MAX_LENGTH 1024

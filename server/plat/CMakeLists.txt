@@ -52,10 +52,10 @@ include_directories(
   ${PROJECT_SOURCE_DIR}/include
   ${PROJECT_SOURCE_DIR}/plat
   ${CMAKE_CURRENT_SOURCE_DIR}
-  $ENV{PKG_CONFIG_SYSROOT_DIR}/usr/include/WPEFramework
-  $ENV{PKG_CONFIG_SYSROOT_DIR}/usr/include/WPEFramework/core/
-  $ENV{PKG_CONFIG_SYSROOT_DIR}/usr/include/WPEFramework/plugins/
-  $ENV{PKG_CONFIG_SYSROOT_DIR}/usr/include/WPEFramework/interfaces/
+  $ENV{PKG_CONFIG_SYSROOT_DIR}/usr/include/Thunder
+  $ENV{PKG_CONFIG_SYSROOT_DIR}/usr/include/Thunder/core/
+  $ENV{PKG_CONFIG_SYSROOT_DIR}/usr/include/Thunder/plugins/
+  $ENV{PKG_CONFIG_SYSROOT_DIR}/usr/include/Thunder/interfaces/
   $ENV{PKG_CONFIG_SYSROOT_DIR}/usr/include/rdk/iarmbus/
   $ENV{PKG_CONFIG_SYSROOT_DIR}/usr/include/rdk/iarmmgrs-hal/
 )
@@ -76,7 +76,7 @@ endif()
 
 add_library(gdial-plat SHARED ${GDIAL_PLAT_LIB_SOURCE_FILES})
 if(DISABLE_SECURITY_TOKEN)
-  target_link_Libraries(gdial-plat PRIVATE ${GLIB_LIBRARIES} ${GOBJECT_LIBRARIES} -lpthread -lWPEFrameworkCore -lWPEFrameworkDefinitions -lWPEFrameworkCOM -lWPEFrameworkPlugins -lIARMBus -luuid)
+  target_link_Libraries(gdial-plat PRIVATE ${GLIB_LIBRARIES} ${GOBJECT_LIBRARIES} -lpthread -lThunderCore -lThunderDefinitions -lThunderCOM -lThunderPlugins -lIARMBus -luuid)
 else()
-  target_link_libraries(gdial-plat PRIVATE ${GLIB_LIBRARIES} ${GOBJECT_LIBRARIES} -lpthread -lWPEFrameworkCore -lWPEFrameworkDefinitions -lWPEFrameworkCOM -lWPEFrameworkPlugins -lWPEFrameworkSecurityUtil -lIARMBus -luuid)
+  target_link_libraries(gdial-plat PRIVATE ${GLIB_LIBRARIES} ${GOBJECT_LIBRARIES} -lpthread -lThunderCore -lThunderDefinitions -lThunderCOM -lThunderPlugins -lThunderSecurityUtil -lIARMBus -luuid)
 endif()

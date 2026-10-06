@@ -54,8 +54,8 @@ AM_CONDITIONAL([LIBSOUP_3_0], [test "x$libsoup_version" = "x3.0"])
 PKG_CHECK_MODULES([XML2], [libxml-2.0])
 
 # Optional RDK-specific packages
-PKG_CHECK_MODULES([WPEFRAMEWORK], [WPEFramework], [], 
-    [AC_MSG_WARN([WPEFramework development headers not found - platform tests may be limited])])
+PKG_CHECK_MODULES([THUNDER], [Thunder], [], 
+    [AC_MSG_WARN([Thunder development headers not found - platform tests may be limited])])
 PKG_CHECK_MODULES([IARMBUS], [libIARMBus], [], 
     [AC_MSG_WARN([libIARMBus development headers not found - IARM tests may be limited])])
 

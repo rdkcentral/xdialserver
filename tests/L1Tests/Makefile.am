@@ -24,9 +24,9 @@
 #   - server                      : xdialserver implementation headers
 #   - server/plat                 : platform-specific headers
 #
-# Note: WPEFramework and IARM bus headers are optional and mocked in the test
+# Note: Thunder and IARM bus headers are optional and mocked in the test
 # environment. The test stubs provide mock implementations, so the actual
-# development packages (libwpeframework-dev, libiarmbus-dev) are not required
+# development packages (libthunder-dev, libiarmbus-dev) are not required
 # for basic testing.
 
 AM_CPPFLAGS = -I$(top_srcdir)/tests/L1Tests/stubs \
