@@ -585,7 +585,7 @@ const std::string nfx_callsign = "Netflix";
 std::string GetCurrentState() {
      std::cout<<"GetCurrentState()"<<std::endl;
      std::string netflixState = "";
-     Core::JSON::ArrayType<PluginHost::MetaData::Service> pluginResponse;
+     Core::JSON::ArrayType<PluginHost::Metadata::Service> pluginResponse;
      Core::SystemInfo::SetEnvironment(_T("THUNDER_ACCESS"), (_T("127.0.0.1:9998")));
      string sToken = "";
      string query = "";
@@ -611,7 +611,7 @@ std::string GetCurrentState() {
      if(controllerRemoteObject->Get(1000, _T(nfxstatus), pluginResponse) == Core::ERROR_NONE)
      {
          GDIAL_LOGINFO("Obtained netflix status[%s]",nfxstatus.c_str());
-         Core::JSON::ArrayType<PluginHost::MetaData::Service>::Iterator index(pluginResponse.Elements());
+         Core::JSON::ArrayType<PluginHost::Metadata::Service>::Iterator index(pluginResponse.Elements());
          while (index.Next() == true) {
                 netflixState = index.Current().JSONState.Data();
          } //end of while loop
