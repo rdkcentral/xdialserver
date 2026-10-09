@@ -1,0 +1,643 @@
+name: backport PR
+
+on:
+  pull_request:
+    types: [closed]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  # ── Parse the PR once: ticket + list of target branches ──────────────────
+  parse:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    outputs:
+      skip:       ${{ steps.info.outputs.skip }}
+      ticket:     ${{ steps.info.outputs.ticket }}
+      branches:   ${{ steps.info.outputs.branches }}
+      merge_sha:  ${{ steps.info.outputs.merge_sha }}
+      pr_title:   ${{ steps.info.outputs.pr_title }}
+      pr_url:     ${{ steps.info.outputs.pr_url }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.RDKCM_RDKE }}
+
+      # ── Extract and validate backport_to + ticket ────────────────────────
+      - name: Extract PR info and validate backport_to
+        id: info
+        env:
+          PR_BODY:     ${{ github.event.pull_request.body }}
+          PR_BRANCH:   ${{ github.event.pull_request.head.ref }}
+          PR_TITLE:    ${{ github.event.pull_request.title }}
+          PR_URL:      ${{ github.event.pull_request.html_url }}
+          MERGE_SHA:   ${{ github.event.pull_request.merge_commit_sha }}
+          BASE_BRANCH: ${{ github.event.pull_request.base.ref }}
+          PR_NUMBER:   ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          
+          echo "PR branch       : $PR_BRANCH"
+          echo "Merged into     : $BASE_BRANCH"
+          echo "Merge SHA       : $MERGE_SHA"
+          
+          # ── Validate merge_commit_sha ─────────────────────────────────────
+          if [ -z "$MERGE_SHA" ]; then
+            echo "❌ FATAL: merge_commit_sha is empty"
+            echo "   Cannot perform cherry-pick without merge commit SHA"
+            exit 1
+          fi
+          
+          # ── backport_to omitted entirely → nothing to do, not an error ────
+          RAW_LINE=$(echo "$PR_BODY" | grep -iE '^\s*backport_to\s*:' | tail -1 || true)
+
+          if [ -z "$RAW_LINE" ]; then
+            echo "ℹ️  'backport_to:' not specified — no backport needed"
+            echo "skip=true"     >> "$GITHUB_OUTPUT"
+            echo "branches=[]"   >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # Multiple 'backport_to:' lines are allowed — the LAST one wins.
+          OCCURRENCE_COUNT=$(echo "$PR_BODY" | grep -ciE '^\s*backport_to\s*:' || true)
+          if [ "$OCCURRENCE_COUNT" -gt 1 ]; then
+            echo "ℹ️  Multiple 'backport_to' fields found ($OCCURRENCE_COUNT) — using the last one"
+          fi
+          
+          # Extract value (handle value on same line or next line)
+          VALUE_ON_SAME_LINE=$(echo "$RAW_LINE" | sed -E 's/^[^:]*:\s*//' | sed 's/#.*//' | xargs || true)
+          
+          if [ -z "$VALUE_ON_SAME_LINE" ]; then
+            # Multi-line YAML: check next non-empty line after the LAST backport_to line
+            LINE_NUM=$(echo "$PR_BODY" | grep -inE '^\s*backport_to\s*:' | tail -1 | cut -d: -f1)
+            VALUE_ON_SAME_LINE=$(echo "$PR_BODY" | tail -n +$((LINE_NUM + 1)) | grep -v '^[[:space:]]*$' | head -1 | sed 's/#.*//' | xargs || true)
+          fi
+          
+          VERSION=$(echo "$VALUE_ON_SAME_LINE" | sed 's/#.*//' | tr -d '\n\r' | xargs || true)
+          
+          echo "backport_to : '$VERSION'"
+          
+          # ── Empty value after parsing → nothing to do, not an error ───────
+          if [ -z "$VERSION" ]; then
+            echo "ℹ️  backport_to field is empty — no backport needed"
+            echo "skip=true"     >> "$GITHUB_OUTPUT"
+            echo "branches=[]"   >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          
+          # ── Validate: Handle 'none' (no backport) ─────────────────────────
+          if echo "$VERSION" | grep -qiE '^none$'; then
+            echo "ℹ️  backport_to: none — no backport needed"
+            echo "skip=true"     >> "$GITHUB_OUTPUT"
+            echo "branches=[]"   >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # ── Split comma-separated targets, e.g. "dummy_develop,8.3.4.0" ───
+          IFS=',' read -ra RAW_LIST <<< "$VERSION"
+          CLEAN_LIST=()
+          for v in "${RAW_LIST[@]}"; do
+            v_trimmed=$(echo "$v" | xargs)
+            [ -n "$v_trimmed" ] && CLEAN_LIST+=("$v_trimmed")
+          done
+
+          if [ "${#CLEAN_LIST[@]}" -eq 0 ]; then
+            echo "ℹ️  backport_to has no usable values — no backport needed"
+            echo "skip=true"     >> "$GITHUB_OUTPUT"
+            echo "branches=[]"   >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # 'none' is only valid on its own, not combined with real targets
+          if [ "${#CLEAN_LIST[@]}" -gt 1 ]; then
+            for v in "${CLEAN_LIST[@]}"; do
+              if echo "$v" | grep -qiE '^none$'; then
+                echo "❌ Invalid backport_to: 'none' cannot be combined with other targets ('$VERSION')"
+                exit 1
+              fi
+            done
+          fi
+
+          # ── Validate: Simplified rules (develop | X.Y.Z(.W) | full branch path) ─
+          SUPPORT_BRANCHES=()
+          for v in "${CLEAN_LIST[@]}"; do
+            if echo "$v" | grep -qiE '^(dummy_)?develop$'; then
+              b=$(echo "$v" | tr '[:upper:]' '[:lower:]')
+              echo "✅ Target mapped: '$v' → branch: $b"
+            elif echo "$v" | grep -qiE '^(support|release)/'; then
+              # Already a full branch path (e.g. "support/8.6.3.0") — use as-is.
+              b="$v"
+              echo "✅ Branch path accepted: '$v' → branch: $b"
+            elif echo "$v" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?$'; then
+              # Map 3-part versions to support/X.Y.Z.0 for compatibility
+              IFS='.' read -ra PARTS <<< "$v"
+              LEADING_ZERO=false
+              for PART in "${PARTS[@]}"; do
+                if [[ "$PART" =~ ^0[0-9]+ ]]; then
+                  LEADING_ZERO=true
+                fi
+              done
+              if [ "$LEADING_ZERO" = true ]; then
+                echo "❌ Invalid backport_to: version part has a leading zero in '$v'"
+                exit 1
+              fi
+              if [ "${#PARTS[@]}" -eq 3 ]; then
+                b="support/${v}.0"
+              else
+                b="support/${v}"
+              fi
+              echo "✅ Numeric version accepted: '$v' → branch: $b"
+            elif git ls-remote --exit-code --heads origin "$v" > /dev/null 2>&1; then
+              # Fallback: doesn't match any known shorthand, but an exact branch
+              # with this name already exists on origin — accept it literally.
+              b="$v"
+              echo "✅ Existing branch accepted as-is: '$v' → branch: $b"
+            else
+              echo "❌ Invalid backport_to value: '$v'"
+              echo "   Allowed values: 'none', 'develop', support/release paths, semantic numeric like 8.3.4 or 8.3.4.0, or an existing branch name"
+              exit 1
+            fi
+            SUPPORT_BRANCHES+=("$b")
+          done
+
+          BRANCHES_JSON=$(printf '%s\n' "${SUPPORT_BRANCHES[@]}" | sort -u | jq -R . | jq -sc .)
+          
+          # ── Extract and validate ticket (prefer PR title, then branch, then fallback) ─────────
+          TICKET=$(echo "$PR_TITLE" | grep -oE '[A-Z]+-[0-9]+' | head -1 || true)
+
+          if [ -z "$TICKET" ]; then
+            TICKET=$(echo "$PR_BRANCH" | grep -oE '[A-Z]+-[0-9]+' | head -1 || true)
+            if [ -n "$TICKET" ]; then
+              echo "✅ Ticket extracted from branch name: $TICKET"
+            fi
+          else
+            echo "✅ Ticket extracted from PR title: $TICKET"
+          fi
+
+          if [ -z "$TICKET" ]; then
+            echo "⚠️  No ticket found in PR title or branch"
+            echo "   Using fallback: BACKPORT_$PR_NUMBER"
+            TICKET="BACKPORT_$PR_NUMBER"
+          fi
+          
+          # ── Set outputs ────────────────────────────────────────────────────
+          echo "skip=false"                       >> "$GITHUB_OUTPUT"
+          echo "ticket=$TICKET"                   >> "$GITHUB_OUTPUT"
+          echo "branches=$BRANCHES_JSON"          >> "$GITHUB_OUTPUT"
+          echo "merge_sha=$MERGE_SHA"             >> "$GITHUB_OUTPUT"
+          echo "pr_title=$PR_TITLE"               >> "$GITHUB_OUTPUT"
+          echo "pr_url=$PR_URL"                   >> "$GITHUB_OUTPUT"
+          
+          echo ""
+          echo "┌─ BACKPORT PLAN ────────────────────────────────────────────────┐"
+          echo "│  Ticket          : $TICKET"
+          echo "│  Targets         : ${SUPPORT_BRANCHES[*]}"
+          echo "│  Merge commit    : $MERGE_SHA"
+          echo "└────────────────────────────────────────────────────────────────┘"
+
+  # ── One matrix run per target branch, fully independent and self-contained ──
+  backport:
+    needs: parse
+    if: needs.parse.outputs.skip != 'true'
+    runs-on: ubuntu-latest
+    concurrency:
+      # Keyed globally (not per PR/ticket) because the branch-name sequence
+      # (feature/<TICKET>, _1, _2, ...) is shared across every PR for the same
+      # ticket regardless of PR number or target branch, so overlapping runs
+      # can still race to create/push the same candidate branch name.
+      group: backport-serialize
+      cancel-in-progress: false
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        support_branch: ${{ fromJson(needs.parse.outputs.branches) }}
+    env:
+      SUPPORT_BRANCH: ${{ matrix.support_branch }}
+      TICKET:         ${{ needs.parse.outputs.ticket }}
+      MERGE_SHA:      ${{ needs.parse.outputs.merge_sha }}
+      PR_TITLE:       ${{ needs.parse.outputs.pr_title }}
+      PR_URL:         ${{ needs.parse.outputs.pr_url }}
+
+    steps:
+
+      # ── 0. Checkout ──────────────────────────────────────────────────────────
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.RDKCM_RDKE }}
+
+      - name: Configure Git
+        run: |
+          git config user.name  "GitHub Actions [Backport]"
+          git config user.email "github-actions@users.noreply.github.com"
+
+      # ── 2. Validate support branch exists ────────────────────────────────────
+      - name: Validate support branch exists
+        run: |
+          set -euo pipefail
+          
+          if [ -z "$SUPPORT_BRANCH" ]; then
+            echo "❌ FATAL: SUPPORT_BRANCH is empty"
+            exit 1
+          fi
+          
+          if git ls-remote --exit-code --heads origin "$SUPPORT_BRANCH" > /dev/null 2>&1; then
+            echo "✅ Support branch exists: $SUPPORT_BRANCH"
+          else
+            echo "❌ Support branch NOT found: $SUPPORT_BRANCH"
+            echo ""
+            echo "Available support branches:"
+            git ls-remote --heads origin 'refs/heads/support/*' | sed 's|.*refs/heads/||' | sed 's/^/  /'
+            exit 1
+          fi
+
+      # ── 3. Create or checkout feature branch from support ────────────────────
+      - name: Create or checkout feature branch
+        id: setup_feature
+        env:
+          GH_TOKEN: ${{ secrets.RDKCM_RDKE }}
+        run: |
+          set -euo pipefail
+          
+          if [ -z "$SUPPORT_BRANCH" ]; then
+            echo "❌ FATAL: SUPPORT_BRANCH is empty"
+            exit 1
+          fi
+
+          FEATURE_BRANCH="feature/${TICKET}"
+
+          git fetch origin "$SUPPORT_BRANCH"
+
+          # Determine a unique feature branch name. If the base feature branch
+          # already exists on origin or an open PR already targets the support
+          # branch using that head, pick feature/<TICKET>_1, _2, ... to avoid
+          # accumulating changes into the same branch/PR.
+
+          BASE_FEATURE="$FEATURE_BRANCH"
+          CAND="$BASE_FEATURE"
+          SUFFIX=1
+
+          # helper to test whether a PR exists for a given head->base
+          pr_exists() {
+            local head="$1"
+            local base="$2"
+            # If GH CLI available, use it; otherwise conservatively treat as not existing
+            if command -v gh >/dev/null 2>&1; then
+              local url
+              url=$(gh pr list --head "$head" --base "$base" --state open --json url --jq '.[0].url' 2>/dev/null || true)
+              if [ -n "$url" ]; then
+                return 0
+              fi
+            fi
+            return 1
+          }
+
+          # Loop until we find a candidate that has no branch on origin and no open PR
+          while :; do
+            # Check remote branch existence
+            if git ls-remote --exit-code --heads origin "$CAND" > /dev/null 2>&1; then
+              exists_remote=true
+            else
+              exists_remote=false
+            fi
+
+            # Check open PR existence (best-effort)
+            if pr_exists "$CAND" "$SUPPORT_BRANCH"; then
+              exists_pr=true
+            else
+              exists_pr=false
+            fi
+
+            if [ "$exists_remote" = false ] && [ "$exists_pr" = false ]; then
+              break
+            fi
+
+            # generate next candidate
+            CAND="${BASE_FEATURE}_$SUFFIX"
+            SUFFIX=$((SUFFIX + 1))
+          done
+
+          FEATURE_BRANCH="$CAND"
+
+          echo "Using feature branch: $FEATURE_BRANCH"
+
+          echo "Creating new feature branch '$FEATURE_BRANCH' from '$SUPPORT_BRANCH'..."
+          git checkout -b "$FEATURE_BRANCH" "origin/$SUPPORT_BRANCH"
+          
+          # Verify checkout succeeded
+          CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+          if [ "$CURRENT_BRANCH" != "$FEATURE_BRANCH" ]; then
+            echo "❌ FATAL: Checkout failed"
+            echo "   Expected: $FEATURE_BRANCH"
+            echo "   Got: $CURRENT_BRANCH"
+            exit 1
+          fi
+
+          echo "✅ On branch: $CURRENT_BRANCH"
+
+          # Publish chosen feature branch name to subsequent steps
+          echo "feature_branch=$FEATURE_BRANCH" >> "$GITHUB_OUTPUT"
+
+        # ── 4a. Apply merge commit and detect conflicts ─────────────────────
+      - name: "Phase 4a: Cherry-pick and detect conflicts"
+        id: cherry_pick
+        run: |
+          set -euo pipefail
+
+          echo ""
+          echo "▶ Applying merge commit: $MERGE_SHA"
+          echo ""
+
+          # Detect whether the commit is a merge commit.
+          PARENT_COUNT=$(git rev-list --parents -n 1 "$MERGE_SHA" | awk '{print NF-1}')
+
+          set +e
+
+          if [ "$PARENT_COUNT" -gt 1 ]; then
+            echo "Merge commit detected. Using parent 1."
+            git cherry-pick -m 1 --no-commit "$MERGE_SHA"
+          else
+            echo "Normal commit detected."
+            git cherry-pick --no-commit "$MERGE_SHA"
+          fi
+
+          CHERRY_PICK_EXIT=$?
+
+          set -e
+
+          # Snapshot conflicts as they stood right after the cherry-pick,
+          # before any cleanup below resolves/removes them. Needed to tell
+          # a genuine failure apart from one that gets fully cleaned up.
+          HAD_CONFLICTS=$(git ls-files -u | cut -f2 | sort -u || true)
+
+          # --------------------------------------------------------------
+          # Exclude ALL .github/ changes, whether they conflicted or were
+          # applied cleanly. Only .github/ files were being excluded when
+          # they showed up as conflicts (git ls-files -u); cleanly applied
+          # .github/ changes were never filtered out and still got committed.
+          # --------------------------------------------------------------
+          GITHUB_CHANGED=$(
+            { git diff --cached --name-only; git ls-files -u | cut -f2; } |
+            sort -u |
+            grep '^\.github/' || true
+          )
+
+          if [ -n "$GITHUB_CHANGED" ]; then
+            echo ""
+            echo "Excluding .github/ changes:"
+            echo "$GITHUB_CHANGED"
+
+            while IFS= read -r file; do
+              [ -n "$file" ] || continue
+
+              if git cat-file -e "HEAD:$file" 2>/dev/null; then
+                git checkout HEAD -- "$file"
+              else
+                git rm --cached --force "$file" 2>/dev/null || true
+                rm -f "$file" 2>/dev/null || true
+              fi
+            done <<< "$GITHUB_CHANGED"
+          fi
+
+          # --------------------------------------------------------------
+          # Detect all remaining unresolved conflicts generically.
+          # Works for one file or many files.
+          # --------------------------------------------------------------
+          REAL_CONFLICTS=$(
+            git ls-files -u |
+            cut -f2 |
+            sort -u |
+            grep -v '^\.github/' || true
+          )
+
+          if [ -n "$REAL_CONFLICTS" ]; then
+            echo ""
+            echo "⚠️ Conflicts detected:"
+            echo "$REAL_CONFLICTS"
+
+            printf '%s\n' "$REAL_CONFLICTS" > /tmp/conflict_files.txt
+
+            echo "has_conflicts=true" >> "$GITHUB_OUTPUT"
+            echo "committed=false" >> "$GITHUB_OUTPUT"
+            echo "conflict_count=$(printf '%s\n' "$REAL_CONFLICTS" | grep -c .)" >> "$GITHUB_OUTPUT"
+
+            # Exit successfully so Phase 4b can display instructions.
+            exit 0
+          fi
+
+          # If Git failed for a reason other than conflicts we already
+          # detected and handled above (e.g. .github/-only conflicts that
+          # got excluded), report the actual failure instead of hiding it.
+          if [ "$CHERRY_PICK_EXIT" -ne 0 ] && [ -z "$HAD_CONFLICTS" ]; then
+            echo ""
+            echo "❌ Cherry-pick failed."
+            echo "Git returned exit code: $CHERRY_PICK_EXIT"
+            exit "$CHERRY_PICK_EXIT"
+          fi
+
+          # --------------------------------------------------------------
+          # Clean backport: commit the applied changes.
+          # --------------------------------------------------------------
+          if git diff --cached --quiet; then
+            echo ""
+            echo "ℹ️ No changes were introduced by this cherry-pick."
+            echo "The commit may already be present in the target branch."
+
+            echo "has_conflicts=false" >> "$GITHUB_OUTPUT"
+            echo "committed=false" >> "$GITHUB_OUTPUT"
+            echo "conflict_count=0" >> "$GITHUB_OUTPUT"
+
+            exit 0
+          fi
+
+          echo ""
+          echo "▶ Committing backport..."
+
+          git commit \
+            -m "${TICKET}: Backport to ${SUPPORT_BRANCH} — ${PR_TITLE}"
+
+          echo ""
+          echo "✅ Cherry-pick completed successfully."
+
+          echo "has_conflicts=false" >> "$GITHUB_OUTPUT"
+          echo "committed=true" >> "$GITHUB_OUTPUT"
+          echo "conflict_count=0" >> "$GITHUB_OUTPUT"
+
+
+        # ── 4b. Show conflict details and manual resolution steps ───────────
+      - name: "Phase 4b: Show conflict details and resolution steps"
+        if: steps.cherry_pick.outputs.has_conflicts == 'true'
+        env:
+          FEATURE_BRANCH: ${{ steps.setup_feature.outputs.feature_branch }}
+        run: |
+          set -euo pipefail
+
+          echo ""
+          echo "============================================================"
+          echo "⚠️  BACKPORT CONFLICTS DETECTED"
+          echo "============================================================"
+          echo "Merge commit : $MERGE_SHA"
+          echo "Target branch: $SUPPORT_BRANCH"
+          echo "Feature branch: $FEATURE_BRANCH"
+          echo ""
+
+          if [ ! -s /tmp/conflict_files.txt ]; then
+            echo "❌ Conflict file list is missing."
+            exit 1
+          fi
+
+          echo "------------------------------------------------------------"
+          echo "📁 CONFLICTING FILES"
+          echo "------------------------------------------------------------"
+          cat /tmp/conflict_files.txt
+          echo ""
+
+          echo "------------------------------------------------------------"
+          echo "🔍 CURRENT GIT CONFLICT DETAILS"
+          echo "------------------------------------------------------------"
+          git status --short
+          echo ""
+          git diff --cc || true
+          echo ""
+
+          echo "============================================================"
+          echo "📋 MANUAL CONFLICT RESOLUTION"
+          echo "============================================================"
+          echo ""
+
+          echo "1️⃣  WORKFLOW RUN URL "
+          echo "Copy the GitHub Actions workflow run page URL shown above."
+
+          echo "2️⃣  OPEN FLOW IDE / AI WORKBENCH"
+          echo "Open a new VS Code window."
+          echo "Go to: AI Workbench → My Teams → RDK"
+          echo "Select: Resolve Git Merge Conflicts"
+          echo "Provide the workflow run URL."
+          echo "Click Send New Chat."
+          echo ""
+
+          echo "If AI Workbench is not installed, Please follow below guide to install and set it up:"
+          echo "https://etwiki.sys.comcast.net/spaces/CRM/pages/1969609366/Onboarding+to+FLOW+IDE+VSCODE+GithubCopilot+and+ai+Workbench+Flow"
+          echo ""
+
+          echo "3️⃣  REVIEW THE CHANGES"
+          echo "Open the backport workspace created by the AI prompt:"
+          echo "backport-workspace-${{ github.run_id }}"
+          echo "Open the repository inside the workspace."
+          echo "Verify the changes:"
+          echo "git status"
+          echo "git diff HEAD --"
+          echo ""
+
+          echo "4️⃣  COMMIT AND PUSH"
+          echo "Stage the resolved files:"
+          echo "git add <resolved_file_1> <resolved_file_2> ..."
+          echo ""
+          echo "Commit the changes:"
+          echo "git commit -m \"${TICKET}: Backport to ${SUPPORT_BRANCH} — ${PR_TITLE}\""
+          echo ""
+          echo "Push the feature branch:"
+          echo "git push origin $FEATURE_BRANCH"
+          echo ""
+
+          echo "5️⃣  CREATE THE PULL REQUEST"
+          echo ""
+          echo "Source: $FEATURE_BRANCH"
+          echo "Target: $SUPPORT_BRANCH"
+          echo "Title : $PR_TITLE"
+          echo ""
+
+          echo "============================================================"
+          echo "🛑 Manual conflict resolution required."
+          echo "============================================================"
+
+          exit 1
+      
+      # ── Output consolidation for downstream steps ─────────────────────────────
+      - name: Set final apply status
+        id: apply
+        run: |
+          # Only runs if NO conflicts (Phase 2 exits with error if conflicts detected)
+          if [ "${{ steps.cherry_pick.outputs.committed }}" = "true" ]; then
+            echo "applied=true" >> "$GITHUB_OUTPUT"
+            echo "conflicts=false" >> "$GITHUB_OUTPUT"
+            echo "conflict_resolved=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "applied=false" >> "$GITHUB_OUTPUT"
+            echo "conflicts=false" >> "$GITHUB_OUTPUT"
+            echo "conflict_resolved=false" >> "$GITHUB_OUTPUT"
+          fi
+
+     # ── 5. Push feature branch ───────────────────────────────────────────────
+      - name: Push feature branch
+        if: steps.apply.outputs.applied == 'true'
+        env:
+          FEATURE_BRANCH: ${{ steps.setup_feature.outputs.feature_branch }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "$FEATURE_BRANCH" ]; then
+            echo "FEATURE_BRANCH is empty"
+            exit 1
+          fi
+
+          # No --force: this branch is guaranteed new by the uniqueness loop above;
+          # a rejected push here signals that assumption was violated.
+          git push origin "$FEATURE_BRANCH"
+
+
+          # ── 6. Create Pull Request ───────────────────────────────────────────────
+      - name: Create Pull Request
+        if: steps.apply.outputs.applied == 'true'
+        env:
+          GH_TOKEN:          ${{ secrets.RDKCM_RDKE }}
+          FEATURE_BRANCH:    ${{ steps.setup_feature.outputs.feature_branch }}
+          ORIGINAL_PR:       ${{ env.PR_URL }}
+          CONFLICT_RESOLVED: ${{ steps.apply.outputs.conflict_resolved }}
+          ORIGINAL_PR_BODY:  ${{ github.event.pull_request.body }}
+        run: |
+          set -euo pipefail
+
+          EXISTING=$(gh pr list \
+            --head "$FEATURE_BRANCH" \
+            --base "$SUPPORT_BRANCH" \
+            --state open \
+            --json url \
+            --jq '.[0].url' || true)
+
+          if [ -n "$EXISTING" ]; then
+            echo "PR already exists: $EXISTING"
+            exit 0
+          fi
+
+          # Use the original merged PR title for the backport PR
+          TITLE="${PR_TITLE}"
+
+          # Strip backport_to line from original PR body
+          ORIGINAL_BODY_CLEAN=$(printf '%s' "$ORIGINAL_PR_BODY" | grep -viE '^\s*backport_to\s*:' || true)
+
+          if [ "$CONFLICT_RESOLVED" = "true" ]; then
+            BODY="${ORIGINAL_BODY_CLEAN}
+
+          ⚠️ **Conflicts were auto-resolved** — please review carefully before merging.
+
+          ---
+          **Backport of:** ${ORIGINAL_PR} → \`${SUPPORT_BRANCH}\`"
+          else
+            BODY="${ORIGINAL_BODY_CLEAN}
+
+          ---
+          **Backport of:** ${ORIGINAL_PR} → \`${SUPPORT_BRANCH}\`"
+          fi
+
+          gh pr create \
+            --head "$FEATURE_BRANCH" \
+            --base "$SUPPORT_BRANCH" \
+            --title "$TITLE" \
+            --body "$BODY"
