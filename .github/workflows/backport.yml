@@ -25,7 +25,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          token: ${{ secrets.RDKCM_RDKE }}
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       # ── Extract and validate backport_to + ticket ────────────────────────
       - name: Extract PR info and validate backport_to
@@ -230,7 +230,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          token: ${{ secrets.RDKCM_RDKE }}
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Configure Git
         run: |
@@ -261,7 +261,7 @@ jobs:
       - name: Create or checkout feature branch
         id: setup_feature
         env:
-          GH_TOKEN: ${{ secrets.RDKCM_RDKE }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
           
@@ -596,7 +596,7 @@ jobs:
       - name: Create Pull Request
         if: steps.apply.outputs.applied == 'true'
         env:
-          GH_TOKEN:          ${{ secrets.RDKCM_RDKE }}
+          GH_TOKEN:          ${{ secrets.GITHUB_TOKEN }}
           FEATURE_BRANCH:    ${{ steps.setup_feature.outputs.feature_branch }}
           ORIGINAL_PR:       ${{ env.PR_URL }}
           CONFLICT_RESOLVED: ${{ steps.apply.outputs.conflict_resolved }}
