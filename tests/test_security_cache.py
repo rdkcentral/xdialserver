@@ -10,6 +10,8 @@ class CacheSecurityGuardrail(unittest.TestCase):
         self.assertGreaterEqual(helper.count("std::lock_guard<std::mutex> lock(objectsMutex);"), 5)
         self.assertIn("bool findObject(const std::string& appName, AppInfo& entry) const", helper)
         self.assertIn("entry = *it->second;", helper)
+        self.assertIn("AppCacheErrorCodes replace(std::string id, AppInfo* entry)", helper)
+        self.assertIn("ObjectCache->replace(std::move(id), appEntry)", caller)
         self.assertNotIn("AppInfo* appEntry = ObjectCache->findObject", caller)
 
 

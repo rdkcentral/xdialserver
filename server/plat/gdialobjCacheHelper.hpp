@@ -103,6 +103,29 @@ public:
         return returnValue;
     }
 
+    AppCacheErrorCodes replace(std::string id, AppInfo* entry)
+    {
+        GDIAL_LOGTRACE("Entering ...");
+        if (nullptr == entry)
+        {
+            return AppCacheError_NULL_ENTRY;
+        }
+
+        std::lock_guard<std::mutex> lock(objectsMutex);
+        auto it = objects.find(id);
+        if (it != objects.end())
+        {
+            delete it->second;
+            it->second = entry;
+        }
+        else
+        {
+            objects.emplace(std::move(id), entry);
+        }
+        GDIAL_LOGTRACE("Exiting ...");
+        return AppCacheError_OK;
+    }
+
     AppCacheErrorCodes touch(const std::string& appname)
     {
         AppCacheErrorCodes returnValue = AppCacheError_NOT_FOUND;
