@@ -24,6 +24,8 @@
 #include <unistd.h>
 #include <pthread.h>
 #include <glib.h>
+#include <sstream>
+#include <vector>
 
 #include "Module.h"
 #include <core.h>
@@ -58,6 +60,8 @@ static gdial_modelname_cb g_modelname_cb = NULL;
 #define DIAL_MAX_NUM_OF_APP_NAMES (64)
 #define DIAL_MAX_NUM_OF_APP_PREFIXES (64)
 #define DIAL_MAX_NUM_OF_APP_CORS (64)
+
+static std::vector<std::string> splitCorsOrigins(const std::string& corsValue);
 
 class GDialCastObject
 {
@@ -124,12 +128,21 @@ public:
                 break;
             }
             GDIAL_LOGINFO("Application:[%d]", i);
+            GDIAL_LOGINFO("registerApplications: appName[%s] prefixes[%s] cors[%s] allowStop[%d]",
+                          appEntry->Names.c_str(),
+                          appEntry->prefixes.c_str(),
+                          appEntry->cors.c_str(),
+                          appEntry->allowStop);
             gAppPrefxes = g_list_prepend (gAppPrefxes, g_strdup(appEntry->prefixes.c_str()));
             GDIAL_LOGINFO("%s, ", appEntry->prefixes.c_str());
             GDIAL_LOGINFO("");
 
-            allowed_origins = g_list_prepend (allowed_origins, g_strdup(appEntry->cors.c_str()));
-            GDIAL_LOGINFO("%s, ", appEntry->cors.c_str());
+            const std::vector<std::string> corsOrigins = splitCorsOrigins(appEntry->cors.c_str());
+            GDIAL_LOGINFO("registerApplications: splitCorsOrigins app[%s] count[%zu]", appEntry->Names.c_str(), corsOrigins.size());
+            for (const auto& origin : corsOrigins) {
+                allowed_origins = g_list_prepend(allowed_origins, g_strdup(origin.c_str()));
+                GDIAL_LOGINFO("registerApplications: allowed_origin[%s] for app[%s]", origin.c_str(), appEntry->Names.c_str());
+            }
             GDIAL_LOGINFO("");
 
             GHashTable *gProperties = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_free);
@@ -229,7 +242,7 @@ public:
         GDIAL_LOGTRACE("Exiting ...");
         return error;
     }
-    
+
     GDialErrorCode launchApplication(const char* appName, const char* args)
     {
         GDIAL_LOGTRACE("Entering ...");
@@ -275,8 +288,8 @@ public:
         }
 
         GDIAL_LOGINFO("App[%s] payload[%s] query_string[%s] additional_data_url[%s]observer[%p]",
-                applicationName.c_str(), 
-                payLoad.c_str(), 
+                applicationName.c_str(),
+                payLoad.c_str(),
                 queryString.c_str(),
                 additionalDataUrl.c_str(),
                 m_observer);
@@ -667,7 +680,7 @@ int gdial_os_application_stop(const char *app_name, int instance_id) {
         GDIAL_LOGTRACE("Exiting ...");
         return GDIAL_APP_ERROR_INTERNAL;
     }
-    GDialErrorCode ret = GDialObjHandle->stopApplication(app_name,std::to_string(instance_id).c_str()); 
+    GDialErrorCode ret = GDialObjHandle->stopApplication(app_name,std::to_string(instance_id).c_str());
     if (ret != GDIAL_CAST_ERROR_NONE) {
         GDIAL_LOGINFO("GDialObjHandle.stopApplication failed!!! Error=%x",ret);
         GDIAL_LOGTRACE("Exiting ...");
@@ -709,7 +722,7 @@ int gdial_os_application_hide(const char *app_name, int instance_id)
         GDIAL_LOGTRACE("Exiting ...");
         return GDIAL_APP_ERROR_BAD_REQUEST;
     }
-    
+
     if (nullptr == GDialObjHandle)
     {
         GDIAL_LOGERROR("GDialObjHandle NULL!!! ");
@@ -816,8 +829,8 @@ int gdial_os_application_state(const char *app_name, int instance_id, GDialAppSt
             GDIAL_LOGINFO("app [%s] state converted to [%d]", app_name, *state);
          }
 	 else {
-	        *state = GDIAL_APP_STATE_RUNNING;	 
-         }		 
+	        *state = GDIAL_APP_STATE_RUNNING;
+         }
        }
     }
     GDIAL_LOGTRACE("Exiting ...");
@@ -1006,4 +1019,25 @@ int gdial_os_application_service_notification(gboolean isNotifyRequired, void* n
     }
     GDIAL_LOGTRACE("Exiting ...");
     return GDIAL_APP_ERROR_NONE;
+}
+
+static std::vector<std::string> splitCorsOrigins(const std::string& corsValue)
+{
+    std::vector<std::string> origins;
+    std::stringstream ss(corsValue);
+    std::string origin;
+
+    while (std::getline(ss, origin, ' ')) {
+        const std::string::size_type start = origin.find_first_not_of(" \t\r\n");
+        if (start == std::string::npos) {
+            continue;
+        }
+        const std::string::size_type end = origin.find_last_not_of(" \t\r\n");
+        const std::string trimmed = origin.substr(start, end - start + 1);
+        if (!trimmed.empty()) {
+            origins.push_back(trimmed);
+        }
+    }
+
+    return origins;
 }

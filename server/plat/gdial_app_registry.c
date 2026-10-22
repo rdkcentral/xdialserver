@@ -19,6 +19,7 @@
  * limitations under the License.
  */
 
+#include <string.h>
 #include <uuid/uuid.h>
 #include <gdial_app_registry.h>
 #include "gdialservicelogging.h"
@@ -42,25 +43,142 @@ void gdial_app_regstry_dispose (GDialAppRegistry *app_registry) {
   return;
 }
 
+// Helper function to extract host from an origin string without libsoup
+static gchar *util_get_host_from_origin(const gchar *origin) {
+  if (!origin) return NULL;
+
+  const gchar *host_start = NULL;
+
+  if (g_str_has_prefix(origin, "https://")) {
+    host_start = origin + strlen("https://");
+  } else if (g_str_has_prefix(origin, "http://")) {
+    host_start = origin + strlen("http://");
+  } else {
+    host_start = origin;
+  }
+
+  const gchar *delim_port = strchr(host_start, ':');
+  const gchar *delim_path = strchr(host_start, '/');
+  const gchar *end = NULL;
+
+  if (delim_port && delim_path) {
+    end = (delim_port < delim_path) ? delim_port : delim_path;
+  } else if (delim_port) {
+    end = delim_port;
+  } else {
+    end = delim_path;
+  }
+
+  if (end) {
+    return g_strndup(host_start, end - host_start);
+  }
+
+  return g_strdup(host_start);
+}
+
 gboolean gdial_app_registry_is_allowed_origin(GDialAppRegistry *app_registry, const gchar *header_origin) {
   gboolean is_allowed = FALSE;
-  if (app_registry) {
-    GList *allowed_origins = app_registry->allowed_origins;
-    if(allowed_origins == NULL){
-      is_allowed = TRUE;
-    }
-    else
-    {
-      while(allowed_origins) {
-        gchar *origin = (gchar *)allowed_origins->data;
-        if (GDIAL_STR_ENDS_WITH(header_origin, origin)) {
-          is_allowed = TRUE;
-          break;
-        }
-        allowed_origins = allowed_origins->next;
-      }
-    }
+
+  if (!app_registry) {
+    GDIAL_LOGINFO("gdial_app_registry_is_allowed_origin: app_registry=NULL header_origin[%s]", header_origin ? header_origin : "(null)");
+    return FALSE;
   }
+  if (header_origin == NULL) {
+    GDIAL_LOGINFO("gdial_app_registry_is_allowed_origin: app[%s] header_origin=NULL", app_registry->name ? app_registry->name : "(null)");
+    return FALSE;
+  }
+
+  GList *allowed_origins = app_registry->allowed_origins;
+  GDIAL_LOGINFO("gdial_app_registry_is_allowed_origin: app[%s] incoming_origin[%s] configured_count[%d]",
+                app_registry->name ? app_registry->name : "(null)",
+                header_origin,
+                g_list_length(allowed_origins));
+  if (allowed_origins == NULL) {
+    GDIAL_LOGINFO("gdial_app_registry_is_allowed_origin: app[%s] allowed list empty => allowing origin[%s]", app_registry->name ? app_registry->name : "(null)", header_origin);
+    return TRUE;
+  }
+
+  while (allowed_origins) {
+    gchar *origin = (gchar *)allowed_origins->data;
+    GDIAL_LOGINFO("gdial_app_registry_is_allowed_origin: app[%s] checking configured_origin[%s] against incoming[%s]",
+                  app_registry->name ? app_registry->name : "(null)",
+                  origin ? origin : "(null)",
+                  header_origin);
+    if (origin == NULL) {
+      allowed_origins = allowed_origins->next;
+      continue;
+    }
+
+    if (g_strcmp0(origin, "*") == 0) {
+      GDIAL_LOGINFO("gdial_app_registry_is_allowed_origin: app[%s] matched wildcard '*'", app_registry->name ? app_registry->name : "(null)");
+      is_allowed = TRUE;
+      break;
+    }
+
+    if (g_str_has_prefix(origin, "package:")) {
+      if (g_strcmp0(header_origin, origin) == 0) {
+        GDIAL_LOGINFO("gdial_app_registry_is_allowed_origin: app[%s] matched package origin exact match: configured[%s] incoming[%s]",
+                      app_registry->name ? app_registry->name : "(null)",
+                      origin,
+                      header_origin);
+        is_allowed = TRUE;
+        break;
+      }
+      GDIAL_LOGINFO("gdial_app_registry_is_allowed_origin: app[%s] package mismatch: configured[%s] incoming[%s]",
+                    app_registry->name ? app_registry->name : "(null)",
+                    origin,
+                    header_origin);
+    }
+    else if (g_str_has_prefix(origin, "https://*.")) {
+      gchar *wildcard_host = origin + strlen("https://*.");
+      gchar *header_host = util_get_host_from_origin(header_origin);
+      GDIAL_LOGINFO("gdial_app_registry_is_allowed_origin: app[%s] wildcard check: configured[%s] wildcard_host[%s] incoming_host[%s]",
+                    app_registry->name ? app_registry->name : "(null)",
+                    origin,
+                    wildcard_host,
+                    header_host ? header_host : "(null)");
+      if (header_host) {
+        if (g_strcmp0(header_host, wildcard_host) == 0 || g_str_has_suffix(header_host, wildcard_host)) {
+          size_t host_len = strlen(header_host);
+          size_t wild_len = strlen(wildcard_host);
+          if (host_len == wild_len || (host_len > wild_len && header_host[host_len - wild_len - 1] == '.')) {
+            GDIAL_LOGINFO("gdial_app_registry_is_allowed_origin: app[%s] matched wildcard host rule", app_registry->name ? app_registry->name : "(null)");
+            is_allowed = TRUE;
+          }
+        }
+        g_free(header_host);
+      }
+      if (is_allowed) break;
+    }
+    else {
+      gchar *configured_host = util_get_host_from_origin(origin);
+      gchar *header_host = util_get_host_from_origin(header_origin);
+      GDIAL_LOGINFO("gdial_app_registry_is_allowed_origin: app[%s] strict host check: configured_host[%s] header_host[%s] configured_scheme_secure[%d] incoming_scheme_secure[%d]",
+                    app_registry->name ? app_registry->name : "(null)",
+                    configured_host ? configured_host : "(null)",
+                    header_host ? header_host : "(null)",
+                    g_str_has_prefix(origin, "https://"),
+                    g_str_has_prefix(header_origin, "https://"));
+      if (configured_host && header_host) {
+        if (g_strcmp0(header_host, configured_host) == 0 &&
+            g_str_has_prefix(header_origin, "https://") == g_str_has_prefix(origin, "https://")) {
+          GDIAL_LOGINFO("gdial_app_registry_is_allowed_origin: app[%s] matched strict host rule", app_registry->name ? app_registry->name : "(null)");
+          is_allowed = TRUE;
+        }
+      }
+      g_free(configured_host);
+      g_free(header_host);
+
+      if (is_allowed) break;
+    }
+
+    allowed_origins = allowed_origins->next;
+  }
+
+  GDIAL_LOGINFO("gdial_app_registry_is_allowed_origin: app[%s] final_result[%s] for incoming[%s]",
+                app_registry->name ? app_registry->name : "(null)",
+                is_allowed ? "ALLOW" : "DENY",
+                header_origin);
   return is_allowed;
 }
 
