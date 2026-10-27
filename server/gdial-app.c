@@ -50,10 +50,11 @@ enum {
 static  GList *application_instances_ = NULL;
 
 static gboolean gdial_app_name_is_safe(const gchar *app_name) {
+  const gchar *cursor;
   if (!app_name || !app_name[0] || !g_utf8_validate(app_name, -1, NULL)) {
     return FALSE;
   }
-  for (const gchar *cursor = app_name; *cursor; ++cursor) {
+  for (cursor = app_name; *cursor; ++cursor) {
     if (!(g_ascii_isalnum(*cursor) || *cursor == '.' || *cursor == '_' || *cursor == '-')) {
       return FALSE;
     }
