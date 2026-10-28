@@ -122,6 +122,7 @@ static void signal_handler_rest_server_gmainloop_quit(GDialRestServer *dial_rest
   //g_main_loop_quit(m_gdialServiceImpl->m_main_loop);
 }
 static GDialRestServer *dial_rest_server = NULL;
+static GMainContext *server_main_context = NULL;
 
 static void server_activation_handler(gboolean status, const gchar *friendlyname)
 {
@@ -133,9 +134,18 @@ static void server_activation_handler(gboolean status, const gchar *friendlyname
     }
 }
 
-static void server_register_application(gpointer data)
+struct RegisterApplicationsDispatch {
+    explicit RegisterApplicationsDispatch(gpointer value) : data(value) {}
+    gpointer data;
+    std::mutex mutex;
+    std::condition_variable condition;
+    bool complete{false};
+};
+
+static gboolean server_register_application_on_main(gpointer data)
 {
-    GList* g_app_list = (GList*) data;
+    RegisterApplicationsDispatch *dispatch = static_cast<RegisterApplicationsDispatch *>(data);
+    GList* g_app_list = static_cast<GList *>(dispatch->data);
     GDIAL_LOGTRACE("Entering ...");
     GDIAL_LOGINFO("server_register_application callback ");
     if(g_app_list) {
@@ -164,6 +174,28 @@ static void server_register_application(gpointer data)
        }
     }
     GDIAL_LOGTRACE("Exiting ...");
+    {
+        std::lock_guard<std::mutex> lock(dispatch->mutex);
+        dispatch->complete = true;
+    }
+    dispatch->condition.notify_one();
+    return G_SOURCE_REMOVE;
+}
+
+static void server_register_application(gpointer data)
+{
+    if (!server_main_context || g_main_context_is_owner(server_main_context)) {
+        RegisterApplicationsDispatch dispatch{data};
+        server_register_application_on_main(&dispatch);
+        return;
+    }
+    RegisterApplicationsDispatch dispatch{data};
+    GSource *source = g_idle_source_new();
+    g_source_set_callback(source, server_register_application_on_main, &dispatch, NULL);
+    g_source_attach(source, server_main_context);
+    g_source_unref(source);
+    std::unique_lock<std::mutex> lock(dispatch.mutex);
+    dispatch.condition.wait(lock, [&dispatch]{ return dispatch.complete; });
 }
 
 static void server_friendlyname_handler(const gchar * friendlyname)
@@ -272,6 +304,7 @@ int gdialServiceImpl::start_GDialServer(int argc, char *argv[])
 
     //m_main_loop_context = g_main_context_default();
     m_main_loop_context = g_main_context_new();
+    server_main_context = m_main_loop_context;
     g_main_context_push_thread_default(m_main_loop_context);
     m_main_loop = g_main_loop_new(m_main_loop_context, FALSE);
     gdial_plat_init(m_main_loop_context);
@@ -597,6 +630,7 @@ bool gdialServiceImpl::stop_GDialServer()
 
     if (m_main_loop_context)
     {
+        server_main_context = NULL;
         g_main_context_unref(m_main_loop_context);
         m_main_loop_context = NULL;
     }

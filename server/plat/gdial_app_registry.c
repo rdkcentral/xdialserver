@@ -27,6 +27,19 @@
 
 #define GDIAL_STR_ENDS_WITH(s1, s2) ((s1 != NULL) && (s2 != NULL) && ((strlen(s2) == 0) || (g_str_has_suffix(s1, s2))))
 
+static gboolean gdial_app_name_is_safe(const gchar *app_name) {
+  const gchar *cursor;
+  if (!app_name || !app_name[0] || !g_utf8_validate(app_name, -1, NULL)) {
+    return FALSE;
+  }
+  for (cursor = app_name; *cursor; ++cursor) {
+    if (!(g_ascii_isalnum(*cursor) || *cursor == '.' || *cursor == '_' || *cursor == '-')) {
+      return FALSE;
+    }
+  }
+  return g_strcmp0(app_name, ".") != 0 && g_strcmp0(app_name, "..") != 0;
+}
+
 void gdial_app_regstry_dispose (GDialAppRegistry *app_registry) {
   g_return_if_fail(app_registry != NULL);
   GDIAL_LOGINFO("freeing app name:%s", app_registry->name);
@@ -65,7 +78,7 @@ gboolean gdial_app_registry_is_allowed_origin(GDialAppRegistry *app_registry, co
 }
 
 GDialAppRegistry* gdial_app_registry_new (const gchar *app_name, const GList *app_prefixes, GHashTable *properties, gboolean is_singleton, gboolean use_additional_data, const GList *allowed_origins) {
-  g_return_val_if_fail(app_name != NULL, NULL);
+  g_return_val_if_fail(gdial_app_name_is_safe(app_name), NULL);
   g_return_val_if_fail(is_singleton, NULL);
 
   GDialAppRegistry *app_registry = (GDialAppRegistry *)malloc(sizeof(*app_registry));

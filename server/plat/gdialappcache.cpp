@@ -62,7 +62,6 @@ void GDialAppStatusCache :: setAppCacheId(std::string app_name,std::string id)
 AppCacheErrorCodes GDialAppStatusCache::UpdateAppStatusCache(AppInfo* appEntry)
 {
     GDIAL_LOGTRACE("Entering ...");
-    AppCacheErrorCodes err;
     GDIAL_LOGINFO("APPCache: AppName[%s] AppID[%s] AppState[%s] Error[%s]",
                     appEntry->appName.c_str(),
                     appEntry->appId.c_str(),
@@ -71,11 +70,7 @@ AppCacheErrorCodes GDialAppStatusCache::UpdateAppStatusCache(AppInfo* appEntry)
 
     std::string id = getAppCacheId(appEntry->appName.c_str());
 
-    if(doIdExist(id)) {
-        GDIAL_LOGINFO("erasing old data");
-        err = ObjectCache->erase(id);
-    }
-    err = ObjectCache->insert(std::move(id),appEntry);
+    AppCacheErrorCodes err = ObjectCache->replace(std::move(id), appEntry);
     GDIAL_LOGTRACE("Exiting ...");
     return err;
 }
@@ -86,15 +81,14 @@ std::string GDialAppStatusCache::SearchAppStatusInCache(const char* app_name)
     std::string state = "NOT_FOUND";
 
     std::string id = getAppCacheId(app_name);
-    if(doIdExist(id))
+    AppInfo appEntry("", "", "", "");
+    if(ObjectCache->findObject(id, appEntry))
     {
-        AppInfo* appEntry = ObjectCache->findObject(id);
-
-        state = appEntry->appState;
+        state = appEntry.appState;
         GDIAL_LOGINFO("APPCache: App Name[%s] AppID[%s] Error[%s]",
-            appEntry->appName.c_str(),
-            appEntry->appId.c_str(),
-            appEntry->appError.c_str());
+            appEntry.appName.c_str(),
+            appEntry.appId.c_str(),
+            appEntry.appError.c_str());
     }
     GDIAL_LOGINFO("App State = %s ",state.c_str());
     GDIAL_LOGTRACE("Exiting ...");
