@@ -49,6 +49,18 @@ enum {
 
 static  GList *application_instances_ = NULL;
 
+static gboolean gdial_app_name_is_safe(const gchar *app_name) {
+  if (!app_name || !app_name[0] || !g_utf8_validate(app_name, -1, NULL)) {
+    return FALSE;
+  }
+  for (const gchar *cursor = app_name; *cursor; ++cursor) {
+    if (!(g_ascii_isalnum(*cursor) || *cursor == '.' || *cursor == '_' || *cursor == '-')) {
+      return FALSE;
+    }
+  }
+  return g_strcmp0(app_name, ".") != 0 && g_strcmp0(app_name, "..") != 0;
+}
+
 static guint gdial_app_signals[N_SIGNALS] =  {0};
 
 G_DEFINE_TYPE_WITH_PRIVATE(GDialApp, gdial_app, G_TYPE_OBJECT)
@@ -408,6 +420,7 @@ GDialApp *gdial_app_find_instance_by_instance_id(gint instance_id) {
 }
 
 GDIAL_STATIC gboolean gdial_app_write_additional_dial_data(const gchar *app_name, const gchar *data, size_t length) {
+  g_return_val_if_fail(gdial_app_name_is_safe(app_name), FALSE);
   gboolean result = FALSE;
   GError *err = NULL;
   gchar *filename = g_build_filename(GDIAL_APP_DIAL_DATA_DIR, app_name, NULL);
@@ -439,6 +452,7 @@ GDIAL_STATIC gboolean gdial_app_write_additional_dial_data(const gchar *app_name
 }
 
 GDIAL_STATIC gboolean gdial_app_read_additional_dial_data(const gchar *app_name, gchar **data, size_t *length) {
+  g_return_val_if_fail(gdial_app_name_is_safe(app_name), FALSE);
   gboolean result = FALSE;
   GError *err = NULL;
 
@@ -487,6 +501,7 @@ GDIAL_STATIC gboolean gdial_app_read_additional_dial_data(const gchar *app_name,
 }
 
 GDIAL_STATIC gboolean gdial_app_remove_additional_dial_data_file(const gchar *app_name) {
+  g_return_val_if_fail(gdial_app_name_is_safe(app_name), FALSE);
   gboolean result = FALSE;
   gchar *filename = g_build_filename(GDIAL_APP_DIAL_DATA_DIR, app_name, NULL);
   GFile *gfile = g_file_new_for_path(filename);
