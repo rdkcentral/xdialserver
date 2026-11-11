@@ -211,6 +211,19 @@ TEST(GDialRestHelperTest, NewAdditionalDataUrl_EncodedLooksUrlEncoded) {
     g_free(url);
 }
 
+TEST_F(GDialRestServerTest, GetAdditionalDataUrlRequiresRegisteredApp) {
+    ASSERT_TRUE(gdial_rest_server_register_app(
+        server, "Netflix", nullptr, nullptr, TRUE, TRUE, nullptr));
+
+    gchar *url = gdial_rest_server_get_additional_data_url(server, "Netflix");
+    ASSERT_NE(url, nullptr);
+    EXPECT_NE(strstr(url, "http%3A%2F%2Flocalhost%3A56889%2F"), nullptr);
+    EXPECT_NE(strstr(url, "%2Fdial_data"), nullptr);
+    g_free(url);
+
+    EXPECT_EQ(gdial_rest_server_get_additional_data_url(server, "NotRegistered"), nullptr);
+}
+
 TEST_F(GDialRestServerTest, RegisterFindAndUnregisterAppByName) {
     GList *allowed_origins = make_list1(".example.com");
 
