@@ -318,6 +318,7 @@ GDIAL_STATIC gchar *gdial_rest_server_new_additional_data_url(guint listening_po
   GString *url_buf = g_string_new("");
   g_string_printf(url_buf, "http://%s:%d%s%s", "localhost", listening_port, app_uri, GDIAL_REST_HTTP_DIAL_DATA_URI);
   gchar *unencoded = g_string_free(url_buf, FALSE);
+  GDIAL_LOGINFO("Created additionalDataUrl for app[%s]: %s", app_name, unencoded);
   if (encode) {
     gchar *encoded = g_uri_escape_string(unencoded, NULL, FALSE);
     g_free(unencoded);
@@ -1249,6 +1250,17 @@ gboolean gdial_rest_server_unregister_all_apps(GDialRestServer *self) {
 
 gboolean gdial_rest_server_is_app_registered(GDialRestServer *self, const gchar *app_name) {
   return gdial_rest_server_find_app_registry(self, app_name) != NULL;
+}
+
+gchar *gdial_rest_server_get_additional_data_url(GDialRestServer *self, const gchar *app_name) {
+  g_return_val_if_fail(self != NULL && app_name != NULL, NULL);
+  GDialAppRegistry *app_registry = gdial_rest_server_find_app_registry(self, app_name);
+  if (app_registry == NULL || !app_registry->use_additional_data) {
+    GDIAL_LOGERROR("Additional data URL requested for unregistered or unsupported app[%s]", app_name);
+    return NULL;
+  }
+
+  return gdial_rest_server_new_additional_data_url(GDIAL_REST_HTTP_PORT, app_registry->name, TRUE, app_registry->app_uri);
 }
 
 gboolean gdial_rest_server_unregister_app(GDialRestServer *self, const gchar *app_name) {
