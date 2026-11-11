@@ -420,7 +420,9 @@ GDialApp *gdial_app_find_instance_by_instance_id(gint instance_id) {
 }
 
 GDIAL_STATIC gboolean gdial_app_write_additional_dial_data(const gchar *app_name, const gchar *data, size_t length) {
-  g_return_val_if_fail(gdial_app_name_is_safe(app_name), FALSE);
+  if (!gdial_app_name_is_safe(app_name)) {
+    return FALSE;
+  }
   gboolean result = FALSE;
   GError *err = NULL;
   gchar *filename = g_build_filename(GDIAL_APP_DIAL_DATA_DIR, app_name, NULL);
@@ -452,7 +454,9 @@ GDIAL_STATIC gboolean gdial_app_write_additional_dial_data(const gchar *app_name
 }
 
 GDIAL_STATIC gboolean gdial_app_read_additional_dial_data(const gchar *app_name, gchar **data, size_t *length) {
-  g_return_val_if_fail(gdial_app_name_is_safe(app_name), FALSE);
+  if (!gdial_app_name_is_safe(app_name)) {
+    return FALSE;
+  }
   gboolean result = FALSE;
   GError *err = NULL;
 
@@ -501,7 +505,9 @@ GDIAL_STATIC gboolean gdial_app_read_additional_dial_data(const gchar *app_name,
 }
 
 GDIAL_STATIC gboolean gdial_app_remove_additional_dial_data_file(const gchar *app_name) {
-  g_return_val_if_fail(gdial_app_name_is_safe(app_name), FALSE);
+  if (!gdial_app_name_is_safe(app_name)) {
+    return FALSE;
+  }
   gboolean result = FALSE;
   gchar *filename = g_build_filename(GDIAL_APP_DIAL_DATA_DIR, app_name, NULL);
   GFile *gfile = g_file_new_for_path(filename);
