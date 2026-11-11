@@ -179,8 +179,8 @@ static gboolean server_register_application_on_main(gpointer data)
     {
         std::lock_guard<std::mutex> lock(dispatch->mutex);
         dispatch->complete = true;
+        dispatch->condition.notify_one();
     }
-    dispatch->condition.notify_one();
     return G_SOURCE_REMOVE;
 }
 
@@ -603,16 +603,6 @@ bool gdialServiceImpl::stop_GDialServer()
         m_ResponseHandlerCV.notify_one();
     }
 
-    GDIAL_LOGINFO(" calling g_main_loop_quit loop_: %p ",m_main_loop);
-    if (m_main_loop)
-    {
-        g_main_loop_quit(m_main_loop);
-    }
-    if (m_gdialserver_main_thread)
-    {
-        pthread_join(m_gdialserver_main_thread,nullptr);
-        m_gdialserver_main_thread = 0;
-    }
     if (m_gdialserver_request_handler_thread)
     {
         pthread_join(m_gdialserver_request_handler_thread,nullptr);
@@ -622,6 +612,16 @@ bool gdialServiceImpl::stop_GDialServer()
     {
         pthread_join(m_gdialserver_response_handler_thread,nullptr);
         m_gdialserver_response_handler_thread = 0;
+    }
+    GDIAL_LOGINFO(" calling g_main_loop_quit loop_: %p ",m_main_loop);
+    if (m_main_loop)
+    {
+        g_main_loop_quit(m_main_loop);
+    }
+    if (m_gdialserver_main_thread)
+    {
+        pthread_join(m_gdialserver_main_thread,nullptr);
+        m_gdialserver_main_thread = 0;
     }
 
     for (int i = 0; i < sizeof(m_servers)/sizeof(m_servers[0]); i++)
