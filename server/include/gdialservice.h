@@ -39,6 +39,7 @@ public:
     GDIAL_SERVICE_ERROR_CODES ActivationChanged(string activation, string friendlyname);
     GDIAL_SERVICE_ERROR_CODES FriendlyNameChanged(string friendlyname);
     string getProtocolVersion(void);
+    GDIAL_SERVICE_ERROR_CODES GetAdditionalDataUrl(const string& applicationName, string& additionalDataUrl);
     GDIAL_SERVICE_ERROR_CODES RegisterApplications(RegisterAppEntryList* appConfigList);
     void setNetworkStandbyMode(bool nwStandbymode);
     GDIAL_SERVICE_ERROR_CODES setManufacturerName(string manufacturer);

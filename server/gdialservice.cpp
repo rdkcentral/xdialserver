@@ -1069,6 +1069,29 @@ std::string gdialService::getProtocolVersion()
     return protocolVersion;
 }
 
+GDIAL_SERVICE_ERROR_CODES gdialService::GetAdditionalDataUrl(const string& applicationName, string& additionalDataUrl)
+{
+    GDIAL_LOGTRACE("Entering ...");
+    additionalDataUrl.clear();
+    if ((nullptr == m_gdialService) || (nullptr == dial_rest_server) || applicationName.empty())
+    {
+        GDIAL_LOGERROR("Unable to get additional data URL for app[%s]", applicationName.c_str());
+        return GDIAL_SERVICE_ERROR_FAILED;
+    }
+
+    gchar* url = gdial_rest_server_get_additional_data_url(dial_rest_server, applicationName.c_str());
+    if (nullptr == url)
+    {
+        return GDIAL_SERVICE_ERROR_FAILED;
+    }
+
+    additionalDataUrl.assign(url);
+    g_free(url);
+    GDIAL_LOGINFO("Additional data URL returned for registered app[%s]", applicationName.c_str());
+    GDIAL_LOGTRACE("Exiting ...");
+    return GDIAL_SERVICE_ERROR_NONE;
+}
+
 GDIAL_SERVICE_ERROR_CODES gdialService::RegisterApplications(RegisterAppEntryList* appConfigList)
 {
     gdialServiceImpl* gdialImplInstance = gdialServiceImpl::getInstance();
