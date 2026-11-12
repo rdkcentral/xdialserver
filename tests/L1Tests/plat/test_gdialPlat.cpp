@@ -164,6 +164,46 @@ TEST_F(GDialAppRegistryTest, IsAllowedOrigin_NullOriginDenied) {
     EXPECT_FALSE(gdial_app_registry_is_allowed_origin(registry, nullptr));
 }
 
+TEST_F(GDialAppRegistryTest, IsAllowedOrigin_PackageMatchPermitsMobileApp) {
+    GList *origins = g_list_append(nullptr, g_strdup("package:com.google.android.youtube"));
+    registry = gdial_app_registry_new("YouTube", nullptr, nullptr,
+                                      TRUE, FALSE, origins);
+    g_list_free_full(origins, g_free);
+    ASSERT_NE(registry, nullptr);
+    EXPECT_TRUE(gdial_app_registry_is_allowed_origin(
+                    registry, "package:com.google.android.youtube"));
+    EXPECT_FALSE(gdial_app_registry_is_allowed_origin(
+                     registry, "package:com.google.ios.youtube"));
+}
+
+TEST_F(GDialAppRegistryTest, IsAllowedOrigin_WildcardHostPermitsSubdomains) {
+    GList *origins = g_list_append(nullptr, g_strdup("https://*.youtube.com"));
+    registry = gdial_app_registry_new("YouTube", nullptr, nullptr,
+                                      TRUE, FALSE, origins);
+    g_list_free_full(origins, g_free);
+    ASSERT_NE(registry, nullptr);
+    EXPECT_TRUE(gdial_app_registry_is_allowed_origin(
+                    registry, "https://www.youtube.com"));
+    EXPECT_TRUE(gdial_app_registry_is_allowed_origin(
+                    registry, "https://m.youtube.com"));
+    EXPECT_FALSE(gdial_app_registry_is_allowed_origin(
+                     registry, "https://youtube.com.evil.example"));
+    EXPECT_FALSE(gdial_app_registry_is_allowed_origin(
+                     registry, "https://notyoutube.com"));
+}
+
+TEST_F(GDialAppRegistryTest, IsAllowedOrigin_StrictSchemeMismatchDenied) {
+    GList *origins = g_list_append(nullptr, g_strdup("https://www.youtube.com"));
+    registry = gdial_app_registry_new("YouTube", nullptr, nullptr,
+                                      TRUE, FALSE, origins);
+    g_list_free_full(origins, g_free);
+    ASSERT_NE(registry, nullptr);
+    EXPECT_TRUE(gdial_app_registry_is_allowed_origin(
+                    registry, "https://www.youtube.com"));
+    EXPECT_FALSE(gdial_app_registry_is_allowed_origin(
+                     registry, "http://www.youtube.com"));
+}
+
 /* ================================================================== */
 /* gdial_app_regstry_dispose                                           */
 /* ================================================================== */
@@ -190,4 +230,3 @@ TEST(GDialAppRegistryDisposeTest, Dispose_WithPropertiesDoesNotCrash) {
     ASSERT_NE(r, nullptr);
     gdial_app_regstry_dispose(r);
 }
-
