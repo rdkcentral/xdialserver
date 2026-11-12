@@ -9,7 +9,7 @@ permissions:
   pull-requests: write
 
 jobs:
-  # ── Parse the PR once: ticket + list of target branches ──────────────────
+  # ── Parse the PR once: target branches and their tickets ──────────────────
   parse:
     if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
@@ -122,19 +122,43 @@ jobs:
             done
           fi
 
-          # ── Validate: Simplified rules (develop | X.Y.Z(.W) | full branch path) ─
-          SUPPORT_BRANCHES=()
+          # Use the source ticket only when a target has no explicit ticket.
+          TICKET=$(echo "$PR_TITLE" | grep -oE '[A-Z]+-[0-9]+' | head -1 || true)
+          if [ -z "$TICKET" ]; then
+            TICKET=$(echo "$PR_BRANCH" | grep -oE '[A-Z]+-[0-9]+' | head -1 || true)
+          fi
+          if [ -z "$TICKET" ]; then
+            echo "⚠️  No ticket found in PR title or branch; using BACKPORT_$PR_NUMBER for unannotated targets"
+            TICKET="BACKPORT_$PR_NUMBER"
+          fi
+
+          # Each matrix entry carries its own branch and ticket. Keep the old
+          # shorthand and source-ticket fallback for unannotated targets.
+          TARGET_JSON=()
+          declare -A SEEN_BRANCHES=()
           for v in "${CLEAN_LIST[@]}"; do
-            if echo "$v" | grep -qiE '^(dummy_)?develop$'; then
-              b=$(echo "$v" | tr '[:upper:]' '[:lower:]')
+            target="$v"
+            ticket_override=""
+            if [[ "$v" == *'('* || "$v" == *')'* ]]; then
+              if [[ "$v" =~ ^([^()]*)\((RDKEMW-[0-9]+)\)$ ]]; then
+                target=$(echo "${BASH_REMATCH[1]}" | xargs)
+                ticket_override="${BASH_REMATCH[2]}"
+              else
+                echo "❌ Invalid target ticket in '$v' (expected branch(RDKEMW-12345))"
+                exit 1
+              fi
+            fi
+
+            if echo "$target" | grep -qiE '^(dummy_)?develop$'; then
+              b=$(echo "$target" | tr '[:upper:]' '[:lower:]')
               echo "✅ Target mapped: '$v' → branch: $b"
-            elif echo "$v" | grep -qiE '^(support|release)/'; then
+            elif echo "$target" | grep -qiE '^(support|release)/'; then
               # Already a full branch path (e.g. "support/8.6.3.0") — use as-is.
-              b="$v"
+              b="$target"
               echo "✅ Branch path accepted: '$v' → branch: $b"
-            elif echo "$v" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?$'; then
+            elif echo "$target" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?$'; then
               # Map 3-part versions to support/X.Y.Z.0 for compatibility
-              IFS='.' read -ra PARTS <<< "$v"
+              IFS='.' read -ra PARTS <<< "$target"
               LEADING_ZERO=false
               for PART in "${PARTS[@]}"; do
                 if [[ "$PART" =~ ^0[0-9]+ ]]; then
@@ -146,43 +170,36 @@ jobs:
                 exit 1
               fi
               if [ "${#PARTS[@]}" -eq 3 ]; then
-                b="support/${v}.0"
+                b="support/${target}.0"
               else
-                b="support/${v}"
+                b="support/${target}"
               fi
               echo "✅ Numeric version accepted: '$v' → branch: $b"
-            elif git ls-remote --exit-code --heads origin "$v" > /dev/null 2>&1; then
+            elif git ls-remote --exit-code --heads origin "$target" > /dev/null 2>&1; then
               # Fallback: doesn't match any known shorthand, but an exact branch
               # with this name already exists on origin — accept it literally.
-              b="$v"
+              b="$target"
               echo "✅ Existing branch accepted as-is: '$v' → branch: $b"
             else
               echo "❌ Invalid backport_to value: '$v'"
               echo "   Allowed values: 'none', 'develop', support/release paths, semantic numeric like 8.3.4 or 8.3.4.0, or an existing branch name"
               exit 1
             fi
-            SUPPORT_BRANCHES+=("$b")
+            if [[ -v SEEN_BRANCHES[$b] ]]; then
+              if [ "${SEEN_BRANCHES[$b]}" != "$ticket_override" ]; then
+                echo "❌ Conflicting ticket annotations for target '$b'"
+                exit 1
+              fi
+              echo "ℹ️  Duplicate target '$b' ignored"
+              continue
+            fi
+            SEEN_BRANCHES[$b]="$ticket_override"
+            target_ticket="${ticket_override:-$TICKET}"
+            TARGET_JSON+=("$(jq -nc --arg branch "$b" --arg ticket "$target_ticket" '{support_branch:$branch,ticket:$ticket}')")
+            echo "✅ Ticket for $b: $target_ticket"
           done
 
-          BRANCHES_JSON=$(printf '%s\n' "${SUPPORT_BRANCHES[@]}" | sort -u | jq -R . | jq -sc .)
-          
-          # ── Extract and validate ticket (prefer PR title, then branch, then fallback) ─────────
-          TICKET=$(echo "$PR_TITLE" | grep -oE '[A-Z]+-[0-9]+' | head -1 || true)
-
-          if [ -z "$TICKET" ]; then
-            TICKET=$(echo "$PR_BRANCH" | grep -oE '[A-Z]+-[0-9]+' | head -1 || true)
-            if [ -n "$TICKET" ]; then
-              echo "✅ Ticket extracted from branch name: $TICKET"
-            fi
-          else
-            echo "✅ Ticket extracted from PR title: $TICKET"
-          fi
-
-          if [ -z "$TICKET" ]; then
-            echo "⚠️  No ticket found in PR title or branch"
-            echo "   Using fallback: BACKPORT_$PR_NUMBER"
-            TICKET="BACKPORT_$PR_NUMBER"
-          fi
+          BRANCHES_JSON=$(printf '%s\n' "${TARGET_JSON[@]}" | jq -sc 'sort_by(.support_branch)')
           
           # ── Set outputs ────────────────────────────────────────────────────
           echo "skip=false"                       >> "$GITHUB_OUTPUT"
@@ -194,8 +211,8 @@ jobs:
           
           echo ""
           echo "┌─ BACKPORT PLAN ────────────────────────────────────────────────┐"
-          echo "│  Ticket          : $TICKET"
-          echo "│  Targets         : ${SUPPORT_BRANCHES[*]}"
+          echo "│  Source fallback : $TICKET"
+          echo "│  Targets/tickets : $BRANCHES_JSON"
           echo "│  Merge commit    : $MERGE_SHA"
           echo "└────────────────────────────────────────────────────────────────┘"
 
@@ -215,10 +232,10 @@ jobs:
       fail-fast: false
       max-parallel: 1
       matrix:
-        support_branch: ${{ fromJson(needs.parse.outputs.branches) }}
+        target: ${{ fromJson(needs.parse.outputs.branches) }}
     env:
-      SUPPORT_BRANCH: ${{ matrix.support_branch }}
-      TICKET:         ${{ needs.parse.outputs.ticket }}
+      SUPPORT_BRANCH: ${{ matrix.target.support_branch }}
+      TICKET:         ${{ matrix.target.ticket }}
       MERGE_SHA:      ${{ needs.parse.outputs.merge_sha }}
       PR_TITLE:       ${{ needs.parse.outputs.pr_title }}
       PR_URL:         ${{ needs.parse.outputs.pr_url }}
@@ -484,6 +501,7 @@ jobs:
           echo "============================================================"
           echo "Merge commit : $MERGE_SHA"
           echo "Target branch: $SUPPORT_BRANCH"
+          echo "Target ticket: $TICKET"
           echo "Feature branch: $FEATURE_BRANCH"
           echo ""
 
@@ -550,7 +568,9 @@ jobs:
           echo ""
           echo "Source: $FEATURE_BRANCH"
           echo "Target: $SUPPORT_BRANCH"
-          echo "Title : $PR_TITLE"
+          TITLE_NO_TICKET=$(printf '%s\n' "$PR_TITLE" | sed -E 's/^[[:space:]]*#[[:space:]]*//; s/^[A-Z]+-[0-9]+[[:space:]]*:[[:space:]]*//')
+          TITLE="${TICKET} : ${TITLE_NO_TICKET}"
+          echo "Title : $TITLE"
           echo ""
 
           echo "============================================================"
@@ -616,8 +636,9 @@ jobs:
             exit 0
           fi
 
-          # Use the original merged PR title for the backport PR
-          TITLE="${PR_TITLE}"
+          #Using Target ticket for the backport PR title
+          TITLE_NO_TICKET=$(printf '%s\n' "$PR_TITLE" | sed -E 's/^[[:space:]]*#[[:space:]]*//; s/^[A-Z]+-[0-9]+[[:space:]]*:[[:space:]]*//')
+          TITLE="${TICKET} : ${TITLE_NO_TICKET}"
 
           # Strip backport_to line from original PR body
           ORIGINAL_BODY_CLEAN=$(printf '%s' "$ORIGINAL_PR_BODY" | grep -viE '^\s*backport_to\s*:' || true)
