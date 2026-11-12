@@ -250,6 +250,26 @@ TEST_F(GDialAppExtendedTest, FileHelpers_WriteReadRemoveRoundTrip) {
     EXPECT_TRUE(gdial_app_remove_additional_dial_data_file(kAppName));
 }
 
+TEST_F(GDialAppExtendedTest, FileHelpers_RejectUnsafeApplicationNames) {
+    const char *unsafe_names[] = {
+        "../outside",
+        "safe/name",
+        "safe\\\\name",
+        "safe name",
+        nullptr
+    };
+
+    for (const char **name = unsafe_names; *name; ++name) {
+        gchar *out = nullptr;
+        size_t out_len = 0;
+        EXPECT_FALSE(gdial_app_write_additional_dial_data(*name, "x", 1));
+        EXPECT_FALSE(gdial_app_read_additional_dial_data(*name, &out, &out_len));
+        EXPECT_FALSE(gdial_app_remove_additional_dial_data_file(*name));
+        EXPECT_EQ(out, nullptr);
+        EXPECT_EQ(out_len, 0u);
+    }
+}
+
 TEST_F(GDialAppExtendedTest, StateResponseNew_GeneratesXml) {
     int len = 0;
     app->state = GDIAL_APP_STATE_RUNNING;

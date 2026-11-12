@@ -25,6 +25,7 @@
 #include <assert.h>
 #include <chrono>
 #include <unordered_map>
+#include <mutex>
 #include "gdialservicelogging.h"
 
 enum AppCacheErrorCodes {
@@ -56,6 +57,7 @@ class GDialObjectCacheHelper
 public:
     GDialObjectCacheHelper(){ }
     ~GDialObjectCacheHelper() {
+        std::lock_guard<std::mutex> lock(objectsMutex);
         for (auto& entry : objects) {
             if (entry.second)
             {
@@ -65,22 +67,25 @@ public:
         }
     }
 
-    AppInfo* findObject(const std::string& appName) const
+    bool findObject(const std::string& appName, AppInfo& entry) const
     {
         GDIAL_LOGTRACE("Entering ...");
+        std::lock_guard<std::mutex> lock(objectsMutex);
         auto it = objects.find(appName);
-        if (it != objects.end())
+        if (it != objects.end() && it->second)
         {
+            entry = *it->second;
             GDIAL_LOGTRACE("Exiting ...");
-            return it->second;
+            return true;
         }
         GDIAL_LOGTRACE("Exiting ...");
-        return nullptr;
+        return false;
     }
 
     AppCacheErrorCodes insert(std::string id, AppInfo* entry)
     {
         GDIAL_LOGTRACE("Entering ...");
+        std::lock_guard<std::mutex> lock(objectsMutex);
         AppCacheErrorCodes returnValue = AppCacheError_NULL_ENTRY;
         if (nullptr != entry)
         {
@@ -102,6 +107,7 @@ public:
     {
         AppCacheErrorCodes returnValue = AppCacheError_NOT_FOUND;
         GDIAL_LOGTRACE("Entering [%s]...",appname.c_str());
+        std::lock_guard<std::mutex> lock(objectsMutex);
         auto it = objects.find(appname);
         if (it != objects.end())
         {
@@ -117,6 +123,7 @@ public:
     {
         AppCacheErrorCodes returnValue = AppCacheError_NOT_FOUND;
         GDIAL_LOGTRACE("Entering ...");
+        std::lock_guard<std::mutex> lock(objectsMutex);
         auto it = objects.find(appname);
         if (it != objects.end())
         {
@@ -129,5 +136,6 @@ public:
     }
 private:
     std::unordered_map<std::string, AppInfo*> objects;
+    mutable std::mutex objectsMutex;
 };
 #endif
