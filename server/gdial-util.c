@@ -96,7 +96,7 @@ gboolean gdial_util_is_ascii_printable(const gchar *data, gsize length) {
 }
 
 /*
- * A hashtable copy function that only works with string hash tables
+ * A hashtable copy funct ion that only works with string hash tables
  */
 GHashTable * gdial_util_str_str_hashtable_dup(const GHashTable *src) {
   g_return_val_if_fail(src, NULL);
