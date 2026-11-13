@@ -26,8 +26,8 @@
 #include <glib.h>
 
 #include "Module.h"
-#include <core.h>
-#include <plugins.h>
+#include <core/core.h>
+#include <plugins/plugins.h>
 #include <json/JsonData_Netflix.h>
 #include <json/JsonData_StateControl.h>
 #include <com/Ids.h>

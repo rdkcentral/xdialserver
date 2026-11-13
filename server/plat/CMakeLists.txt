@@ -44,6 +44,25 @@ foreach (deplib ${GDIAL_PLAT_DEPEND_LIBRARIES})
 endforeach(deplib)
 configure_file ("${GDIAL_PLAT_PC_FILENAME}.in" "${GDIAL_PLAT_PC_FILENAME}" @ONLY)
 
+if(DEFINED ENV{PKG_CONFIG_SYSROOT_DIR})
+  list(APPEND CMAKE_PREFIX_PATH "$ENV{PKG_CONFIG_SYSROOT_DIR}/usr")
+endif()
+
+find_package(Thunder CONFIG QUIET)
+
+if (NOT Thunder_FOUND)
+    find_package(WPEFramework CONFIG QUIET)
+    if(NOT WPEFramework_FOUND)
+        message(FATAL_ERROR "Neither Thunder nor WPEFramework found in sysroot")
+    endif()
+    add_compile_definitions(Thunder=WPEFramework)
+endif()
+
+find_package(${NAMESPACE}Core CONFIG REQUIRED)
+find_package(${NAMESPACE}Definitions CONFIG REQUIRED)
+find_package(${NAMESPACE}COM CONFIG REQUIRED)
+find_package(${NAMESPACE}Plugins CONFIG REQUIRED)
+
 #
 # Build target library
 #
@@ -52,10 +71,7 @@ include_directories(
   ${PROJECT_SOURCE_DIR}/include
   ${PROJECT_SOURCE_DIR}/plat
   ${CMAKE_CURRENT_SOURCE_DIR}
-  $ENV{PKG_CONFIG_SYSROOT_DIR}/usr/include/Thunder
-  $ENV{PKG_CONFIG_SYSROOT_DIR}/usr/include/Thunder/core/
-  $ENV{PKG_CONFIG_SYSROOT_DIR}/usr/include/Thunder/plugins/
-  $ENV{PKG_CONFIG_SYSROOT_DIR}/usr/include/Thunder/interfaces/
+  $ENV{PKG_CONFIG_SYSROOT_DIR}/usr/include/${NAMESPACE}/interfaces
   $ENV{PKG_CONFIG_SYSROOT_DIR}/usr/include/rdk/iarmbus/
   $ENV{PKG_CONFIG_SYSROOT_DIR}/usr/include/rdk/iarmmgrs-hal/
 )
@@ -75,8 +91,17 @@ if(PLATFORM)
 endif()
 
 add_library(gdial-plat SHARED ${GDIAL_PLAT_LIB_SOURCE_FILES})
-if(DISABLE_SECURITY_TOKEN)
-  target_link_Libraries(gdial-plat PRIVATE ${GLIB_LIBRARIES} ${GOBJECT_LIBRARIES} -lpthread -lThunderCore -lThunderDefinitions -lThunderCOM -lThunderPlugins -lIARMBus -luuid)
-else()
-  target_link_libraries(gdial-plat PRIVATE ${GLIB_LIBRARIES} ${GOBJECT_LIBRARIES} -lpthread -lThunderCore -lThunderDefinitions -lThunderCOM -lThunderPlugins -lThunderSecurityUtil -lIARMBus -luuid)
+
+target_link_Libraries(gdial-plat PRIVATE 
+    ${GLIB_LIBRARIES} 
+    ${GOBJECT_LIBRARIES} 
+    -lpthread
+    ${NAMESPACE}Core::${NAMESPACE}Core 
+    ${NAMESPACE}Definitions::${NAMESPACE}Definitions
+    ${NAMESPACE}COM::${NAMESPACE}COM 
+    ${NAMESPACE}Plugins::${NAMESPACE}Plugins 
+    -lIARMBus -luuid)
+
+if(NOT DISABLE_SECURITY_TOKEN)
+  target_link_libraries(gdial-plat PRIVATE -l${NAMESPACE}SecurityUtil)
 endif()
