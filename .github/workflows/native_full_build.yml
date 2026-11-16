@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: [ main, 'sprint/**', 'release/**', topic/*, develop ]
 
+permissions:
+  contents: read
+
 jobs:
   build-entservices-on-pr:
     name: Build xdialserver component in github rdkcentral

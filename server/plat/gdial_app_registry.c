@@ -19,6 +19,10 @@
  * limitations under the License.
  */
 
+#include <errno.h>
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <unistd.h>
 #include <uuid/uuid.h>
 #include <gdial_app_registry.h>
 #include "gdialservicelogging.h"
@@ -108,11 +112,24 @@ GDialAppRegistry* gdial_app_registry_new (const gchar *app_name, const GList *ap
     uuid_unparse(random_uuid, uuid_data);
     GDIAL_LOGINFO("generated uuid:[%s]", uuid_data);
 
-    fuuid = fopen(app_uuid_file_path, "w");
-    if (fuuid != NULL)
+    int fd = open(app_uuid_file_path, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
+    if (fd >= 0)
     {
+      fuuid = fdopen(fd, "w");
+      if (fuuid != NULL)
+      {
         fprintf(fuuid, "%s", uuid_data);
         fclose(fuuid);
+      }
+      else
+      {
+        GDIAL_LOGERROR("Failed to open UUID stream for %s: %s", app_uuid_file_path, g_strerror(errno));
+        close(fd);
+      }
+    }
+    else
+    {
+      GDIAL_LOGERROR("Failed to open UUID file %s for writing: %s", app_uuid_file_path, g_strerror(errno));
     }
   }
   else

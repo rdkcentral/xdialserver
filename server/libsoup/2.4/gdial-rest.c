@@ -496,14 +496,6 @@ static void gdial_rest_server_handle_POST(GDialRestServer *gdial_rest_server, So
     free(additional_data_url_safe);
     g_free(additional_data_url);
   }
-  else {
-    /*
-     * start_error = NONE;
-     * app exist, and could be in hidden state, so resume;
-     */
-    /* coverity[deadcode : FALSE] */
-    start_error = gdial_app_start(app, NULL, NULL, NULL, gdial_rest_server);
-  }
 
   /*
    * The app start could be asyn, thus app->state may not have changed
@@ -534,11 +526,6 @@ static void gdial_rest_server_handle_POST(GDialRestServer *gdial_rest_server, So
         GDIAL_LOGINFO("POST request payload = [%s]", msg->request_body->data);
         gdial_app_set_launch_payload(app, msg->request_body->data);
       }
-    }
-    else {
-      /* marking as intended */
-      /* coverity[deadcode : FALSE] */
-      soup_message_set_status(msg, SOUP_STATUS_OK);
     }
   }
   else {
