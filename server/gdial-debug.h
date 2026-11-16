@@ -21,6 +21,7 @@
 #define GDIAL_DEBUG_H_
 
 #include <glib.h>
+#include <time.h>
 #include "gdialservicelogging.h"
 
 G_BEGIN_DECLS
@@ -47,10 +48,15 @@ if ((avg) > 0) {\
 
 #define g_print_with_timestamp(format, ...)\
 {\
-  static gchar timestamp_[128] = {0};\
+  gchar timestamp_[128] = {0};\
+  struct tm local_time_;\
   time_t t;\
   t = time(NULL);\
-  strftime(timestamp_, sizeof(timestamp_), "%FT%T", localtime(&t));\
+  if (localtime_r(&t, &local_time_) == NULL ||\
+      strftime(timestamp_, sizeof(timestamp_), "%FT%T", &local_time_) == 0) {\
+    GDIAL_LOGWARNING("Failed to format local timestamp");\
+    g_strlcpy(timestamp_, "unavailable", sizeof(timestamp_));\
+  }\
   GDIAL_LOGINFO("[%s] "format, timestamp_, __VA_ARGS__);\
 }
 

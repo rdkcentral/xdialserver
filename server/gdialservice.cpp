@@ -21,6 +21,11 @@
 #include <signal.h>
 #include <string.h>
 #include <stdio.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <new>
 #include <mutex>
 #include <condition_variable>
 #include <glib.h>
@@ -390,11 +395,24 @@ int gdialServiceImpl::start_GDialServer(int argc, char *argv[])
             uuid_generate_random(random_uuid);
             uuid_unparse(random_uuid, uuid_str);
             GDIAL_LOGINFO("generated uuid_str  :%s", uuid_str);
-            fuuid = fopen(UUID_FILE_PATH, "w");
-            if (fuuid != NULL)
+            int fd = open(UUID_FILE_PATH, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
+            if (fd >= 0)
             {
-                fprintf(fuuid, "%s", uuid_str);
-                fclose(fuuid);
+                fuuid = fdopen(fd, "w");
+                if (fuuid != NULL)
+                {
+                    fprintf(fuuid, "%s", uuid_str);
+                    fclose(fuuid);
+                }
+                else
+                {
+                    GDIAL_LOGERROR("Failed to open UUID stream for %s: %s", UUID_FILE_PATH, g_strerror(errno));
+                    close(fd);
+                }
+            }
+            else
+            {
+                GDIAL_LOGERROR("Failed to open UUID file %s for writing: %s", UUID_FILE_PATH, g_strerror(errno));
             }
         }
         else
@@ -926,8 +944,8 @@ gdialService* gdialService::getInstance(GDialNotifier* observer, const std::vect
                 **backup_argv = nullptr;
         bool    isAllocated = true;
 
-        argv = new char*[overall_argc];
-        backup_argv = new char*[overall_argc];
+        argv = new (std::nothrow) char*[overall_argc]();
+        backup_argv = new (std::nothrow) char*[overall_argc]();
 
         if (( nullptr == argv ) || ( nullptr == backup_argv ))
         {
@@ -950,7 +968,7 @@ gdialService* gdialService::getInstance(GDialNotifier* observer, const std::vect
                 }
             }
 
-            argv[0] = new char[process_name.size() + 1];
+            argv[0] = new (std::nothrow) char[process_name.size() + 1];
             if (nullptr == argv[0])
             {
                 GDIAL_LOGERROR("Failed to allocate memory");
@@ -966,7 +984,7 @@ gdialService* gdialService::getInstance(GDialNotifier* observer, const std::vect
 
                 for (int i = 0; i < input_argc; ++i)
                 {
-                    argv[i+1] = new char[gdial_args[i].size() + 1];
+                    argv[i+1] = new (std::nothrow) char[gdial_args[i].size() + 1];
                     backup_argv[i+1] = argv[i+1];
                     if (nullptr == argv[i+1])
                     {

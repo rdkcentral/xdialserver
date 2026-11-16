@@ -70,7 +70,7 @@ public:
         GDIAL_LOGTRACE("Entering ...");
         GDialErrorCode reterror = GDIAL_CAST_ERROR_INTERNAL;
         AppInfo* AppObj = new AppInfo(applicationName,applicationId,state,error);
-        if ((nullptr != AppObj) && (nullptr != AppCache))
+        if (nullptr != AppCache)
         {
             GDIAL_LOGINFO("AppName[%s] AppID[%s] State[%s] Error[%s]",
                             AppObj->appName.c_str(),
@@ -82,14 +82,11 @@ public:
                 reterror = GDIAL_CAST_ERROR_NONE;
             }
         }
-		else
-		{
-			if (nullptr != AppObj)
-			{
-				delete AppObj;
-				AppObj = nullptr;
-			}
-		}
+        else
+        {
+            delete AppObj;
+            AppObj = nullptr;
+        }
         GDIAL_LOGTRACE("Exiting ...");
         return reterror;
     }
