@@ -1231,7 +1231,9 @@ gboolean gdial_rest_server_unregister_all_apps(GDialRestServer *self) {
     GDialAppRegistry *app_registry = priv->registered_apps->data;
     GDialApp *app = gdial_app_find_instance_by_name(app_registry->name);
     if (app) {
-      if (gdial_app_stop(app) == GDIAL_APP_ERROR_NONE) {
+      if (strcmp(app->name, "system") == 0) {
+        gdial_app_force_shutdown(app);
+      } else if (gdial_app_stop(app) == GDIAL_APP_ERROR_NONE) {
         g_warn_if_fail(gdial_app_state(app) == GDIAL_APP_ERROR_NONE && GDIAL_APP_GET_STATE(app) == GDIAL_APP_STATE_STOPPED);
       }
       else {
